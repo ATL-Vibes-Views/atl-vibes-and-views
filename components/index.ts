@@ -13,6 +13,11 @@ export {
   GuidePromoWidget,
 } from "./Sidebar";
 
+/* Interactive (client components) */
+export { SearchBar } from "./SearchBar";
+export { SaveButton } from "./SaveButton";
+export { NewsletterForm } from "./NewsletterForm";
+
 /* UI */
 export { Button } from "./ui/Button";
 export { StoryCard } from "./ui/StoryCard";
