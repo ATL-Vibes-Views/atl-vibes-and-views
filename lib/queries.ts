@@ -135,6 +135,19 @@ export async function getBlogPostBySlug(
   return data as BlogPostWithAuthor | null;
 }
 
+export async function getBlogPostById(
+  id: string
+): Promise<BlogPostWithAuthor | null> {
+  const { data, error } = await sb()
+    .from("blog_posts")
+    .select("*, authors(*), categories(*)")
+    .eq("id", id)
+    .eq("status", "published")
+    .single();
+  if (error && error.code !== "PGRST116") throw error;
+  return data as BlogPostWithAuthor | null;
+}
+
 /* ============================================================
    BUSINESS LISTINGS
    ============================================================ */
@@ -273,6 +286,17 @@ export async function getCategories(opts?: {
   return data ?? [];
 }
 
+export async function getCategoryBySlug(slug: string): Promise<Category | null> {
+  const { data, error } = await sb()
+    .from("categories")
+    .select("*")
+    .eq("slug", slug)
+    .eq("is_active", true)
+    .single();
+  if (error && error.code !== "PGRST116") throw error;
+  return data;
+}
+
 /* ============================================================
    CITIES
    ============================================================ */
@@ -314,6 +338,28 @@ export async function getStories(opts?: {
   const { data, error } = await q;
   if (error) throw error;
   return data ?? [];
+}
+
+/* ============================================================
+   FEATURED SLOTS
+   ============================================================ */
+
+export async function getFeaturedSlot(
+  placementKey: string
+): Promise<{ entity_type: string; entity_id: string } | null> {
+  const today = new Date().toISOString().split("T")[0];
+  const { data, error } = await sb()
+    .from("featured_slots")
+    .select("entity_type, entity_id")
+    .eq("placement_key", placementKey)
+    .eq("is_active", true)
+    .or(`start_date.is.null,start_date.lte.${today}`)
+    .or(`end_date.is.null,end_date.gte.${today}`)
+    .order("sort_order")
+    .limit(1)
+    .returns<{ entity_type: string; entity_id: string }[]>();
+  if (error) throw error;
+  return data?.[0] ?? null;
 }
 
 /* ============================================================
