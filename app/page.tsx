@@ -288,7 +288,7 @@ export default async function HomePage({
           {/* Section header */}
           <div className="flex items-end justify-between mb-10 border-b border-white/10 pb-4">
             <div>
-              <span className="text-[#c1121f] text-[11px] font-semibold uppercase tracking-eyebrow">
+              <span className="text-white text-[11px] font-semibold uppercase tracking-eyebrow">
                 Watch &amp; Listen
               </span>
               <h2 className="font-display text-3xl md:text-4xl font-semibold text-white leading-tight mt-1">
@@ -323,7 +323,7 @@ export default async function HomePage({
                 </div>
               </div>
               <div className="mt-5">
-                <span className="text-[#c1121f] text-[10px] font-semibold uppercase tracking-eyebrow">
+                <span className="text-white text-[10px] font-semibold uppercase tracking-eyebrow">
                   News
                 </span>
                 <h3 className="font-display text-xl md:text-2xl font-semibold text-white mt-3 leading-snug">
@@ -366,7 +366,7 @@ export default async function HomePage({
                       </div>
                     </div>
                     <div className="flex-1 min-w-0">
-                      <span className="text-[10px] font-semibold uppercase tracking-eyebrow text-[#c1121f]">
+                      <span className="text-[10px] font-semibold uppercase tracking-eyebrow text-white">
                         {item.category}
                       </span>
                       <h4 className="text-white text-sm font-semibold leading-snug mt-1 line-clamp-2 group-hover:text-[#fee198] transition-colors">
