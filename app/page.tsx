@@ -7,6 +7,8 @@ import {
   AdPlacement,
   NeighborhoodsWidget,
   SubmitCTA,
+  SocialFollowWidget,
+  SubmitEventCTA,
 } from "@/components/Sidebar";
 import { SaveButton } from "@/components/SaveButton";
 import { SearchBar } from "@/components/SearchBar";
@@ -23,17 +25,15 @@ import {
 } from "@/lib/queries";
 
 /* ============================================================
-   HOMEPAGE — Server Component
+   HOMEPAGE — Server Component — LOCKED SECTION ORDER
 
-   LOCKED LOGIC (do not modify without updating spec):
-   A) Hero: featured_slot "home_hero" → featured+published → latest
-   B) Editor's Picks (3): is_featured=true blogs, fill from latest if <3
-   C) Businesses (3): category = Dining (slug lookup, no hardcoded ID)
-   D) Events (6): upcoming published, no category filter; <3 → CTA
-   E) Development (3): category name = "Development"; 0 → latest + relabel
-   F) Sidebar neighborhoods: DB featured → curated fallback
-   G) Search: always render; 0 results → "No results" + links
-
+   1. Featured Stories (hero) — desktop as-is, mobile responsive
+   2. Search bar — below hero
+   3. Editor's Picks + Interactive Map + Sidebar A
+   4. Video module "Watch & Listen" — full-width black page break
+   5. Where Atlanta Is Eating + Ad + Events + Newsletter CTA + Sidebar B
+   
+   DELETED: Development section
    DEDUP: No item appears on the page twice.
    ============================================================ */
 
@@ -51,18 +51,16 @@ export default async function HomePage({
   /* ==========================================================
      DATA FETCHING
      ========================================================== */
-
-  // Lookup Dining category by slug (not hardcoded ID)
   const diningCat = await getCategoryBySlug("dining").catch(() => null);
 
   const [
     heroSlot,
-    featuredPosts,       // B) is_featured blogs
-    latestPosts,         // B fallback + E fallback
-    diningBusinesses,    // C) businesses in Dining category
-    upcomingEvents,      // D) upcoming events
-    areas,               // Explore Atlanta
-    dbNeighborhoods,     // F) sidebar
+    featuredPosts,
+    latestPosts,
+    diningBusinesses,
+    upcomingEvents,
+    areas,
+    dbNeighborhoods,
   ] = await Promise.all([
     search ? Promise.resolve(null) : getFeaturedSlot("home_hero").catch(() => null),
     getBlogPosts({ featured: true, limit: 6, search }),
@@ -76,30 +74,21 @@ export default async function HomePage({
   ]);
 
   /* ==========================================================
-     GLOBAL DEDUP — track used post IDs across all sections
+     GLOBAL DEDUP
      ========================================================== */
   const usedPostIds = new Set<string>();
 
-  /* ----------------------------------------------------------
-     A) HERO: slot → featured → latest
-     ---------------------------------------------------------- */
+  /* --- A) HERO --- */
   let heroPost = featuredPosts[0] ?? latestPosts[0] ?? null;
-
   if (heroSlot?.entity_type === "blog_post") {
     const slotPost = await getBlogPostById(heroSlot.entity_id).catch(() => null);
     if (slotPost) heroPost = slotPost;
   }
-
   if (heroPost) usedPostIds.add(heroPost.id);
 
-  /* ----------------------------------------------------------
-     B) EDITOR'S PICKS: is_featured=true, fill from latest, max 3
-     DEDUP: exclude hero
-     ---------------------------------------------------------- */
+  /* --- B) EDITOR'S PICKS: is_featured, fill from latest, max 3 --- */
   const featuredOnly = featuredPosts.filter((p) => !usedPostIds.has(p.id));
   const editorsPicks = featuredOnly.slice(0, 3);
-
-  // Fill from latest if we have fewer than 3 featured
   if (editorsPicks.length < 3) {
     const needed = 3 - editorsPicks.length;
     const pickIds = new Set(editorsPicks.map((p) => p.id));
@@ -108,48 +97,21 @@ export default async function HomePage({
       .slice(0, needed);
     editorsPicks.push(...fill);
   }
-
-  // Mark picks as used
   editorsPicks.forEach((p) => usedPostIds.add(p.id));
 
-  /* ----------------------------------------------------------
-     C) BUSINESSES: Dining category (no generic pull)
-     ---------------------------------------------------------- */
+  /* --- C) BUSINESSES: Dining category --- */
   const businesses = diningBusinesses;
 
-  /* ----------------------------------------------------------
-     D) EVENTS: upcoming published, soonest first (no category filter)
-     ---------------------------------------------------------- */
-  const events = upcomingEvents;
+  /* --- D) EVENTS: featured first, fallback to most recent 3 --- */
+  const featuredEvents = upcomingEvents.filter((e) => e.is_featured);
+  const nonFeaturedEvents = upcomingEvents.filter((e) => !e.is_featured);
+  const events =
+    featuredEvents.length > 0
+      ? [...featuredEvents, ...nonFeaturedEvents].slice(0, 3)
+      : upcomingEvents.slice(0, 3);
   const showEventCTA = events.length < 3;
 
-  /* ----------------------------------------------------------
-     E) DEVELOPMENT: category name = "Development"
-     DEDUP: exclude hero + editor's picks
-     ---------------------------------------------------------- */
-  const devPosts = latestPosts
-    .filter(
-      (p) =>
-        !usedPostIds.has(p.id) &&
-        p.categories?.name?.toLowerCase() === "development"
-    )
-    .slice(0, 3);
-
-  // Fallback: latest posts not already used
-  const devFallback = latestPosts
-    .filter((p) => !usedPostIds.has(p.id))
-    .slice(0, 3);
-
-  const developmentPosts = devPosts.length > 0 ? devPosts : devFallback;
-  const developmentLabel = devPosts.length > 0 ? "Development" : "Latest Stories";
-  const developmentTitle = devPosts.length > 0 ? "Building Atlanta" : "More Stories";
-
-  // Mark dev posts as used (for future sections if any)
-  developmentPosts.forEach((p) => usedPostIds.add(p.id));
-
-  /* ----------------------------------------------------------
-     F) SIDEBAR NEIGHBORHOODS: DB featured → curated fallback
-     ---------------------------------------------------------- */
+  /* --- F) SIDEBAR NEIGHBORHOODS --- */
   const curatedFallback = [
     { name: "Virginia-Highland", slug: "virginia-highland" },
     { name: "Inman Park", slug: "inman-park" },
@@ -163,9 +125,7 @@ export default async function HomePage({
       ? dbNeighborhoods.map((n) => ({ name: n.name, slug: n.slug }))
       : curatedFallback;
 
-  /* ----------------------------------------------------------
-     G) SEARCH: total hit count
-     ---------------------------------------------------------- */
+  /* --- G) SEARCH --- */
   const totalResults = search
     ? latestPosts.length + businesses.length + events.length
     : -1;
@@ -175,7 +135,53 @@ export default async function HomePage({
      ========================================================== */
   return (
     <>
-      {/* ==================== SEARCH BAR (G) ==================== */}
+      {/* ==================== 1. HERO ==================== */}
+      {heroPost ? (
+        <section className="relative w-full">
+          <Link href={`/stories/${heroPost.slug}`} className="block relative group">
+            <div className="relative w-full h-[50vh] sm:h-[60vh] md:h-[80vh] overflow-hidden">
+              <Image
+                src={heroPost.featured_image_url || ph("Featured Story", 1920, 900)}
+                alt={heroPost.title}
+                fill
+                unoptimized
+                className="object-cover group-hover:scale-105 transition-transform duration-700"
+                priority
+                sizes="100vw"
+              />
+              <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/30 to-transparent" />
+            </div>
+            <div className="absolute inset-0 flex flex-col items-center justify-center text-center px-6 md:px-20">
+              {heroPost.categories?.name && (
+                <span className="inline-block px-5 py-1.5 bg-gold-light text-black text-[10px] font-semibold uppercase tracking-eyebrow rounded-full mb-5">
+                  {heroPost.categories.name}
+                </span>
+              )}
+              <h1 className="font-display text-2xl sm:text-3xl md:text-5xl lg:text-6xl font-semibold text-white max-w-5xl leading-tight italic">
+                {heroPost.title}
+              </h1>
+              <p className="text-white/50 text-xs sm:text-sm mt-4 sm:mt-5 uppercase tracking-wide">
+                {heroPost.authors?.name ? `By ${heroPost.authors.name}` : "ATL Vibes & Views"}
+                {heroPost.published_at &&
+                  ` · ${new Date(heroPost.published_at).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })}`}
+              </p>
+            </div>
+          </Link>
+        </section>
+      ) : (
+        <section className="relative w-full h-[50vh] sm:h-[60vh] md:h-[80vh] bg-[#1a1a1a] flex items-center justify-center">
+          <div className="text-center px-6">
+            <h1 className="font-display text-2xl sm:text-3xl md:text-5xl font-semibold text-white italic mb-4">
+              ATL Vibes &amp; Views
+            </h1>
+            <p className="text-white/50 text-xs sm:text-sm uppercase tracking-wide">
+              The City. The Culture. The Conversation.
+            </p>
+          </div>
+        </section>
+      )}
+
+      {/* ==================== 2. SEARCH BAR (below hero) ==================== */}
       <div className="site-container pt-6 pb-2">
         <SearchBar
           placeholder="Search stories, businesses, events, neighborhoods…"
@@ -188,59 +194,14 @@ export default async function HomePage({
         )}
       </div>
 
-      {/* ==================== HERO (A) ==================== */}
-      {heroPost ? (
-        <section className="relative w-full">
-          <Link href={`/stories/${heroPost.slug}`} className="block relative group">
-            <div className="relative w-full h-[60vh] md:h-[80vh] overflow-hidden">
-              <Image
-                src={heroPost.featured_image_url || ph("Featured Story", 1920, 900)}
-                alt={heroPost.title}
-                fill
-                unoptimized
-                className="object-cover group-hover:scale-105 transition-transform duration-700"
-                priority
-              />
-              <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/30 to-transparent" />
-            </div>
-            <div className="absolute inset-0 flex flex-col items-center justify-center text-center px-6 md:px-20">
-              {heroPost.categories?.name && (
-                <span className="inline-block px-5 py-1.5 bg-gold-light text-black text-[10px] font-semibold uppercase tracking-eyebrow rounded-full mb-5">
-                  {heroPost.categories.name}
-                </span>
-              )}
-              <h1 className="font-display text-3xl md:text-5xl lg:text-6xl font-semibold text-white max-w-5xl leading-tight italic">
-                {heroPost.title}
-              </h1>
-              <p className="text-white/50 text-sm mt-5 uppercase tracking-wide">
-                {heroPost.authors?.name ? `By ${heroPost.authors.name}` : "ATL Vibes & Views"}
-                {heroPost.published_at &&
-                  ` · ${new Date(heroPost.published_at).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })}`}
-              </p>
-            </div>
-          </Link>
-        </section>
-      ) : (
-        <section className="relative w-full h-[60vh] md:h-[80vh] bg-[#1a1a1a] flex items-center justify-center">
-          <div className="text-center px-6">
-            <h1 className="font-display text-3xl md:text-5xl font-semibold text-white italic mb-4">
-              ATL Vibes &amp; Views
-            </h1>
-            <p className="text-white/50 text-sm uppercase tracking-wide">
-              The City. The Culture. The Conversation.
-            </p>
-          </div>
-        </section>
-      )}
-
-      {/* ==================== MAIN + SIDEBAR ==================== */}
-      <div className="site-container pt-20 pb-28 md:pt-28 md:pb-36">
+      {/* ==================== 3. EDITOR'S PICKS + MAP + SIDEBAR A ==================== */}
+      <div className="site-container pt-20 pb-16 md:pt-28 md:pb-20">
         <div className="grid grid-cols-1 lg:grid-cols-[1fr_340px] gap-12 lg:gap-16">
 
           {/* ---------- MAIN CONTENT ---------- */}
           <div className="space-y-28">
 
-            {/* ===== EDITOR'S PICKS (B) ===== */}
+            {/* ===== EDITOR'S PICKS ===== */}
             {editorsPicks.length > 0 ? (
               <section>
                 <SectionHeader eyebrow="Latest" title="Editor&rsquo;s Picks" href="/stories" />
@@ -282,7 +243,7 @@ export default async function HomePage({
               </section>
             ) : null}
 
-            {/* ===== EXPLORE ATLANTA ===== */}
+            {/* ===== INTERACTIVE MAP (no change) ===== */}
             <section>
               <SectionHeader eyebrow="Neighborhoods" title="Explore Atlanta" />
               <div className="relative overflow-hidden bg-[#f5f0eb] aspect-[16/7]">
@@ -301,27 +262,133 @@ export default async function HomePage({
               <div className="flex justify-center mt-6">
                 <Link
                   href="/areas"
-                  className="inline-flex items-center gap-2 px-6 py-3 bg-[#e6c46d] text-black text-xs font-semibold uppercase tracking-eyebrow rounded-full hover:bg-black hover:text-white transition-colors"
+                  className="inline-flex items-center gap-2 px-6 py-3 bg-[#fee198] text-black text-xs font-semibold uppercase tracking-eyebrow rounded-full hover:bg-black hover:text-[#fee198] transition-colors"
                 >
                   Explore All Areas <ArrowRight size={14} />
                 </Link>
               </div>
             </section>
+          </div>
 
-            {/* ===== VIDEO SECTION (placeholder) ===== */}
-            <section>
-              <SectionHeader eyebrow="Watch" title="Recent Video" subtitle="Stay up-to-date" href="/media" />
-              <div className="relative aspect-video bg-[#f5f0eb] overflow-hidden flex items-center justify-center">
-                <div className="text-center">
-                  <div className="w-20 h-20 rounded-full bg-white/90 flex items-center justify-center mx-auto mb-4">
-                    <Play size={28} className="text-black ml-1 fill-black" />
+          {/* ---------- SIDEBAR A ---------- */}
+          <aside className="hidden lg:block">
+            <Sidebar>
+              <NewsletterWidget />
+              <AdPlacement slot="sidebar_top" />
+              <NeighborhoodsWidget neighborhoods={sidebarNeighborhoods} />
+              <SubmitCTA />
+            </Sidebar>
+          </aside>
+        </div>
+      </div>
+
+      {/* ==================== 4. VIDEO MODULE — FULL-WIDTH BLACK PAGE BREAK ==================== */}
+      <section className="w-full bg-black py-16 md:py-24">
+        <div className="site-container">
+          {/* Section header */}
+          <div className="flex items-end justify-between mb-10 border-b border-white/10 pb-4">
+            <div>
+              <span className="text-[#c1121f] text-[11px] font-semibold uppercase tracking-eyebrow">
+                Watch &amp; Listen
+              </span>
+              <h2 className="font-display text-3xl md:text-4xl font-semibold text-white leading-tight mt-1">
+                Recent Video
+              </h2>
+            </div>
+            <Link
+              href="/media"
+              className="flex items-center gap-1 text-xs font-semibold uppercase tracking-eyebrow text-white/60 hover:text-[#fee198] transition-colors shrink-0 pb-1"
+            >
+              See All <ArrowRight size={14} />
+            </Link>
+          </div>
+
+          {/* 70/30 layout */}
+          <div className="grid grid-cols-1 lg:grid-cols-[1fr_340px] gap-10">
+
+            {/* LEFT — Featured Video (~70%) */}
+            <div>
+              <div className="relative aspect-video bg-[#111] overflow-hidden group cursor-pointer">
+                <Image
+                  src={ph("Featured Video", 960, 540, "222222", "e6c46d")}
+                  alt="Featured video"
+                  fill
+                  unoptimized
+                  className="object-cover group-hover:scale-105 transition-transform duration-500"
+                />
+                <div className="absolute inset-0 flex items-center justify-center">
+                  <div className="w-16 h-16 md:w-20 md:h-20 rounded-full bg-white/90 flex items-center justify-center group-hover:bg-white transition-colors">
+                    <Play size={24} className="text-black ml-1 fill-black" />
                   </div>
-                  <p className="text-gray-mid text-sm">Video content coming soon</p>
                 </div>
               </div>
-            </section>
+              <div className="mt-5">
+                <span className="px-3 py-1 bg-[#c1121f] text-white text-[10px] font-semibold uppercase tracking-eyebrow rounded-full">
+                  News
+                </span>
+                <h3 className="font-display text-xl md:text-2xl font-semibold text-white mt-3 leading-snug">
+                  Video Content Coming Soon
+                </h3>
+                <p className="text-white/40 text-xs mt-3 uppercase tracking-wide">
+                  ATL Vibes &amp; Views
+                </p>
+              </div>
+            </div>
 
-            {/* ===== WHERE ATLANTA IS EATING (C) ===== */}
+            {/* RIGHT — Video Playlist (~30%) */}
+            <div>
+              <Link
+                href="/media"
+                className="text-xs font-semibold uppercase tracking-eyebrow text-white/60 hover:text-[#fee198] transition-colors mb-6 block"
+              >
+                More Posts →
+              </Link>
+              <div className="space-y-5">
+                {[
+                  { category: "Fashion", title: "Atlanta's Emerging Fashion Scene" },
+                  { category: "News", title: "BeltLine Phase 3 Update" },
+                  { category: "Creative", title: "Local Artists Transforming Westside" },
+                  { category: "Food", title: "Street Food Markets to Try" },
+                ].map((item, i) => (
+                  <div key={i} className="flex gap-4 group cursor-pointer">
+                    <div className="relative w-28 h-20 shrink-0 bg-[#222] overflow-hidden">
+                      <Image
+                        src={ph(item.title, 160, 100, "333333", "e6c46d")}
+                        alt={item.title}
+                        fill
+                        unoptimized
+                        className="object-cover group-hover:scale-105 transition-transform duration-300"
+                      />
+                      <div className="absolute inset-0 flex items-center justify-center">
+                        <div className="w-7 h-7 rounded-full bg-white/80 flex items-center justify-center">
+                          <Play size={10} className="text-black ml-0.5 fill-black" />
+                        </div>
+                      </div>
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <span className="text-[10px] font-semibold uppercase tracking-eyebrow text-[#e6c46d]">
+                        {item.category}
+                      </span>
+                      <h4 className="text-white text-sm font-semibold leading-snug mt-1 line-clamp-2 group-hover:text-[#fee198] transition-colors">
+                        {item.title}
+                      </h4>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* ==================== 5. MAIN CONTENT + SIDEBAR B ==================== */}
+      <div className="site-container pt-20 pb-28 md:pt-28 md:pb-36">
+        <div className="grid grid-cols-1 lg:grid-cols-[1fr_340px] gap-12 lg:gap-16">
+
+          {/* ---------- MAIN CONTENT ---------- */}
+          <div className="space-y-28">
+
+            {/* ===== WHERE ATLANTA IS EATING (no change) ===== */}
             {businesses.length > 0 ? (
               <section>
                 <SectionHeader eyebrow="Eats & Drinks" title="Where Atlanta Is Eating" href="/hub/eats-and-drinks" />
@@ -374,7 +441,7 @@ export default async function HomePage({
                   </p>
                   <Link
                     href="/submit"
-                    className="inline-flex items-center gap-2 px-6 py-3 bg-black text-white text-xs font-semibold uppercase tracking-eyebrow rounded-full hover:bg-[#e6c46d] hover:text-black transition-colors"
+                    className="inline-flex items-center gap-2 px-6 py-3 bg-black text-white text-xs font-semibold uppercase tracking-eyebrow rounded-full hover:bg-[#fee198] hover:text-black transition-colors"
                   >
                     Get Listed <ArrowRight size={14} />
                   </Link>
@@ -382,7 +449,22 @@ export default async function HomePage({
               </section>
             )}
 
-            {/* ===== EVENTS (D) ===== */}
+            {/* ===== AD SPACE — horizontal ===== */}
+            <section>
+              <Link
+                href="/hub/businesses"
+                className="block bg-gray-100 flex items-center justify-center py-12 border border-dashed border-gray-300 hover:border-[#e6c46d] hover:bg-gray-50 transition-colors group"
+              >
+                <div className="text-center">
+                  <span className="text-xs text-gray-mid uppercase tracking-eyebrow group-hover:text-black transition-colors">
+                    Advertise Here
+                  </span>
+                  <p className="text-sm text-gray-400 mt-1">Reach thousands of Atlanta locals</p>
+                </div>
+              </Link>
+            </section>
+
+            {/* ===== EVENTS ===== */}
             <section>
               <SectionHeader eyebrow="Events" title="What&rsquo;s Happening" href="/hub/events" />
               {events.length > 0 ? (
@@ -445,7 +527,7 @@ export default async function HomePage({
                   </p>
                   <Link
                     href="/submit"
-                    className="inline-flex items-center gap-2 px-6 py-3 bg-black text-white text-xs font-semibold uppercase tracking-eyebrow rounded-full hover:bg-[#e6c46d] hover:text-black transition-colors"
+                    className="inline-flex items-center gap-2 px-6 py-3 bg-black text-white text-xs font-semibold uppercase tracking-eyebrow rounded-full hover:bg-[#fee198] hover:text-black transition-colors"
                   >
                     Submit Event <ArrowRight size={14} />
                   </Link>
@@ -453,84 +535,32 @@ export default async function HomePage({
               )}
             </section>
 
-            {/* ===== DEVELOPMENT / MORE STORIES (E) ===== */}
-            {developmentPosts.length > 0 && (
-              <section>
-                <SectionHeader eyebrow={developmentLabel} title={developmentTitle} href="/stories" />
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-10">
-                  {developmentPosts.map((post) => (
-                    <Link key={post.id} href={`/stories/${post.slug}`} className="group block">
-                      <div className="relative aspect-[4/3] overflow-hidden mb-5">
-                        <Image
-                          src={post.featured_image_url || ph(post.title)}
-                          alt={post.title}
-                          fill
-                          unoptimized
-                          className="object-cover group-hover:scale-105 transition-transform duration-500"
-                        />
-                      </div>
-                      <div className="flex items-center gap-2 mb-3">
-                        {post.categories?.name && (
-                          <span className="px-3 py-1 bg-gold-light text-black text-[10px] font-semibold uppercase tracking-eyebrow rounded-full">
-                            {post.categories.name}
-                          </span>
-                        )}
-                      </div>
-                      <h3 className="font-display text-xl md:text-2xl font-semibold text-black leading-snug group-hover:text-red-brand transition-colors">
-                        {post.title}
-                      </h3>
-                      {post.published_at && (
-                        <p className="text-gray-mid text-xs mt-3 uppercase tracking-wide">
-                          {new Date(post.published_at).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })}
-                        </p>
-                      )}
-                    </Link>
-                  ))}
-                </div>
-              </section>
-            )}
-
-            {/* ===== NO RESULTS (G) ===== */}
+            {/* ===== NO RESULTS ===== */}
             {search && totalResults === 0 && (
               <section className="text-center py-20">
                 <p className="text-gray-mid text-lg">No results found for &ldquo;{search}&rdquo;</p>
                 <p className="text-gray-mid/60 text-sm mt-2 mb-6">Try a different search term or browse below</p>
                 <div className="flex flex-wrap justify-center gap-4">
-                  <Link href="/stories" className="px-5 py-2 bg-black text-white text-xs font-semibold uppercase tracking-eyebrow rounded-full hover:bg-[#e6c46d] hover:text-black transition-colors">
+                  <Link href="/stories" className="px-5 py-2 bg-black text-white text-xs font-semibold uppercase tracking-eyebrow rounded-full hover:bg-[#fee198] hover:text-black transition-colors">
                     All Stories
                   </Link>
-                  <Link href="/hub/events" className="px-5 py-2 bg-black text-white text-xs font-semibold uppercase tracking-eyebrow rounded-full hover:bg-[#e6c46d] hover:text-black transition-colors">
+                  <Link href="/hub/events" className="px-5 py-2 bg-black text-white text-xs font-semibold uppercase tracking-eyebrow rounded-full hover:bg-[#fee198] hover:text-black transition-colors">
                     Events
                   </Link>
-                  <Link href="/hub/businesses" className="px-5 py-2 bg-black text-white text-xs font-semibold uppercase tracking-eyebrow rounded-full hover:bg-[#e6c46d] hover:text-black transition-colors">
+                  <Link href="/hub/businesses" className="px-5 py-2 bg-black text-white text-xs font-semibold uppercase tracking-eyebrow rounded-full hover:bg-[#fee198] hover:text-black transition-colors">
                     Businesses
                   </Link>
-                  <Link href="/areas" className="px-5 py-2 bg-black text-white text-xs font-semibold uppercase tracking-eyebrow rounded-full hover:bg-[#e6c46d] hover:text-black transition-colors">
+                  <Link href="/areas" className="px-5 py-2 bg-black text-white text-xs font-semibold uppercase tracking-eyebrow rounded-full hover:bg-[#fee198] hover:text-black transition-colors">
                     Areas
                   </Link>
                 </div>
               </section>
             )}
 
-            {/* ===== AD SPACE ===== */}
-            <section>
-              <Link
-                href="/hub/businesses"
-                className="block bg-gray-100 flex items-center justify-center py-12 border border-dashed border-gray-300 hover:border-[#e6c46d] hover:bg-gray-50 transition-colors group"
-              >
-                <div className="text-center">
-                  <span className="text-xs text-gray-mid uppercase tracking-eyebrow group-hover:text-black transition-colors">
-                    Advertise Here
-                  </span>
-                  <p className="text-sm text-gray-400 mt-1">Reach thousands of Atlanta locals</p>
-                </div>
-              </Link>
-            </section>
-
-            {/* ===== NEWSLETTER ===== */}
+            {/* ===== FINAL NEWSLETTER CTA ===== */}
             <section className="bg-[#f8f5f0] py-16 px-8 md:px-16 text-center">
               <h2 className="font-display text-3xl md:text-4xl font-bold text-black mb-2 italic">
-                The ATL Newsletter
+                Join The A-List Newsletter
               </h2>
               <p className="text-gray-mid text-sm mb-8">
                 Get the latest on Atlanta&rsquo;s culture, neighborhoods, and events.
@@ -540,13 +570,11 @@ export default async function HomePage({
             </section>
           </div>
 
-          {/* ---------- SIDEBAR (F) ---------- */}
+          {/* ---------- SIDEBAR B ---------- */}
           <aside className="hidden lg:block">
             <Sidebar>
-              <NewsletterWidget />
-              <AdPlacement slot="sidebar_top" />
-              <NeighborhoodsWidget neighborhoods={sidebarNeighborhoods} />
-              <SubmitCTA />
+              <SocialFollowWidget />
+              <SubmitEventCTA />
             </Sidebar>
           </aside>
         </div>
@@ -556,7 +584,7 @@ export default async function HomePage({
 }
 
 /* ============================================================
-   SECTION HEADER
+   SECTION HEADER — eyebrow uses #c1121f
    ============================================================ */
 function SectionHeader({
   eyebrow,
@@ -573,7 +601,7 @@ function SectionHeader({
     <div className="flex items-end justify-between mb-10 border-b border-gray-200 pb-4">
       <div className="flex items-baseline gap-4">
         <div>
-          <span className="text-red-brand text-[11px] font-semibold uppercase tracking-eyebrow">
+          <span className="text-[#c1121f] text-[11px] font-semibold uppercase tracking-eyebrow">
             {eyebrow}
           </span>
           <h2 className="font-display text-3xl md:text-4xl font-semibold text-black leading-tight mt-1">

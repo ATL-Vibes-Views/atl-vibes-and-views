@@ -258,10 +258,8 @@ export function Header() {
               </button>
             </div>
 
-            {/* Discover Atlanta */}
-            <div className="px-8 pt-6 pb-4">
-              <p className="text-white/50 text-sm">Discover Atlanta</p>
-            </div>
+            {/* Spacer */}
+            <div className="px-8 pt-4 pb-2" />
 
             {/* ===== MOBILE VERSION — Full nav menu (visible when main nav is hidden: < lg) ===== */}
             <div className="lg:hidden px-8 flex-1">
@@ -338,8 +336,10 @@ export function Header() {
               </nav>
             </div>
 
-            {/* ===== DESKTOP/TABLET VERSION — Blog stories (visible when main nav is shown: >= lg) ===== */}
+            {/* ===== DESKTOP/TABLET VERSION — What's Shaping Atlanta (visible when main nav is shown: >= lg) ===== */}
             <div className="hidden lg:block px-8 flex-1">
+              <p className="text-[#c1121f] text-[10px] font-semibold uppercase tracking-eyebrow mb-1">Stories</p>
+              <h3 className="font-display text-lg font-semibold text-white mb-6">What&rsquo;s Shaping Atlanta</h3>
               <div className="space-y-7">
                 {DRAWER_STORIES.map((story) => (
                   <Link key={story.slug} href={`/stories/${story.slug}`} onClick={closeDrawer} className="flex items-center gap-5 group">
