@@ -80,19 +80,7 @@ export function NewsletterWidget({
     <SidebarWidget className="bg-gold-light border-none">
       <WidgetTitle>{title}</WidgetTitle>
       <p className="text-sm text-gray-dark mb-4">{description}</p>
-      <form onSubmit={(e) => e.preventDefault()}>
-        <input
-          type="email"
-          placeholder="Your email address"
-          className="w-full px-3 py-2.5 text-sm border border-black/10 bg-white outline-none focus:border-black transition-colors mb-3"
-        />
-        <button
-          type="submit"
-          className="w-full py-2.5 bg-black text-white text-xs font-semibold uppercase tracking-eyebrow hover:bg-gray-dark transition-colors"
-        >
-          Subscribe
-        </button>
-      </form>
+      <NewsletterForm />
     </SidebarWidget>
   );
 }
