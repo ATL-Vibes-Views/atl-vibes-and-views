@@ -3,7 +3,6 @@ import Image from "next/image";
 import { notFound } from "next/navigation";
 import { MapPin, Calendar, ArrowRight, ChevronRight, Play } from "lucide-react";
 import { SearchBar } from "@/components/SearchBar";
-import { NewsletterForm } from "@/components/NewsletterForm";
 import {
   Sidebar,
   SidebarWidget,
@@ -773,7 +772,23 @@ export default async function NeighborhoodDetailPage({
                 Get the latest on {neighborhood.name}&rsquo;s culture,
                 businesses, and events.
               </p>
-              <NewsletterForm />
+              <form
+                action="#"
+                className="flex max-w-md mx-auto"
+              >
+                <input
+                  type="email"
+                  placeholder="Enter Your Email"
+                  required
+                  className="flex-1 px-4 py-3 border border-gray-300 text-sm focus:outline-none focus:border-[#e6c46d]"
+                />
+                <button
+                  type="submit"
+                  className="px-6 py-3 bg-black border-2 border-[#e6c46d] text-white text-xs font-semibold uppercase tracking-eyebrow hover:bg-[#e6c46d] hover:text-black transition-colors flex items-center gap-2"
+                >
+                  ✈ Subscribe
+                </button>
+              </form>
               <p className="text-gray-mid/60 text-xs mt-4">
                 No spam. Unsubscribe anytime.
               </p>
