@@ -109,7 +109,7 @@ export default async function AreaDetailPage({
         ? getBusinesses({
             ...(diningCat ? { categoryId: diningCat.id } : {}),
             neighborhoodIds,
-            limit: 6,
+            limit: 3,
             search,
           }).catch(() => [])
         : Promise.resolve([]),
@@ -139,7 +139,7 @@ export default async function AreaDetailPage({
   if (isEatsFallback) {
     eatsList = await getBusinesses({
       ...(diningCat ? { categoryId: diningCat.id } : {}),
-      limit: 6,
+      limit: 3,
     }).catch(() => []);
   }
   const eatsLabel = isEatsFallback ? "Atlanta" : area.name;
