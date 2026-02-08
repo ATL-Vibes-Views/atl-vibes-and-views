@@ -14,8 +14,8 @@ const TikTokIcon = ({ size = 14, ...props }: { size?: number; [key: string]: any
 const AREAS = [
   { name: "Buckhead", slug: "buckhead" }, { name: "Midtown", slug: "midtown" },
   { name: "Downtown", slug: "downtown" }, { name: "Eastside", slug: "eastside" },
-  { name: "Westside", slug: "westside" }, { name: "North Atlanta", slug: "north-atlanta" },
-  { name: "South Atlanta", slug: "south-atlanta" }, { name: "Southeast Atlanta", slug: "southeast-atlanta" },
+  { name: "Westside", slug: "westside" },
+  { name: "South Atlanta", slug: "south-atlanta" },
   { name: "Southwest Atlanta", slug: "southwest-atlanta" },
 ];
 
