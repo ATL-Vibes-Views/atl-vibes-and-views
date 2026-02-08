@@ -160,7 +160,7 @@ export function Header() {
 
           {/* CHANGE #1 — AREAS: label is clickable link to /areas, dropdown still works on hover */}
           <div className="relative" onMouseEnter={() => handleDropdownEnter("areas")} onMouseLeave={handleDropdownLeave}>
-            <NavDropdownTriggerLink href="/areas" active={activeDropdown === "areas"}>Areas</NavDropdownTriggerLink>
+            <NavDropdownTriggerLink href="/areas" active={activeDropdown === "areas"}>Explore ATL</NavDropdownTriggerLink>
             {activeDropdown === "areas" && (
               <DropdownPanel>
                 {AREAS.map((a) => <DropdownLink key={a.slug} href={`/areas/${a.slug}`}>{a.name}</DropdownLink>)}
@@ -270,7 +270,7 @@ export function Header() {
                 {/* Areas — expandable */}
                 <div>
                   <button onClick={() => setMobileAreasOpen(!mobileAreasOpen)} className="flex items-center justify-between w-full py-3 text-white text-[15px] font-semibold hover:text-gold-light transition-colors">
-                    <span>Areas</span>
+                    <span>Explore ATL</span>
                     <ChevronDown size={16} className={`transition-transform duration-200 ${mobileAreasOpen ? "rotate-180" : ""}`} />
                   </button>
                   {mobileAreasOpen && (
