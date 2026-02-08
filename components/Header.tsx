@@ -278,7 +278,7 @@ export function Header() {
                       {AREAS.map((a) => (
                         <Link key={a.slug} href={`/areas/${a.slug}`} onClick={closeDrawer} className="block py-2 text-white/60 text-sm hover:text-gold-light transition-colors">{a.name}</Link>
                       ))}
-                      <Link href="/neighborhoods" onClick={closeDrawer} className="block py-2 text-red-brand text-sm font-semibold hover:text-gold-light transition-colors">Explore All Neighborhoods</Link>
+                      <Link href="/neighborhoods" onClick={closeDrawer} className="block py-2 text-white text-sm font-semibold hover:text-gold-light transition-colors">Explore All Neighborhoods</Link>
                     </div>
                   )}
                 </div>
