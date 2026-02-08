@@ -738,11 +738,11 @@ export default async function NeighborhoodsLandingPage({
               <SubmitCTA />
 
               {/* 3. Featured in the Hub (horizontal: image left, text right) */}
-              {featuredBiz && (
-                <SidebarWidget>
-                  <WidgetTitle className="text-[#c1121f]">
-                    Featured in the Hub
-                  </WidgetTitle>
+              <SidebarWidget>
+                <WidgetTitle className="text-[#c1121f]">
+                  Featured in the Hub
+                </WidgetTitle>
+                {featuredBiz ? (
                   <Link
                     href={`/places/${featuredBiz.slug}`}
                     className="group flex gap-4 items-start"
@@ -782,8 +782,31 @@ export default async function NeighborhoodsLandingPage({
                       )}
                     </div>
                   </Link>
-                </SidebarWidget>
-              )}
+                ) : (
+                  <Link
+                    href="/submit"
+                    className="group flex gap-4 items-start"
+                  >
+                    <div className="relative w-24 h-20 shrink-0 overflow-hidden bg-[#1a1a1a] flex items-center justify-center">
+                      <Image
+                        src="https://placehold.co/200x160/1a1a1a/e6c46d?text=Your+Biz"
+                        alt="Get featured in the Hub"
+                        fill
+                        unoptimized
+                        className="object-cover"
+                      />
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <h4 className="font-display text-sm font-semibold text-black group-hover:text-red-brand transition-colors leading-tight">
+                        Your Business Here
+                      </h4>
+                      <p className="text-[11px] text-gray-mid mt-1">
+                        Get featured in front of thousands of Atlantans.
+                      </p>
+                    </div>
+                  </Link>
+                )}
+              </SidebarWidget>
             </Sidebar>
           </aside>
         </div>
