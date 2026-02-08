@@ -290,9 +290,15 @@ export interface ContentIndex {
   id: string;
   token_name: string;
   target_type: string;
-  target_id: string;
-  active_url?: string;
-  anchor_suggestions?: Record<string, unknown>;
+  target_id: string | null;
+  active_url: string | null;
+  page_title: string | null;
+  page_intro: string | null;
+  page_body: string | null;
+  hero_image_url: string | null;
+  hero_video_url: string | null;
+  seo_title: string | null;
+  meta_description: string | null;
   is_active: boolean;
   created_at: string;
   updated_at: string;
@@ -340,4 +346,37 @@ export interface EventItemWithNeighborhood extends EventItem {
 
 export interface NeighborhoodWithArea extends Neighborhood {
   areas?: Area;
+}
+
+/* --- Media tables --- */
+
+export interface MediaItem {
+  id: string;
+  title: string;
+  slug: string;
+  excerpt?: string;
+  description?: string;
+  media_type: string;
+  source_type?: string;
+  embed_url?: string;
+  status: string;
+  published_at?: string;
+  is_featured: boolean;
+  sort_order?: number;
+  is_active: boolean;
+  seo_title?: string;
+  meta_description?: string;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface MediaItemLink {
+  media_item_id: string;
+  target_type: string;
+  target_id: string;
+  is_primary_for_target: boolean;
+  sort_order?: number;
+  is_active?: boolean;
+  created_at: string;
+  updated_at: string;
 }
