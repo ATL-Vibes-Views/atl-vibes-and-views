@@ -58,7 +58,6 @@ const EATS_HEADLINES = [
   "Where to Eat in",
   "Top Eats & Drinks in",
 ];
-
 const EVENTS_HEADLINES = [
   "Things to Do in",
   "Latest Events in",
@@ -154,6 +153,7 @@ export default async function AreaDetailPage({
 
   /* ── Dedup: track used IDs so nothing appears twice ── */
   const usedIds = new Set<string>();
+
   const stories = posts.slice(0, 3);
   stories.forEach((p) => usedIds.add(p.id));
 
@@ -168,9 +168,9 @@ export default async function AreaDetailPage({
 
   /*
    * FALLBACK LABEL EXAMPLE — when Buckhead has no area dining results:
-   *   storiesLabel  → "Atlanta" (if no area stories) or "Buckhead"
-   *   eatsLabel     → "Atlanta" (if no area dining)  or "Buckhead"
-   *   eventsLabel   → "Atlanta" (if no area events)  or "Buckhead"
+   * storiesLabel → "Atlanta" (if no area stories) or "Buckhead"
+   * eatsLabel    → "Atlanta" (if no area dining)  or "Buckhead"
+   * eventsLabel  → "Atlanta" (if no area events)  or "Buckhead"
    * Headlines render as e.g. "Where to Eat in Atlanta" instead of "Buckhead".
    */
 
@@ -184,7 +184,7 @@ export default async function AreaDetailPage({
     <>
       {/* ========== 1. HERO ========== */}
       <section className="relative w-full">
-        <div className="relative w-full aspect-[21/7] md:aspect-[21/6] overflow-hidden">
+        <div className="relative w-full h-[52vh] sm:h-[58vh] md:h-[65vh] min-h-[340px] max-h-[640px] overflow-hidden">
           <Image
             src={area.hero_image_url || PH_HERO}
             alt={area.name}
@@ -256,9 +256,11 @@ export default async function AreaDetailPage({
                   href="/city-watch"
                   className="flex items-center gap-1 text-xs font-semibold uppercase tracking-eyebrow text-black hover:text-red-brand transition-colors shrink-0 pb-1"
                 >
-                  See All <ArrowRight size={14} />
+                  See All
+                  <ArrowRight size={14} />
                 </Link>
               </div>
+
               {stories.length > 0 ? (
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-10">
                   {stories.map((post) => (
@@ -333,9 +335,11 @@ export default async function AreaDetailPage({
                   href="/hub/eats-and-drinks"
                   className="flex items-center gap-1 text-xs font-semibold uppercase tracking-eyebrow text-black hover:text-red-brand transition-colors shrink-0 pb-1"
                 >
-                  See All <ArrowRight size={14} />
+                  See All
+                  <ArrowRight size={14} />
                 </Link>
               </div>
+
               {eatsBusinesses.length > 0 ? (
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-10">
                   {eatsBusinesses.map((biz) => (
@@ -390,9 +394,11 @@ export default async function AreaDetailPage({
                   href="/hub/events"
                   className="flex items-center gap-1 text-xs font-semibold uppercase tracking-eyebrow text-black hover:text-red-brand transition-colors shrink-0 pb-1"
                 >
-                  See All <ArrowRight size={14} />
+                  See All
+                  <ArrowRight size={14} />
                 </Link>
               </div>
+
               {events.length > 0 ? (
                 <div className="space-y-0 divide-y divide-gray-100">
                   {events.map((event) => {

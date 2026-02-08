@@ -32,7 +32,7 @@ import {
    3. Editor's Picks + Interactive Map + Sidebar A
    4. Video module "Watch & Listen" — full-width black page break
    5. Where Atlanta Is Eating + Ad + Events + Newsletter CTA + Sidebar B
-   
+
    DELETED: Development section
    DEDUP: No item appears on the page twice.
    ============================================================ */
@@ -62,7 +62,9 @@ export default async function HomePage({
     areas,
     dbNeighborhoods,
   ] = await Promise.all([
-    search ? Promise.resolve(null) : getFeaturedSlot("home_hero").catch(() => null),
+    search
+      ? Promise.resolve(null)
+      : getFeaturedSlot("home_hero").catch(() => null),
     getBlogPosts({ featured: true, limit: 6, search }),
     getBlogPosts({ limit: 12, search }),
     diningCat
@@ -81,7 +83,9 @@ export default async function HomePage({
   /* --- A) HERO --- */
   let heroPost = featuredPosts[0] ?? latestPosts[0] ?? null;
   if (heroSlot?.entity_type === "blog_post") {
-    const slotPost = await getBlogPostById(heroSlot.entity_id).catch(() => null);
+    const slotPost = await getBlogPostById(heroSlot.entity_id).catch(
+      () => null
+    );
     if (slotPost) heroPost = slotPost;
   }
   if (heroPost) usedPostIds.add(heroPost.id);
@@ -138,10 +142,16 @@ export default async function HomePage({
       {/* ==================== 1. HERO ==================== */}
       {heroPost ? (
         <section className="relative w-full">
-          <Link href={`/stories/${heroPost.slug}`} className="block relative group">
-            <div className="relative w-full h-[50vh] sm:h-[60vh] md:h-[80vh] overflow-hidden">
+          <Link
+            href={`/stories/${heroPost.slug}`}
+            className="block relative group"
+          >
+            <div className="relative w-full h-[45vh] sm:h-[55vh] md:h-[80vh] min-h-[340px] max-h-[640px] overflow-hidden">
               <Image
-                src={heroPost.featured_image_url || ph("Featured Story", 1920, 900)}
+                src={
+                  heroPost.featured_image_url ||
+                  ph("Featured Story", 1920, 900)
+                }
                 alt={heroPost.title}
                 fill
                 unoptimized
@@ -161,15 +171,20 @@ export default async function HomePage({
                 {heroPost.title}
               </h1>
               <p className="text-white/50 text-xs sm:text-sm mt-4 sm:mt-5 uppercase tracking-wide">
-                {heroPost.authors?.name ? `By ${heroPost.authors.name}` : "ATL Vibes & Views"}
+                {heroPost.authors?.name
+                  ? `By ${heroPost.authors.name}`
+                  : "ATL Vibes & Views"}
                 {heroPost.published_at &&
-                  ` · ${new Date(heroPost.published_at).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })}`}
+                  ` · ${new Date(heroPost.published_at).toLocaleDateString(
+                    "en-US",
+                    { month: "short", day: "numeric", year: "numeric" }
+                  )}`}
               </p>
             </div>
           </Link>
         </section>
       ) : (
-        <section className="relative w-full h-[50vh] sm:h-[60vh] md:h-[80vh] bg-[#1a1a1a] flex items-center justify-center">
+        <section className="relative w-full h-[45vh] sm:h-[55vh] md:h-[80vh] min-h-[340px] max-h-[640px] bg-[#1a1a1a] flex items-center justify-center">
           <div className="text-center px-6">
             <h1 className="font-display text-2xl sm:text-3xl md:text-5xl font-semibold text-white italic mb-4">
               ATL Vibes &amp; Views
@@ -197,17 +212,23 @@ export default async function HomePage({
       {/* ==================== 3. EDITOR'S PICKS + MAP + SIDEBAR A ==================== */}
       <div className="site-container pt-12 pb-16 md:pt-16 md:pb-20">
         <div className="grid grid-cols-1 lg:grid-cols-[1fr_340px] gap-12 lg:gap-16">
-
           {/* ---------- MAIN CONTENT ---------- */}
           <div className="space-y-28">
-
             {/* ===== EDITOR'S PICKS ===== */}
             {editorsPicks.length > 0 ? (
               <section>
-                <SectionHeader eyebrow="Latest" title="Editor&rsquo;s Picks" href="/stories" />
+                <SectionHeader
+                  eyebrow="Latest"
+                  title="Editor&rsquo;s Picks"
+                  href="/stories"
+                />
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-10">
                   {editorsPicks.map((post) => (
-                    <Link key={post.id} href={`/stories/${post.slug}`} className="group block">
+                    <Link
+                      key={post.id}
+                      href={`/stories/${post.slug}`}
+                      className="group block"
+                    >
                       <div className="relative aspect-[4/3] overflow-hidden mb-5">
                         <Image
                           src={post.featured_image_url || ph(post.title)}
@@ -229,7 +250,10 @@ export default async function HomePage({
                       </h3>
                       {post.published_at && (
                         <p className="text-gray-mid text-xs mt-3 uppercase tracking-wide">
-                          {new Date(post.published_at).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })}
+                          {new Date(post.published_at).toLocaleDateString(
+                            "en-US",
+                            { month: "short", day: "numeric", year: "numeric" }
+                          )}
                         </p>
                       )}
                     </Link>
@@ -238,14 +262,22 @@ export default async function HomePage({
               </section>
             ) : !search ? (
               <section className="text-center py-16 bg-[#f8f5f0]">
-                <h2 className="font-display text-2xl font-semibold mb-2">Stories Coming Soon</h2>
-                <p className="text-gray-mid text-sm">Check back for the latest on Atlanta culture and neighborhoods.</p>
+                <h2 className="font-display text-2xl font-semibold mb-2">
+                  Stories Coming Soon
+                </h2>
+                <p className="text-gray-mid text-sm">
+                  Check back for the latest on Atlanta culture and
+                  neighborhoods.
+                </p>
               </section>
             ) : null}
 
             {/* ===== INTERACTIVE MAP (no change) ===== */}
             <section>
-              <SectionHeader eyebrow="Neighborhoods" title="Explore Atlanta" />
+              <SectionHeader
+                eyebrow="Neighborhoods"
+                title="Explore Atlanta"
+              />
               <div className="relative overflow-hidden bg-[#f5f0eb] aspect-[16/7]">
                 <div className="absolute inset-0 flex flex-col items-center justify-center text-center px-6">
                   <div className="w-16 h-16 rounded-full bg-gold-light/50 flex items-center justify-center mb-4">
@@ -255,7 +287,8 @@ export default async function HomePage({
                     Interactive Map Coming Soon
                   </h3>
                   <p className="text-gray-mid text-sm max-w-md">
-                    Explore {areas.length} areas and 261 neighborhoods across Atlanta
+                    Explore {areas.length} areas and 261 neighborhoods across
+                    Atlanta
                   </p>
                 </div>
               </div>
@@ -264,7 +297,8 @@ export default async function HomePage({
                   href="/areas"
                   className="inline-flex items-center gap-2 px-6 py-3 bg-[#fee198] text-black text-xs font-semibold uppercase tracking-eyebrow rounded-full hover:bg-black hover:text-[#fee198] transition-colors"
                 >
-                  Explore All Areas <ArrowRight size={14} />
+                  Explore All Areas
+                  <ArrowRight size={14} />
                 </Link>
               </div>
             </section>
@@ -299,13 +333,13 @@ export default async function HomePage({
               href="/media"
               className="flex items-center gap-1 text-xs font-semibold uppercase tracking-eyebrow text-white/60 hover:text-[#fee198] transition-colors shrink-0 pb-1"
             >
-              See All <ArrowRight size={14} />
+              See All
+              <ArrowRight size={14} />
             </Link>
           </div>
 
           {/* 70/30 layout */}
           <div className="grid grid-cols-1 lg:grid-cols-[1fr_340px] gap-10">
-
             {/* LEFT — Featured Video (~70%) */}
             <div>
               <div className="relative aspect-video bg-[#111] overflow-hidden group cursor-pointer">
@@ -318,7 +352,10 @@ export default async function HomePage({
                 />
                 <div className="absolute inset-0 flex items-center justify-center">
                   <div className="w-16 h-16 md:w-20 md:h-20 rounded-full bg-white/90 flex items-center justify-center group-hover:bg-white transition-colors">
-                    <Play size={24} className="text-black ml-1 fill-black" />
+                    <Play
+                      size={24}
+                      className="text-black ml-1 fill-black"
+                    />
                   </div>
                 </div>
               </div>
@@ -345,10 +382,22 @@ export default async function HomePage({
               </Link>
               <div className="space-y-5">
                 {[
-                  { category: "Fashion", title: "Atlanta's Emerging Fashion Scene" },
-                  { category: "News", title: "BeltLine Phase 3 Update" },
-                  { category: "Creative", title: "Local Artists Transforming Westside" },
-                  { category: "Food", title: "Street Food Markets to Try" },
+                  {
+                    category: "Fashion",
+                    title: "Atlanta's Emerging Fashion Scene",
+                  },
+                  {
+                    category: "News",
+                    title: "BeltLine Phase 3 Update",
+                  },
+                  {
+                    category: "Creative",
+                    title: "Local Artists Transforming Westside",
+                  },
+                  {
+                    category: "Food",
+                    title: "Street Food Markets to Try",
+                  },
                 ].map((item, i) => (
                   <div key={i} className="flex gap-4 group cursor-pointer">
                     <div className="relative w-28 h-20 shrink-0 bg-[#222] overflow-hidden">
@@ -361,7 +410,10 @@ export default async function HomePage({
                       />
                       <div className="absolute inset-0 flex items-center justify-center">
                         <div className="w-7 h-7 rounded-full bg-white/80 flex items-center justify-center">
-                          <Play size={10} className="text-black ml-0.5 fill-black" />
+                          <Play
+                            size={10}
+                            className="text-black ml-0.5 fill-black"
+                          />
                         </div>
                       </div>
                     </div>
@@ -384,21 +436,26 @@ export default async function HomePage({
       {/* ==================== 5. MAIN CONTENT + SIDEBAR B ==================== */}
       <div className="site-container pt-20 pb-28 md:pt-28 md:pb-36">
         <div className="grid grid-cols-1 lg:grid-cols-[1fr_340px] gap-12 lg:gap-16">
-
           {/* ---------- MAIN CONTENT ---------- */}
           <div className="space-y-28">
-
             {/* ===== WHERE ATLANTA IS EATING (no change) ===== */}
             {businesses.length > 0 ? (
               <section>
-                <SectionHeader eyebrow="Eats & Drinks" title="Where Atlanta Is Eating" href="/hub/eats-and-drinks" />
+                <SectionHeader
+                  eyebrow="Eats & Drinks"
+                  title="Where Atlanta Is Eating"
+                  href="/hub/eats-and-drinks"
+                />
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-10">
                   {businesses.map((biz) => (
                     <div key={biz.id} className="group relative">
                       <Link href={`/places/${biz.slug}`} className="block">
                         <div className="relative aspect-[3/2] overflow-hidden">
                           <Image
-                            src={biz.logo || ph(biz.business_name, 400, 280, "c1121f", "fee198")}
+                            src={
+                              biz.logo ||
+                              ph(biz.business_name, 400, 280, "c1121f", "fee198")
+                            }
                             alt={biz.business_name}
                             fill
                             unoptimized
@@ -420,7 +477,9 @@ export default async function HomePage({
                               {biz.neighborhoods?.name ?? biz.city}
                             </span>
                             {biz.categories?.name && (
-                              <span className="text-xs text-gray-mid">{biz.categories.name}</span>
+                              <span className="text-xs text-gray-mid">
+                                {biz.categories.name}
+                              </span>
                             )}
                           </div>
                         </div>
@@ -432,18 +491,26 @@ export default async function HomePage({
               </section>
             ) : (
               <section>
-                <SectionHeader eyebrow="Eats & Drinks" title="Where Atlanta Is Eating" href="/hub/eats-and-drinks" />
+                <SectionHeader
+                  eyebrow="Eats & Drinks"
+                  title="Where Atlanta Is Eating"
+                  href="/hub/eats-and-drinks"
+                />
                 <div className="text-center py-16 bg-[#f8f5f0] border border-gray-200">
                   <Store size={32} className="mx-auto text-gray-mid mb-4" />
-                  <h3 className="font-display text-xl font-semibold mb-2">Get Your Business Listed</h3>
+                  <h3 className="font-display text-xl font-semibold mb-2">
+                    Get Your Business Listed
+                  </h3>
                   <p className="text-gray-mid text-sm mb-6 max-w-md mx-auto">
-                    Reach thousands of Atlanta locals. Claim your free listing today.
+                    Reach thousands of Atlanta locals. Claim your free listing
+                    today.
                   </p>
                   <Link
                     href="/submit"
                     className="inline-flex items-center gap-2 px-6 py-3 bg-black text-white text-xs font-semibold uppercase tracking-eyebrow rounded-full hover:bg-[#fee198] hover:text-black transition-colors"
                   >
-                    Get Listed <ArrowRight size={14} />
+                    Get Listed
+                    <ArrowRight size={14} />
                   </Link>
                 </div>
               </section>
@@ -459,26 +526,41 @@ export default async function HomePage({
                   <span className="text-xs text-gray-mid uppercase tracking-eyebrow group-hover:text-black transition-colors">
                     Advertise Here
                   </span>
-                  <p className="text-sm text-gray-400 mt-1">Reach thousands of Atlanta locals</p>
+                  <p className="text-sm text-gray-400 mt-1">
+                    Reach thousands of Atlanta locals
+                  </p>
                 </div>
               </Link>
             </section>
 
             {/* ===== EVENTS ===== */}
             <section>
-              <SectionHeader eyebrow="Events" title="What&rsquo;s Happening" href="/hub/events" />
+              <SectionHeader
+                eyebrow="Events"
+                title="What&rsquo;s Happening"
+                href="/hub/events"
+              />
               {events.length > 0 ? (
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-10">
                   {events.map((event) => {
                     const d = new Date(event.start_date + "T00:00:00");
-                    const month = d.toLocaleDateString("en-US", { month: "short" }).toUpperCase();
+                    const month = d
+                      .toLocaleDateString("en-US", { month: "short" })
+                      .toUpperCase();
                     const day = d.getDate().toString();
                     return (
-                      <Link key={event.id} href={`/events/${event.slug}`} className="group block">
+                      <Link
+                        key={event.id}
+                        href={`/events/${event.slug}`}
+                        className="group block"
+                      >
                         <div className="relative overflow-hidden">
                           <div className="relative aspect-[3/2] overflow-hidden">
                             <Image
-                              src={event.featured_image_url || ph(event.title, 400, 280, "4a4a4a", "ffffff")}
+                              src={
+                                event.featured_image_url ||
+                                ph(event.title, 400, 280, "4a4a4a", "ffffff")
+                              }
                               alt={event.title}
                               fill
                               unoptimized
@@ -488,7 +570,9 @@ export default async function HomePage({
                               <div className="text-[10px] font-semibold uppercase tracking-wide text-red-brand leading-none">
                                 {month}
                               </div>
-                              <div className="text-xl font-bold text-black leading-tight">{day}</div>
+                              <div className="text-xl font-bold text-black leading-tight">
+                                {day}
+                              </div>
                             </div>
                             {event.is_featured && (
                               <span className="absolute top-3 left-3 px-3 py-1 bg-gold-light text-black text-[10px] font-semibold uppercase tracking-eyebrow rounded-full">
@@ -518,18 +602,30 @@ export default async function HomePage({
                   })}
                 </div>
               ) : null}
+
               {showEventCTA && (
-                <div className={`text-center py-12 bg-[#f8f5f0] border border-gray-200${events.length > 0 ? " mt-10" : ""}`}>
-                  <CalendarPlus size={32} className="mx-auto text-gray-mid mb-4" />
-                  <h3 className="font-display text-xl font-semibold mb-2">Submit Your Event</h3>
+                <div
+                  className={`text-center py-12 bg-[#f8f5f0] border border-gray-200${
+                    events.length > 0 ? " mt-10" : ""
+                  }`}
+                >
+                  <CalendarPlus
+                    size={32}
+                    className="mx-auto text-gray-mid mb-4"
+                  />
+                  <h3 className="font-display text-xl font-semibold mb-2">
+                    Submit Your Event
+                  </h3>
                   <p className="text-gray-mid text-sm mb-6 max-w-md mx-auto">
-                    Have an upcoming event in Atlanta? Get it in front of our audience.
+                    Have an upcoming event in Atlanta? Get it in front of our
+                    audience.
                   </p>
                   <Link
                     href="/submit"
                     className="inline-flex items-center gap-2 px-6 py-3 bg-black text-white text-xs font-semibold uppercase tracking-eyebrow rounded-full hover:bg-[#fee198] hover:text-black transition-colors"
                   >
-                    Submit Event <ArrowRight size={14} />
+                    Submit Event
+                    <ArrowRight size={14} />
                   </Link>
                 </div>
               )}
@@ -538,19 +634,35 @@ export default async function HomePage({
             {/* ===== NO RESULTS ===== */}
             {search && totalResults === 0 && (
               <section className="text-center py-20">
-                <p className="text-gray-mid text-lg">No results found for &ldquo;{search}&rdquo;</p>
-                <p className="text-gray-mid/60 text-sm mt-2 mb-6">Try a different search term or browse below</p>
+                <p className="text-gray-mid text-lg">
+                  No results found for &ldquo;{search}&rdquo;
+                </p>
+                <p className="text-gray-mid/60 text-sm mt-2 mb-6">
+                  Try a different search term or browse below
+                </p>
                 <div className="flex flex-wrap justify-center gap-4">
-                  <Link href="/stories" className="px-5 py-2 bg-black text-white text-xs font-semibold uppercase tracking-eyebrow rounded-full hover:bg-[#fee198] hover:text-black transition-colors">
+                  <Link
+                    href="/stories"
+                    className="px-5 py-2 bg-black text-white text-xs font-semibold uppercase tracking-eyebrow rounded-full hover:bg-[#fee198] hover:text-black transition-colors"
+                  >
                     All Stories
                   </Link>
-                  <Link href="/hub/events" className="px-5 py-2 bg-black text-white text-xs font-semibold uppercase tracking-eyebrow rounded-full hover:bg-[#fee198] hover:text-black transition-colors">
+                  <Link
+                    href="/hub/events"
+                    className="px-5 py-2 bg-black text-white text-xs font-semibold uppercase tracking-eyebrow rounded-full hover:bg-[#fee198] hover:text-black transition-colors"
+                  >
                     Events
                   </Link>
-                  <Link href="/hub/businesses" className="px-5 py-2 bg-black text-white text-xs font-semibold uppercase tracking-eyebrow rounded-full hover:bg-[#fee198] hover:text-black transition-colors">
+                  <Link
+                    href="/hub/businesses"
+                    className="px-5 py-2 bg-black text-white text-xs font-semibold uppercase tracking-eyebrow rounded-full hover:bg-[#fee198] hover:text-black transition-colors"
+                  >
                     Businesses
                   </Link>
-                  <Link href="/areas" className="px-5 py-2 bg-black text-white text-xs font-semibold uppercase tracking-eyebrow rounded-full hover:bg-[#fee198] hover:text-black transition-colors">
+                  <Link
+                    href="/areas"
+                    className="px-5 py-2 bg-black text-white text-xs font-semibold uppercase tracking-eyebrow rounded-full hover:bg-[#fee198] hover:text-black transition-colors"
+                  >
                     Areas
                   </Link>
                 </div>
@@ -563,10 +675,13 @@ export default async function HomePage({
                 Join The A-List Newsletter
               </h2>
               <p className="text-gray-mid text-sm mb-8">
-                Get the latest on Atlanta&rsquo;s culture, neighborhoods, and events.
+                Get the latest on Atlanta&rsquo;s culture, neighborhoods, and
+                events.
               </p>
               <NewsletterForm />
-              <p className="text-gray-mid/60 text-xs mt-4">No spam. Unsubscribe anytime.</p>
+              <p className="text-gray-mid/60 text-xs mt-4">
+                No spam. Unsubscribe anytime.
+              </p>
             </section>
           </div>
 
@@ -611,7 +726,9 @@ function SectionHeader({
         {subtitle && (
           <>
             <span className="hidden md:block w-px h-6 bg-gray-200" />
-            <span className="hidden md:block text-gray-mid text-sm">{subtitle}</span>
+            <span className="hidden md:block text-gray-mid text-sm">
+              {subtitle}
+            </span>
           </>
         )}
       </div>
@@ -620,7 +737,8 @@ function SectionHeader({
           href={href}
           className="flex items-center gap-1 text-xs font-semibold uppercase tracking-eyebrow text-black hover:text-red-brand transition-colors shrink-0 pb-1"
         >
-          See All <ArrowRight size={14} />
+          See All
+          <ArrowRight size={14} />
         </Link>
       )}
     </div>

@@ -282,7 +282,7 @@ export default async function NeighborhoodDetailPage({
     <>
       {/* ========== 1. HERO ========== */}
       <section className="relative w-full">
-        <div className="relative w-full aspect-[21/7] md:aspect-[21/6] overflow-hidden">
+        <div className="relative w-full h-[52vh] sm:h-[58vh] md:h-[65vh] min-h-[340px] max-h-[640px] overflow-hidden">
           <Image
             src={neighborhood.hero_image_url || PH_HERO}
             alt={neighborhood.name}
