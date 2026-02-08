@@ -164,7 +164,7 @@ export function Header() {
             {activeDropdown === "areas" && (
               <DropdownPanel>
                 {AREAS.map((a) => <DropdownLink key={a.slug} href={`/areas/${a.slug}`}>{a.name}</DropdownLink>)}
-                <div className="border-t border-gray-100 mt-1 pt-1"><DropdownLink href="/areas" highlight>Explore All Areas</DropdownLink></div>
+                <div className="border-t border-gray-100 mt-1 pt-1"><DropdownLink href="/neighborhoods" highlight>Explore Our Neighborhoods</DropdownLink></div>
               </DropdownPanel>
             )}
           </div>
@@ -278,7 +278,7 @@ export function Header() {
                       {AREAS.map((a) => (
                         <Link key={a.slug} href={`/areas/${a.slug}`} onClick={closeDrawer} className="block py-2 text-white/60 text-sm hover:text-gold-light transition-colors">{a.name}</Link>
                       ))}
-                      <Link href="/areas" onClick={closeDrawer} className="block py-2 text-red-brand text-sm font-semibold hover:text-gold-light transition-colors">Explore All Areas</Link>
+                      <Link href="/neighborhoods" onClick={closeDrawer} className="block py-2 text-red-brand text-sm font-semibold hover:text-gold-light transition-colors">Explore Our Neighborhoods</Link>
                     </div>
                   )}
                 </div>

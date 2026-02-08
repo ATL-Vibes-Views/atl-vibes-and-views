@@ -262,21 +262,32 @@ export default async function NeighborhoodDetailPage({
             Home
           </Link>
           <ChevronRight size={12} />
-          <Link href="/areas" className="hover:text-black transition-colors">
-            Areas
-          </Link>
-          <ChevronRight size={12} />
-          {areaSlug ? (
-            <Link
-              href={`/areas/${areaSlug}`}
-              className="hover:text-black transition-colors"
-            >
-              {areaName}
-            </Link>
+          {area ? (
+            <>
+              <Link href="/areas" className="hover:text-black transition-colors">
+                Areas
+              </Link>
+              <ChevronRight size={12} />
+              {areaSlug ? (
+                <Link
+                  href={`/areas/${areaSlug}`}
+                  className="hover:text-black transition-colors"
+                >
+                  {areaName}
+                </Link>
+              ) : (
+                <span>{areaName}</span>
+              )}
+              <ChevronRight size={12} />
+            </>
           ) : (
-            <span>{areaName}</span>
+            <>
+              <Link href="/neighborhoods" className="hover:text-black transition-colors">
+                Neighborhoods
+              </Link>
+              <ChevronRight size={12} />
+            </>
           )}
-          <ChevronRight size={12} />
           <span className="text-black font-medium">{neighborhood.name}</span>
         </nav>
       </div>
