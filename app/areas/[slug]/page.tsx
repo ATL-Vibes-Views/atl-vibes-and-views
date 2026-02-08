@@ -127,23 +127,52 @@ export default async function AreaDetailPage({
 
   /* ── Stories fallback: if 0 area-specific, show city-wide (limit 3) ── */
   let posts = areaPosts;
-  if (posts.length === 0 && !search) {
+  const isStoriesFallback = areaPosts.length === 0 && !search;
+  if (isStoriesFallback) {
     posts = await getBlogPosts({ limit: 3 }).catch(() => []);
   }
+  const storiesLabel = isStoriesFallback ? "Atlanta" : area.name;
+
+  /* ── Eats fallback: if 0 area dining, show city-wide dining (limit 6) ── */
+  let eatsList = eatsRaw;
+  const isEatsFallback = eatsRaw.length === 0 && !search;
+  if (isEatsFallback) {
+    eatsList = await getBusinesses({
+      ...(diningCat ? { categoryId: diningCat.id } : {}),
+      limit: 6,
+    }).catch(() => []);
+  }
+  const eatsLabel = isEatsFallback ? "Atlanta" : area.name;
+
+  /* ── Events fallback: if 0 area events, show city-wide upcoming (limit 5) ── */
+  let eventsList = eventsRaw;
+  const isEventsFallback = eventsRaw.length === 0 && !search;
+  if (isEventsFallback) {
+    eventsList = await getEvents({ upcoming: true, limit: 5 }).catch(() => []);
+  }
+  const eventsLabel = isEventsFallback ? "Atlanta" : area.name;
 
   /* ── Dedup: track used IDs so nothing appears twice ── */
   const usedIds = new Set<string>();
   const stories = posts.slice(0, 3);
   stories.forEach((p) => usedIds.add(p.id));
 
-  const eatsBusinesses = eatsRaw.filter((b) => !usedIds.has(b.id));
+  const eatsBusinesses = eatsList.filter((b) => !usedIds.has(b.id));
   eatsBusinesses.forEach((b) => usedIds.add(b.id));
 
-  const events = eventsRaw.filter((e) => !usedIds.has(e.id));
+  const events = eventsList.filter((e) => !usedIds.has(e.id));
 
-  /* ── Rotating headlines ── */
-  const eatsHeadline = `${pickHeadline(slug, EATS_HEADLINES)} ${area.name}`;
-  const eventsHeadline = `${pickHeadline(slug, EVENTS_HEADLINES)} ${area.name}`;
+  /* ── Rotating headlines (use label so fallback says "Atlanta") ── */
+  const eatsHeadline = `${pickHeadline(slug, EATS_HEADLINES)} ${eatsLabel}`;
+  const eventsHeadline = `${pickHeadline(slug, EVENTS_HEADLINES)} ${eventsLabel}`;
+
+  /*
+   * FALLBACK LABEL EXAMPLE — when Buckhead has no area dining results:
+   *   storiesLabel  → "Atlanta" (if no area stories) or "Buckhead"
+   *   eatsLabel     → "Atlanta" (if no area dining)  or "Buckhead"
+   *   eventsLabel   → "Atlanta" (if no area events)  or "Buckhead"
+   * Headlines render as e.g. "Where to Eat in Atlanta" instead of "Buckhead".
+   */
 
   /* ── Sidebar neighborhood data ── */
   const sidebarNeighborhoodLinks = sidebarNeighborhoods.map((n) => ({
@@ -220,7 +249,7 @@ export default async function AreaDetailPage({
                     Stories
                   </span>
                   <h2 className="font-display text-3xl md:text-4xl font-semibold text-black leading-tight mt-1">
-                    Latest from {area.name}
+                    Latest from {storiesLabel}
                   </h2>
                 </div>
                 <Link
@@ -267,7 +296,7 @@ export default async function AreaDetailPage({
                 </div>
               ) : (
                 <p className="text-gray-mid text-base">
-                  No stories in {area.name} yet. Check back soon.
+                  No stories in {storiesLabel} yet. Check back soon.
                 </p>
               )}
             </section>
@@ -341,7 +370,7 @@ export default async function AreaDetailPage({
                 </div>
               ) : (
                 <p className="text-gray-mid text-base">
-                  No restaurants listed in {area.name} yet. Check back soon.
+                  No restaurants listed in {eatsLabel} yet. Check back soon.
                 </p>
               )}
             </section>
@@ -406,7 +435,7 @@ export default async function AreaDetailPage({
                 </div>
               ) : (
                 <p className="text-gray-mid text-base">
-                  No upcoming events in {area.name} right now.
+                  No upcoming events in {eventsLabel} right now.
                 </p>
               )}
             </section>
