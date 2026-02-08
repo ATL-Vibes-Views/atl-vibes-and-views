@@ -1,0 +1,533 @@
+import Link from "next/link";
+import Image from "next/image";
+import { notFound } from "next/navigation";
+import { MapPin, Calendar, ArrowRight, ChevronRight } from "lucide-react";
+import { SearchBar } from "@/components/SearchBar";
+import {
+  Sidebar,
+  NewsletterWidget,
+  AdPlacement,
+  NeighborhoodsWidget,
+  SubmitCTA,
+  SubmitEventCTA,
+} from "@/components/Sidebar";
+import {
+  getNeighborhoodBySlug,
+  getNeighborhoods,
+  getBlogPosts,
+  getBusinesses,
+  getEvents,
+  getCategoryBySlug,
+} from "@/lib/queries";
+
+/* ============================================================
+   NEIGHBORHOOD DETAIL PAGE — /neighborhoods/[slug]
+
+   MIRRORS: Area Detail Page (app/areas/[slug]/page.tsx)
+   Same intent (deep dive), same structure, scoped to neighborhood.
+
+   LOCKED SECTION ORDER (main column):
+   1. Hero (neighborhood record)
+   2. Breadcrumbs (Home → Areas → [Area] → [Neighborhood])
+   3. Search Bar (scoped to this neighborhood)
+   4. Stories (blog posts)
+   5. Horizontal Ad
+   6. Eats & Drinks (6 items — area detail = 3)
+   7. Events (6 items — area detail = 5)
+
+   SIDEBAR:
+   1. NewsletterWidget (scoped)
+   2. AdPlacement
+   3. Nearby Neighborhoods (same area, exclude current)
+   4. SubmitCTA (scoped)
+   5. SubmitEventCTA
+
+   3-TIER FALLBACK CHAIN:
+   Tier 1: This neighborhood        → label = neighborhood.name
+   Tier 2: Same-area neighbors       → label = area.name
+   Tier 3: Citywide                  → label = "Atlanta"
+
+   DO NOT TOUCH: app/page.tsx, app/areas/page.tsx, app/areas/[slug]/page.tsx
+   ============================================================ */
+
+const PH_HERO = "https://placehold.co/1920x600/1a1a1a/e6c46d?text=Neighborhood";
+const PH_POST = "https://placehold.co/600x400/1a1a1a/e6c46d?text=Story";
+const PH_BIZ = "https://placehold.co/600x400/c1121f/fee198?text=Business";
+
+function formatDate(dateStr?: string | null): string {
+  if (!dateStr) return "";
+  return new Date(dateStr).toLocaleDateString("en-US", {
+    month: "short",
+    day: "numeric",
+    year: "numeric",
+  });
+}
+
+function eventDateParts(dateStr: string): { month: string; day: string } {
+  const d = new Date(dateStr + "T00:00:00");
+  return {
+    month: d.toLocaleDateString("en-US", { month: "short" }).toUpperCase(),
+    day: d.getDate().toString(),
+  };
+}
+
+/* Deterministic headline rotation based on slug */
+function pickHeadline(slug: string, options: string[]): string {
+  let hash = 0;
+  for (let i = 0; i < slug.length; i++) {
+    hash = ((hash << 5) - hash + slug.charCodeAt(i)) | 0;
+  }
+  return options[Math.abs(hash) % options.length];
+}
+
+const EATS_HEADLINES = [
+  "Best Places to Eat in",
+  "Where to Eat in",
+  "Top Eats & Drinks in",
+];
+
+const EVENTS_HEADLINES = [
+  "Things to Do in",
+  "Latest Events in",
+  "What\u2019s Happening in",
+];
+
+/* ============================================================
+   PAGE
+   ============================================================ */
+export default async function NeighborhoodDetailPage({
+  params,
+  searchParams,
+}: {
+  params: Promise<{ slug: string }>;
+  searchParams: Promise<{ q?: string }>;
+}) {
+  const { slug } = await params;
+  const { q } = await searchParams;
+  const search = q?.trim() || undefined;
+
+  /* ── Step 0: Neighborhood record (includes area via join) ── */
+  const neighborhood = await getNeighborhoodBySlug(slug);
+  if (!neighborhood) return notFound();
+
+  const area = neighborhood.areas;
+  const areaName = area?.name || "Atlanta";
+  const areaSlug = area?.slug;
+
+  /* ── Same-area neighbor IDs (for tier-2 fallback) ── */
+  const sameAreaNeighborhoods = area
+    ? await getNeighborhoods({ areaId: area.id, limit: 30 }).catch(() => [])
+    : [];
+  const neighborIds = sameAreaNeighborhoods
+    .filter((n) => n.id !== neighborhood.id)
+    .map((n) => n.id);
+
+  /* ── Dining category ── */
+  const diningCat = await getCategoryBySlug("dining").catch(() => null);
+
+  /* ── Parallel data fetch (tier 1: this neighborhood) ── */
+  const [neighborhoodPosts, eatsT1, eventsT1] = await Promise.all([
+    getBlogPosts({
+      neighborhoodIds: [neighborhood.id],
+      limit: 4,
+      search,
+    }).catch(() => []),
+
+    getBusinesses({
+      ...(diningCat ? { categoryId: diningCat.id } : {}),
+      neighborhoodIds: [neighborhood.id],
+      limit: 6,
+      search,
+    }).catch(() => []),
+
+    getEvents({
+      neighborhoodIds: [neighborhood.id],
+      upcoming: true,
+      limit: 6,
+      search,
+    }).catch(() => []),
+  ]);
+
+  /* ── 3-TIER FALLBACK: Stories ── */
+  let posts = neighborhoodPosts;
+  let storiesLabel = neighborhood.name;
+
+  if (posts.length === 0 && !search && neighborIds.length > 0) {
+    /* Tier 2: same-area neighbors */
+    posts = await getBlogPosts({ neighborhoodIds: neighborIds, limit: 4 }).catch(
+      () => []
+    );
+    if (posts.length > 0) storiesLabel = areaName;
+  }
+  if (posts.length === 0 && !search) {
+    /* Tier 3: citywide */
+    posts = await getBlogPosts({ limit: 3 }).catch(() => []);
+    if (posts.length > 0) storiesLabel = "Atlanta";
+  }
+
+  /* ── 3-TIER FALLBACK: Eats & Drinks ── */
+  let eatsList = eatsT1;
+  let eatsLabel = neighborhood.name;
+
+  if (eatsList.length === 0 && !search && neighborIds.length > 0) {
+    eatsList = await getBusinesses({
+      ...(diningCat ? { categoryId: diningCat.id } : {}),
+      neighborhoodIds: neighborIds,
+      limit: 6,
+    }).catch(() => []);
+    if (eatsList.length > 0) eatsLabel = areaName;
+  }
+  if (eatsList.length === 0 && !search) {
+    eatsList = await getBusinesses({
+      ...(diningCat ? { categoryId: diningCat.id } : {}),
+      limit: 6,
+    }).catch(() => []);
+    if (eatsList.length > 0) eatsLabel = "Atlanta";
+  }
+
+  /* ── 3-TIER FALLBACK: Events ── */
+  let eventsList = eventsT1;
+  let eventsLabel = neighborhood.name;
+
+  if (eventsList.length === 0 && !search && neighborIds.length > 0) {
+    eventsList = await getEvents({
+      neighborhoodIds: neighborIds,
+      upcoming: true,
+      limit: 6,
+    }).catch(() => []);
+    if (eventsList.length > 0) eventsLabel = areaName;
+  }
+  if (eventsList.length === 0 && !search) {
+    eventsList = await getEvents({ upcoming: true, limit: 6 }).catch(() => []);
+    if (eventsList.length > 0) eventsLabel = "Atlanta";
+  }
+
+  /* ── Dedup: track used IDs ── */
+  const usedIds = new Set<string>();
+  const stories = posts.slice(0, 4);
+  stories.forEach((p) => usedIds.add(p.id));
+
+  const eatsBusinesses = eatsList.filter((b) => !usedIds.has(b.id));
+  eatsBusinesses.forEach((b) => usedIds.add(b.id));
+
+  const events = eventsList.filter((e) => !usedIds.has(e.id));
+
+  /* ── Rotating headlines ── */
+  const eatsHeadline = `${pickHeadline(slug, EATS_HEADLINES)} ${eatsLabel}`;
+  const eventsHeadline = `${pickHeadline(slug, EVENTS_HEADLINES)} ${eventsLabel}`;
+
+  /* ── Sidebar: nearby neighborhoods (same area, exclude current) ── */
+  const nearbyNeighborhoods = sameAreaNeighborhoods
+    .filter((n) => n.slug !== slug)
+    .slice(0, 8)
+    .map((n) => ({ name: n.name, slug: n.slug }));
+
+  return (
+    <>
+      {/* ========== 1. HERO ========== */}
+      <section className="relative w-full">
+        <div className="relative w-full aspect-[21/7] md:aspect-[21/6] overflow-hidden">
+          <Image
+            src={neighborhood.hero_image_url || PH_HERO}
+            alt={neighborhood.name}
+            fill
+            unoptimized
+            className="object-cover"
+            priority
+          />
+          <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/40 to-transparent" />
+        </div>
+        <div className="absolute inset-0 flex flex-col items-center justify-center text-center px-6">
+          <span className="text-[#e6c46d] text-[11px] font-semibold uppercase tracking-[0.15em] mb-3">
+            {areaName}
+          </span>
+          <h1 className="font-display text-4xl md:text-6xl lg:text-7xl font-semibold text-white">
+            {neighborhood.name}
+          </h1>
+          {neighborhood.tagline && (
+            <p className="text-white/70 text-sm md:text-base mt-4 max-w-xl">
+              {neighborhood.tagline}
+            </p>
+          )}
+        </div>
+      </section>
+
+      {/* ========== 2. BREADCRUMBS ========== */}
+      <div className="site-container pt-4 pb-2">
+        <nav
+          aria-label="Breadcrumb"
+          className="flex items-center gap-1.5 text-xs text-gray-mid"
+        >
+          <Link href="/" className="hover:text-black transition-colors">
+            Home
+          </Link>
+          <ChevronRight size={12} />
+          <Link href="/areas" className="hover:text-black transition-colors">
+            Areas
+          </Link>
+          <ChevronRight size={12} />
+          {areaSlug ? (
+            <Link
+              href={`/areas/${areaSlug}`}
+              className="hover:text-black transition-colors"
+            >
+              {areaName}
+            </Link>
+          ) : (
+            <span>{areaName}</span>
+          )}
+          <ChevronRight size={12} />
+          <span className="text-black font-medium">{neighborhood.name}</span>
+        </nav>
+      </div>
+
+      {/* ========== 3. SEARCH BAR ========== */}
+      <div className="site-container pb-6">
+        <SearchBar
+          placeholder={`Search in ${neighborhood.name}…`}
+          className="mx-auto"
+        />
+      </div>
+
+      {/* ========== 4–7: MAIN + SIDEBAR GRID ========== */}
+      <div className="site-container pb-16 md:pb-20">
+        <div className="grid grid-cols-1 lg:grid-cols-[1fr_340px] gap-12 lg:gap-16">
+          {/* ---------- MAIN COLUMN ---------- */}
+          <div className="space-y-28">
+            {/* ===== STORIES ===== */}
+            <section>
+              <div className="flex items-end justify-between mb-10 border-b border-gray-200 pb-4">
+                <div>
+                  <span className="text-[#c1121f] text-[11px] font-semibold uppercase tracking-eyebrow">
+                    Stories
+                  </span>
+                  <h2 className="font-display text-3xl md:text-4xl font-semibold text-black leading-tight mt-1">
+                    Latest from {storiesLabel}
+                  </h2>
+                </div>
+                <Link
+                  href="/city-watch"
+                  className="flex items-center gap-1 text-xs font-semibold uppercase tracking-eyebrow text-black hover:text-red-brand transition-colors shrink-0 pb-1"
+                >
+                  See All <ArrowRight size={14} />
+                </Link>
+              </div>
+              {stories.length > 0 ? (
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-10">
+                  {stories.map((post) => (
+                    <Link
+                      key={post.id}
+                      href={`/stories/${post.slug}`}
+                      className="group block"
+                    >
+                      <div className="relative aspect-[4/3] overflow-hidden mb-4">
+                        <Image
+                          src={post.featured_image_url || PH_POST}
+                          alt={post.title}
+                          fill
+                          unoptimized
+                          className="object-cover group-hover:scale-105 transition-transform duration-500"
+                        />
+                      </div>
+                      <div className="flex items-center gap-2 mb-3">
+                        {post.categories?.name && (
+                          <span className="px-3 py-1 bg-gold-light text-black text-[10px] font-semibold uppercase tracking-eyebrow rounded-full">
+                            {post.categories.name}
+                          </span>
+                        )}
+                      </div>
+                      <h3 className="font-display text-xl md:text-2xl font-semibold text-black leading-snug group-hover:text-red-brand transition-colors">
+                        {post.title}
+                      </h3>
+                      {post.published_at && (
+                        <p className="text-gray-mid text-xs mt-2">
+                          {formatDate(post.published_at)}
+                        </p>
+                      )}
+                    </Link>
+                  ))}
+                </div>
+              ) : (
+                <p className="text-gray-mid text-base">
+                  No stories in {storiesLabel} yet. Check back soon.
+                </p>
+              )}
+            </section>
+
+            {/* ===== HORIZONTAL AD ===== */}
+            <section>
+              <Link
+                href="/hub/businesses"
+                className="block bg-gray-100 flex items-center justify-center py-12 border border-dashed border-gray-300 hover:border-[#e6c46d] hover:bg-gray-50 transition-colors group"
+              >
+                <div className="text-center">
+                  <span className="text-xs text-gray-mid uppercase tracking-eyebrow group-hover:text-black transition-colors">
+                    Advertise Here
+                  </span>
+                  <p className="text-sm text-gray-400 mt-1">
+                    Reach thousands of Atlanta locals
+                  </p>
+                </div>
+              </Link>
+            </section>
+
+            {/* ===== EATS & DRINKS (6 items) ===== */}
+            <section>
+              <div className="flex items-end justify-between mb-10 border-b border-gray-200 pb-4">
+                <div>
+                  <span className="text-[#c1121f] text-[11px] font-semibold uppercase tracking-eyebrow">
+                    Eats &amp; Drinks
+                  </span>
+                  <h2 className="font-display text-3xl md:text-4xl font-semibold text-black leading-tight mt-1">
+                    {eatsHeadline}
+                  </h2>
+                </div>
+                <Link
+                  href="/hub/eats-and-drinks"
+                  className="flex items-center gap-1 text-xs font-semibold uppercase tracking-eyebrow text-black hover:text-red-brand transition-colors shrink-0 pb-1"
+                >
+                  See All <ArrowRight size={14} />
+                </Link>
+              </div>
+              {eatsBusinesses.length > 0 ? (
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-10">
+                  {eatsBusinesses.map((biz) => (
+                    <Link
+                      key={biz.id}
+                      href={`/places/${biz.slug}`}
+                      className="group block"
+                    >
+                      <div className="relative aspect-[4/3] overflow-hidden mb-4">
+                        <Image
+                          src={biz.logo || PH_BIZ}
+                          alt={biz.business_name}
+                          fill
+                          unoptimized
+                          className="object-cover group-hover:scale-105 transition-transform duration-500"
+                        />
+                        {biz.is_featured && (
+                          <span className="absolute top-3 left-3 px-2 py-0.5 bg-[#c1121f] text-white text-[10px] font-semibold uppercase tracking-eyebrow">
+                            Featured
+                          </span>
+                        )}
+                      </div>
+                      <h3 className="font-display text-lg font-semibold text-black group-hover:text-red-brand transition-colors">
+                        {biz.business_name}
+                      </h3>
+                      <div className="flex items-center gap-1 mt-2 text-sm text-gray-mid">
+                        <MapPin size={13} />
+                        {biz.neighborhoods?.name ?? "Atlanta"}
+                      </div>
+                    </Link>
+                  ))}
+                </div>
+              ) : (
+                <p className="text-gray-mid text-base">
+                  No restaurants listed in {eatsLabel} yet. Check back soon.
+                </p>
+              )}
+            </section>
+
+            {/* ===== EVENTS (6 items) ===== */}
+            <section>
+              <div className="flex items-end justify-between mb-10 border-b border-gray-200 pb-4">
+                <div>
+                  <span className="text-[#c1121f] text-[11px] font-semibold uppercase tracking-eyebrow">
+                    Events
+                  </span>
+                  <h2 className="font-display text-3xl md:text-4xl font-semibold text-black leading-tight mt-1">
+                    {eventsHeadline}
+                  </h2>
+                </div>
+                <Link
+                  href="/hub/events"
+                  className="flex items-center gap-1 text-xs font-semibold uppercase tracking-eyebrow text-black hover:text-red-brand transition-colors shrink-0 pb-1"
+                >
+                  See All <ArrowRight size={14} />
+                </Link>
+              </div>
+              {events.length > 0 ? (
+                <div className="space-y-0 divide-y divide-gray-100">
+                  {events.map((event) => {
+                    const { month, day } = eventDateParts(event.start_date);
+                    return (
+                      <Link
+                        key={event.id}
+                        href={`/events/${event.slug}`}
+                        className="group flex items-center gap-4 py-4 first:pt-0 last:pb-0"
+                      >
+                        <div className="shrink-0 w-14 h-14 bg-[#c1121f] text-white flex flex-col items-center justify-center">
+                          <span className="text-[10px] font-semibold uppercase">
+                            {month}
+                          </span>
+                          <span className="text-lg font-display font-bold leading-none">
+                            {day}
+                          </span>
+                        </div>
+                        <div className="min-w-0 flex-1">
+                          <h4 className="font-display text-base font-semibold text-black group-hover:text-red-brand transition-colors truncate">
+                            {event.title}
+                          </h4>
+                          <div className="flex items-center gap-3 text-xs text-gray-mid mt-1">
+                            <span className="flex items-center gap-1">
+                              <Calendar size={11} />
+                              {formatDate(event.start_date)}
+                            </span>
+                            {event.event_type && (
+                              <span>{event.event_type}</span>
+                            )}
+                          </div>
+                        </div>
+                        <ArrowRight
+                          size={16}
+                          className="shrink-0 text-gray-mid group-hover:text-red-brand transition-colors"
+                        />
+                      </Link>
+                    );
+                  })}
+                </div>
+              ) : (
+                <p className="text-gray-mid text-base">
+                  No upcoming events in {eventsLabel} right now.
+                </p>
+              )}
+            </section>
+
+            {/* ===== NO RESULTS (search mode only) ===== */}
+            {search &&
+              stories.length === 0 &&
+              eatsBusinesses.length === 0 &&
+              events.length === 0 && (
+                <section className="text-center py-16">
+                  <p className="text-gray-mid text-lg">
+                    No results for &ldquo;{search}&rdquo; in{" "}
+                    {neighborhood.name}
+                  </p>
+                </section>
+              )}
+          </div>
+
+          {/* ---------- SIDEBAR (LOCKED ORDER) ---------- */}
+          <aside className="hidden lg:block">
+            <Sidebar>
+              <NewsletterWidget
+                title={`${neighborhood.name} Updates`}
+                description={`Get the latest stories, events, and business openings from ${neighborhood.name}.`}
+              />
+              <AdPlacement slot="sidebar_top" />
+              <NeighborhoodsWidget
+                title={`Nearby in ${areaName}`}
+                neighborhoods={nearbyNeighborhoods}
+              />
+              <SubmitCTA
+                heading={`Own a Business in ${neighborhood.name}?`}
+                description="Get your business in front of thousands of Atlantans."
+              />
+              <SubmitEventCTA />
+            </Sidebar>
+          </aside>
+        </div>
+      </div>
+    </>
+  );
+}
