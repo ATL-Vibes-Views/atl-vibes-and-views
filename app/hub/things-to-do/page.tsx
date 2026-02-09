@@ -14,7 +14,28 @@ import {
   WidgetTitle,
   NeighborhoodsWidget,
 } from "@/components/Sidebar";
-import { ThingsToDoClient } from "./ThingsToDoClient";
+import { HubArchiveClient } from "@/components/HubArchiveClient";
+import type { HubArchiveConfig } from "@/components/HubArchiveClient";
+
+const HUB_CONFIG: HubArchiveConfig = {
+  detailBasePath: "/places",
+  searchPlaceholder: "Search activities by name, address, or description…",
+  featuredTitle: "Featured Experiences",
+  featuredCountNoun: ["listing", "listings"],
+  ctaTitle: "Get Your Experience Featured",
+  ctaDescription:
+    "Reach thousands of Atlantans with Premium placement in our things-to-do guide.",
+  mapToggleLabel: "Activity Map",
+  mapImage: "https://placehold.co/1280x400/e8e8e8/999?text=Map+Placeholder",
+  mapAlt: "Atlanta Activity Map — placeholder",
+  gridEyebrow: "Things To Do",
+  gridCountNoun: ["listing", "listings"],
+  loadMoreLabel: "Load More Activities",
+  emptyNoun: "listings",
+  submitNoun: "activity",
+  newsletterDescription:
+    "Get weekly activity picks, local gems, and community updates delivered to your inbox.",
+};
 
 /* ============================================================
    CONSTANTS
@@ -409,7 +430,8 @@ export default async function ThingsToDoHubPage({
       </div>
 
       {/* ========== CLIENT COMPONENT ========== */}
-      <ThingsToDoClient
+      <HubArchiveClient
+        config={HUB_CONFIG}
         areas={areas.map((a) => ({
           id: a.id,
           name: a.name,
@@ -492,7 +514,7 @@ export default async function ThingsToDoHubPage({
             </div>
           </div>
         </aside>
-      </ThingsToDoClient>
+      </HubArchiveClient>
     </>
   );
 }

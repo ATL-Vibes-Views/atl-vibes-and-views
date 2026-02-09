@@ -29,7 +29,7 @@ interface FilterNeighborhood extends FilterOption {
   area_id: string;
 }
 
-interface BusinessCard {
+interface BusinessData {
   id: string;
   business_name: string;
   slug: string;
@@ -58,16 +58,53 @@ interface MapBusiness {
   tier?: string;
 }
 
-interface BusinessesClientProps {
+/* ============================================================
+   HUB CONFIG — all text/labels that vary between hub pages
+   ============================================================ */
+export interface HubArchiveConfig {
+  /** Detail page base route, e.g. "/places" or "/things-to-do" */
+  detailBasePath: string;
+  /** Search input placeholder, e.g. "Search businesses by name, address, or description…" */
+  searchPlaceholder: string;
+  /** Featured section title, e.g. "Premium Partners" */
+  featuredTitle: string;
+  /** Noun for featured count, e.g. ["business", "businesses"] */
+  featuredCountNoun: [string, string];
+  /** CTA heading, e.g. "Get Your Business Featured" */
+  ctaTitle: string;
+  /** CTA description */
+  ctaDescription: string;
+  /** Map toggle label noun, e.g. "Business Map" */
+  mapToggleLabel: string;
+  /** Map placeholder image src */
+  mapImage: string;
+  /** Map alt text */
+  mapAlt: string;
+  /** Grid section eyebrow, e.g. "Businesses" */
+  gridEyebrow: string;
+  /** Noun for grid count, e.g. ["business", "businesses"] */
+  gridCountNoun: [string, string];
+  /** Load more button label, e.g. "Load More Businesses" */
+  loadMoreLabel: string;
+  /** Empty state: "No {noun} match your current filters." */
+  emptyNoun: string;
+  /** Empty state submit prompt: "Know a great Atlanta {noun}?" */
+  submitNoun: string;
+  /** Newsletter description */
+  newsletterDescription: string;
+}
+
+export interface HubArchiveClientProps {
+  config: HubArchiveConfig;
   areas: FilterArea[];
   neighborhoods: FilterNeighborhood[];
   categories: FilterOption[];
   tags: FilterOption[];
   amenities: FilterOption[];
   identityOptions: FilterOption[];
-  featuredBusinesses: BusinessCard[];
+  featuredBusinesses: BusinessData[];
   mapBusinesses: MapBusiness[];
-  gridBusinesses: BusinessCard[];
+  gridBusinesses: BusinessData[];
   totalGridCount: number;
   currentFilters: {
     q?: string;
@@ -87,21 +124,27 @@ interface BusinessesClientProps {
    ============================================================ */
 const PH_BIZ = "https://placehold.co/600x400/1a1a1a/e6c46d?text=Business";
 
+function pluralize(count: number, noun: [string, string]) {
+  return count === 1 ? noun[0] : noun[1];
+}
+
 /* ============================================================
-   BUSINESS CARD COMPONENT
+   LISTING CARD COMPONENT
    ============================================================ */
-function BizCard({
+function ListingCard({
   biz,
+  detailBasePath,
   showPremiumBadge = false,
 }: {
-  biz: BusinessCard;
+  biz: BusinessData;
+  detailBasePath: string;
   showPremiumBadge?: boolean;
 }) {
   const imgSrc = biz.primary_image_url || PH_BIZ;
   const isPremium = biz.tier === "Premium";
 
   return (
-    <Link href={`/places/${biz.slug}`} className="group block">
+    <Link href={`${detailBasePath}/${biz.slug}`} className="group block">
       {/* Image */}
       <div className="relative overflow-hidden mb-3 bg-gray-100" style={{ paddingBottom: "66.66%" }}>
         <Image
@@ -164,9 +207,10 @@ function BizCard({
 }
 
 /* ============================================================
-   BUSINESSES CLIENT COMPONENT
+   HUB ARCHIVE CLIENT COMPONENT
    ============================================================ */
-export function BusinessesClient({
+export function HubArchiveClient({
+  config,
   areas,
   neighborhoods,
   categories,
@@ -179,7 +223,7 @@ export function BusinessesClient({
   totalGridCount,
   currentFilters,
   children,
-}: BusinessesClientProps) {
+}: HubArchiveClientProps) {
   const router = useRouter();
   const pathname = usePathname();
   const searchParams = useSearchParams();
@@ -260,7 +304,7 @@ export function BusinessesClient({
             type="text"
             value={searchValue}
             onChange={(e) => setSearchValue(e.target.value)}
-            placeholder="Search businesses by name, address, or description…"
+            placeholder={config.searchPlaceholder}
             className="w-full py-3 pl-11 pr-4 text-sm border-2 border-[#e6c46d] rounded-full outline-none bg-white placeholder:text-gray-mid"
           />
           {searchValue && (
@@ -418,7 +462,7 @@ export function BusinessesClient({
         )}
       </section>
 
-      {/* ========== 4. FEATURED BUSINESSES (Premium only) ========== */}
+      {/* ========== 4. FEATURED (Premium only) ========== */}
       {featuredBusinesses.length > 0 && (
         <section className="site-container pb-12">
           <div className="flex items-end justify-between border-b border-gray-200 pb-4 mb-8">
@@ -427,32 +471,30 @@ export function BusinessesClient({
                 Featured
               </span>
               <h2 className="font-display text-4xl lg:text-[36px] font-semibold leading-[1.1] mt-1">
-                Premium Partners
+                {config.featuredTitle}
               </h2>
             </div>
             <span className="text-xs text-gray-mid pb-1">
-              {featuredBusinesses.length} business
-              {featuredBusinesses.length !== 1 ? "es" : ""}
+              {featuredBusinesses.length} {pluralize(featuredBusinesses.length, config.featuredCountNoun)}
             </span>
           </div>
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
             {featuredBusinesses.map((biz) => (
-              <BizCard key={biz.id} biz={biz} showPremiumBadge />
+              <ListingCard key={biz.id} biz={biz} detailBasePath={config.detailBasePath} showPremiumBadge />
             ))}
           </div>
         </section>
       )}
 
-      {/* ========== 5. GET YOUR BUSINESS FEATURED CTA ========== */}
+      {/* ========== 5. GET FEATURED CTA ========== */}
       <div className="site-container flex justify-center pb-12">
         <div className="flex flex-col lg:flex-row items-start lg:items-center justify-between gap-6 lg:gap-8 p-7 lg:px-10 border-2 border-[#e6c46d] bg-white max-w-[800px] w-full">
           <div>
             <h3 className="font-display text-[22px] font-semibold mb-1">
-              Get Your Business Featured
+              {config.ctaTitle}
             </h3>
             <p className="text-[13px] text-gray-mid leading-relaxed">
-              Reach thousands of Atlantans with a Premium placement in our
-              directory.
+              {config.ctaDescription}
             </p>
           </div>
           <Link
@@ -472,15 +514,15 @@ export function BusinessesClient({
           className="lg:hidden flex items-center gap-2 text-[13px] font-semibold mb-4"
         >
           <MapIcon size={16} />
-          {showMap ? "Hide Business Map" : "Show Business Map"}
+          {showMap ? `Hide ${config.mapToggleLabel}` : `Show ${config.mapToggleLabel}`}
           {showMap ? <ChevronUp size={14} /> : <ChevronDown size={14} />}
         </button>
 
         <div className={`${showMap ? "block" : "hidden"} lg:block`}>
           <div className="relative w-full h-[280px] lg:h-[400px] bg-gray-200 overflow-hidden">
             <Image
-              src="/images/map.png"
-              alt="Atlanta Business Map — placeholder"
+              src={config.mapImage}
+              alt={config.mapAlt}
               fill
               className="object-cover"
             />
@@ -506,14 +548,14 @@ export function BusinessesClient({
             <div className="flex items-end justify-between border-b border-gray-200 pb-4 mb-8">
               <div>
                 <span className="text-[11px] font-semibold uppercase tracking-[0.1em] text-red-brand">
-                  Businesses
+                  {config.gridEyebrow}
                 </span>
                 <h2 className="font-display text-4xl lg:text-[36px] font-semibold leading-[1.1] mt-1">
                   More to Explore
                 </h2>
               </div>
               <span className="text-xs text-gray-mid pb-1">
-                {totalGridCount} business{totalGridCount !== 1 ? "es" : ""}
+                {totalGridCount} {pluralize(totalGridCount, config.gridCountNoun)}
               </span>
             </div>
 
@@ -521,7 +563,7 @@ export function BusinessesClient({
               <>
                 <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
                   {gridBusinesses.slice(0, visibleCount).map((biz) => (
-                    <BizCard key={biz.id} biz={biz} />
+                    <ListingCard key={biz.id} biz={biz} detailBasePath={config.detailBasePath} />
                   ))}
                 </div>
 
@@ -532,7 +574,7 @@ export function BusinessesClient({
                       onClick={() => setVisibleCount((c) => c + 12)}
                       className="inline-flex items-center gap-2 px-8 py-3 border-2 border-black text-[11px] font-semibold uppercase tracking-[0.1em] hover:bg-black hover:text-white transition-all"
                     >
-                      Load More Businesses
+                      {config.loadMoreLabel}
                       <ArrowRight size={14} />
                     </button>
                   </div>
@@ -542,7 +584,7 @@ export function BusinessesClient({
               /* Empty state */
               <div className="text-center py-16">
                 <p className="text-gray-mid text-sm mb-4">
-                  No businesses match your current filters.
+                  No {config.emptyNoun} match your current filters.
                 </p>
                 {hasFilters && (
                   <button
@@ -553,7 +595,7 @@ export function BusinessesClient({
                   </button>
                 )}
                 <p className="text-gray-mid text-xs">
-                  Know a great Atlanta business?{" "}
+                  Know a great Atlanta {config.submitNoun}?{" "}
                   <Link
                     href="/submit"
                     className="text-red-brand hover:text-black underline"
@@ -590,8 +632,7 @@ export function BusinessesClient({
             Atlanta in Your Inbox
           </h2>
           <p className="text-white/60 text-sm max-w-[420px] mx-auto mb-8 leading-relaxed">
-            Get weekly business spotlights, local deals, and community updates
-            delivered to your inbox.
+            {config.newsletterDescription}
           </p>
           <div className="max-w-lg mx-auto">
             <form

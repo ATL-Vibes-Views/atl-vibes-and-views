@@ -14,7 +14,26 @@ import {
   WidgetTitle,
   NeighborhoodsWidget,
 } from "@/components/Sidebar";
-import { BusinessesClient } from "./BusinessesClient";
+import { HubArchiveClient } from "@/components/HubArchiveClient";
+import type { HubArchiveConfig } from "@/components/HubArchiveClient";
+
+const HUB_CONFIG: HubArchiveConfig = {
+  detailBasePath: "/places",
+  searchPlaceholder: "Search businesses by name, address, or description…",
+  featuredTitle: "Premium Partners",
+  featuredCountNoun: ["business", "businesses"],
+  ctaTitle: "Get Your Business Featured",
+  ctaDescription: "Reach thousands of Atlantans with a Premium placement in our directory.",
+  mapToggleLabel: "Business Map",
+  mapImage: "https://placehold.co/1280x400/e8e8e8/999?text=Map+Placeholder",
+  mapAlt: "Atlanta Business Map — placeholder",
+  gridEyebrow: "Businesses",
+  gridCountNoun: ["business", "businesses"],
+  loadMoreLabel: "Load More Businesses",
+  emptyNoun: "businesses",
+  submitNoun: "business",
+  newsletterDescription: "Get weekly business spotlights, local deals, and community updates delivered to your inbox.",
+};
 
 /* ============================================================
    CONSTANTS
@@ -385,7 +404,8 @@ export default async function BusinessHubPage({
       </div>
 
       {/* ========== CLIENT COMPONENT ========== */}
-      <BusinessesClient
+      <HubArchiveClient
+        config={HUB_CONFIG}
         areas={areas.map((a) => ({
           id: a.id,
           name: a.name,
@@ -468,7 +488,7 @@ export default async function BusinessHubPage({
             </div>
           </div>
         </aside>
-      </BusinessesClient>
+      </HubArchiveClient>
     </>
   );
 }
