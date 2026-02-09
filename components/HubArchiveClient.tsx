@@ -8,11 +8,12 @@ import {
   Search,
   X,
   ChevronDown,
+  MapPin,
   ArrowRight,
   Map as MapIcon,
   ChevronUp,
+  Star,
 } from "lucide-react";
-import { BusinessCard } from "@/components/ui/BusinessCard";
 
 /* ============================================================
    TYPES
@@ -57,7 +58,44 @@ interface MapBusiness {
   tier?: string;
 }
 
-interface ThingsToDoClientProps {
+/* ============================================================
+   HUB CONFIG — all text/labels that vary between hub pages
+   ============================================================ */
+export interface HubArchiveConfig {
+  /** Detail page base route, e.g. "/places" or "/things-to-do" */
+  detailBasePath: string;
+  /** Search input placeholder, e.g. "Search businesses by name, address, or description…" */
+  searchPlaceholder: string;
+  /** Featured section title, e.g. "Premium Partners" */
+  featuredTitle: string;
+  /** Noun for featured count, e.g. ["business", "businesses"] */
+  featuredCountNoun: [string, string];
+  /** CTA heading, e.g. "Get Your Business Featured" */
+  ctaTitle: string;
+  /** CTA description */
+  ctaDescription: string;
+  /** Map toggle label noun, e.g. "Business Map" */
+  mapToggleLabel: string;
+  /** Map placeholder image src */
+  mapImage: string;
+  /** Map alt text */
+  mapAlt: string;
+  /** Grid section eyebrow, e.g. "Businesses" */
+  gridEyebrow: string;
+  /** Noun for grid count, e.g. ["business", "businesses"] */
+  gridCountNoun: [string, string];
+  /** Load more button label, e.g. "Load More Businesses" */
+  loadMoreLabel: string;
+  /** Empty state: "No {noun} match your current filters." */
+  emptyNoun: string;
+  /** Empty state submit prompt: "Know a great Atlanta {noun}?" */
+  submitNoun: string;
+  /** Newsletter description */
+  newsletterDescription: string;
+}
+
+export interface HubArchiveClientProps {
+  config: HubArchiveConfig;
   areas: FilterArea[];
   neighborhoods: FilterNeighborhood[];
   categories: FilterOption[];
@@ -82,9 +120,97 @@ interface ThingsToDoClientProps {
 }
 
 /* ============================================================
-   THINGS TO DO CLIENT COMPONENT
+   HELPERS
    ============================================================ */
-export function ThingsToDoClient({
+const PH_BIZ = "https://placehold.co/600x400/1a1a1a/e6c46d?text=Business";
+
+function pluralize(count: number, noun: [string, string]) {
+  return count === 1 ? noun[0] : noun[1];
+}
+
+/* ============================================================
+   LISTING CARD COMPONENT
+   ============================================================ */
+function ListingCard({
+  biz,
+  detailBasePath,
+  showPremiumBadge = false,
+}: {
+  biz: BusinessData;
+  detailBasePath: string;
+  showPremiumBadge?: boolean;
+}) {
+  const imgSrc = biz.primary_image_url || PH_BIZ;
+  const isPremium = biz.tier === "Premium";
+
+  return (
+    <Link href={`${detailBasePath}/${biz.slug}`} className="group block">
+      {/* Image */}
+      <div className="relative overflow-hidden mb-3 bg-gray-100" style={{ paddingBottom: "66.66%" }}>
+        <Image
+          src={imgSrc}
+          alt={biz.business_name}
+          fill
+          className="object-cover transition-transform duration-500 group-hover:scale-105"
+          sizes="(max-width: 768px) 100vw, (max-width: 1024px) 50vw, 33vw"
+        />
+        {/* Premium badge */}
+        {(showPremiumBadge || isPremium) && isPremium && (
+          <span className="absolute top-3 right-3 flex items-center gap-1 px-3 py-1 bg-[#fee198] text-black text-[10px] font-semibold uppercase tracking-[0.1em] rounded-full z-10 shadow-sm">
+            <Star size={10} fill="currentColor" />
+            Premium
+          </span>
+        )}
+        {/* Price badge */}
+        {biz.price_range && (
+          <span className="absolute bottom-3 right-3 bg-white px-2.5 py-1.5 shadow-lg z-10 text-[13px] font-semibold text-black tracking-wider">
+            {biz.price_range}
+          </span>
+        )}
+      </div>
+
+      {/* Category pill */}
+      {biz.categories?.name && (
+        <span className="inline-block px-3 py-1 bg-[#fee198] text-black text-[10px] font-semibold uppercase tracking-[0.1em] rounded-full mb-2">
+          {biz.categories.name}
+        </span>
+      )}
+
+      {/* Title */}
+      <h3 className="font-display text-xl font-semibold leading-snug text-black group-hover:text-red-brand transition-colors line-clamp-2">
+        {biz.business_name}
+      </h3>
+
+      {/* Address */}
+      {biz.street_address && (
+        <div className="flex items-center gap-1 mt-2 text-[13px] text-gray-mid">
+          <MapPin size={13} className="flex-shrink-0" />
+          {biz.street_address}
+        </div>
+      )}
+
+      {/* Neighborhood */}
+      {biz.neighborhoods?.name && (
+        <div className="mt-1 pl-[17px]">
+          <span
+            className="text-xs text-gray-mid hover:text-black hover:underline transition-colors"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <Link href={`/neighborhoods/${biz.neighborhoods.slug}`}>
+              {biz.neighborhoods.name}
+            </Link>
+          </span>
+        </div>
+      )}
+    </Link>
+  );
+}
+
+/* ============================================================
+   HUB ARCHIVE CLIENT COMPONENT
+   ============================================================ */
+export function HubArchiveClient({
+  config,
   areas,
   neighborhoods,
   categories,
@@ -97,7 +223,7 @@ export function ThingsToDoClient({
   totalGridCount,
   currentFilters,
   children,
-}: ThingsToDoClientProps) {
+}: HubArchiveClientProps) {
   const router = useRouter();
   const pathname = usePathname();
   const searchParams = useSearchParams();
@@ -178,7 +304,7 @@ export function ThingsToDoClient({
             type="text"
             value={searchValue}
             onChange={(e) => setSearchValue(e.target.value)}
-            placeholder="Search activities by name, location, or description…"
+            placeholder={config.searchPlaceholder}
             className="w-full py-3 pl-11 pr-4 text-sm border-2 border-[#e6c46d] rounded-full outline-none bg-white placeholder:text-gray-mid"
           />
           {searchValue && (
@@ -203,7 +329,7 @@ export function ThingsToDoClient({
             onChange={(e) =>
               pushFilters({
                 area: e.target.value || undefined,
-                neighborhood: undefined,
+                neighborhood: undefined, // reset dependent
               })
             }
             className="appearance-none bg-white border border-gray-200 rounded-full px-4 py-2 pr-8 text-[13px] text-gray-dark cursor-pointer"
@@ -336,7 +462,7 @@ export function ThingsToDoClient({
         )}
       </section>
 
-      {/* ========== 4. FEATURED EXPERIENCES (Premium only) ========== */}
+      {/* ========== 4. FEATURED (Premium only) ========== */}
       {featuredBusinesses.length > 0 && (
         <section className="site-container pb-12">
           <div className="flex items-end justify-between border-b border-gray-200 pb-4 mb-8">
@@ -345,49 +471,30 @@ export function ThingsToDoClient({
                 Featured
               </span>
               <h2 className="font-display text-4xl lg:text-[36px] font-semibold leading-[1.1] mt-1">
-                Featured Experiences
+                {config.featuredTitle}
               </h2>
             </div>
             <span className="text-xs text-gray-mid pb-1">
-              {featuredBusinesses.length} listing
-              {featuredBusinesses.length !== 1 ? "s" : ""}
+              {featuredBusinesses.length} {pluralize(featuredBusinesses.length, config.featuredCountNoun)}
             </span>
           </div>
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
             {featuredBusinesses.map((biz) => (
-              <BusinessCard
-                key={biz.id}
-                name={biz.business_name}
-                slug={biz.slug}
-                category={biz.categories?.name}
-                neighborhood={biz.neighborhoods?.name}
-                neighborhoodSlug={biz.neighborhoods?.slug}
-                description={biz.tagline}
-                imageUrl={biz.primary_image_url || undefined}
-                featured
-                tier={
-                  (biz.tier?.toLowerCase() as
-                    | "free"
-                    | "paid"
-                    | "featured"
-                    | "premium") ?? "free"
-                }
-              />
+              <ListingCard key={biz.id} biz={biz} detailBasePath={config.detailBasePath} showPremiumBadge />
             ))}
           </div>
         </section>
       )}
 
-      {/* ========== 5. GET YOUR EXPERIENCE FEATURED CTA ========== */}
+      {/* ========== 5. GET FEATURED CTA ========== */}
       <div className="site-container flex justify-center pb-12">
         <div className="flex flex-col lg:flex-row items-start lg:items-center justify-between gap-6 lg:gap-8 p-7 lg:px-10 border-2 border-[#e6c46d] bg-white max-w-[800px] w-full">
           <div>
             <h3 className="font-display text-[22px] font-semibold mb-1">
-              Get Your Experience Featured
+              {config.ctaTitle}
             </h3>
             <p className="text-[13px] text-gray-mid leading-relaxed">
-              Reach thousands of Atlantans with Premium placement in our
-              activity guide.
+              {config.ctaDescription}
             </p>
           </div>
           <Link
@@ -407,15 +514,15 @@ export function ThingsToDoClient({
           className="lg:hidden flex items-center gap-2 text-[13px] font-semibold mb-4"
         >
           <MapIcon size={16} />
-          {showMap ? "Hide Activity Map" : "Show Activity Map"}
+          {showMap ? `Hide ${config.mapToggleLabel}` : `Show ${config.mapToggleLabel}`}
           {showMap ? <ChevronUp size={14} /> : <ChevronDown size={14} />}
         </button>
 
         <div className={`${showMap ? "block" : "hidden"} lg:block`}>
           <div className="relative w-full h-[280px] lg:h-[400px] bg-gray-200 overflow-hidden">
             <Image
-              src="https://placehold.co/1280x400/e8e8e8/999?text=Map+Placeholder"
-              alt="Atlanta Activity Map — placeholder"
+              src={config.mapImage}
+              alt={config.mapAlt}
               fill
               className="object-cover"
             />
@@ -441,14 +548,14 @@ export function ThingsToDoClient({
             <div className="flex items-end justify-between border-b border-gray-200 pb-4 mb-8">
               <div>
                 <span className="text-[11px] font-semibold uppercase tracking-[0.1em] text-red-brand">
-                  Things To Do
+                  {config.gridEyebrow}
                 </span>
                 <h2 className="font-display text-4xl lg:text-[36px] font-semibold leading-[1.1] mt-1">
                   More to Explore
                 </h2>
               </div>
               <span className="text-xs text-gray-mid pb-1">
-                {totalGridCount} listing{totalGridCount !== 1 ? "s" : ""}
+                {totalGridCount} {pluralize(totalGridCount, config.gridCountNoun)}
               </span>
             </div>
 
@@ -456,23 +563,7 @@ export function ThingsToDoClient({
               <>
                 <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
                   {gridBusinesses.slice(0, visibleCount).map((biz) => (
-                    <BusinessCard
-                      key={biz.id}
-                      name={biz.business_name}
-                      slug={biz.slug}
-                      category={biz.categories?.name}
-                      neighborhood={biz.neighborhoods?.name}
-                      neighborhoodSlug={biz.neighborhoods?.slug}
-                      description={biz.tagline}
-                      imageUrl={biz.primary_image_url || undefined}
-                      tier={
-                        (biz.tier?.toLowerCase() as
-                          | "free"
-                          | "paid"
-                          | "featured"
-                          | "premium") ?? "free"
-                      }
-                    />
+                    <ListingCard key={biz.id} biz={biz} detailBasePath={config.detailBasePath} />
                   ))}
                 </div>
 
@@ -483,7 +574,7 @@ export function ThingsToDoClient({
                       onClick={() => setVisibleCount((c) => c + 12)}
                       className="inline-flex items-center gap-2 px-8 py-3 border-2 border-black text-[11px] font-semibold uppercase tracking-[0.1em] hover:bg-black hover:text-white transition-all"
                     >
-                      Load More Activities
+                      {config.loadMoreLabel}
                       <ArrowRight size={14} />
                     </button>
                   </div>
@@ -493,7 +584,7 @@ export function ThingsToDoClient({
               /* Empty state */
               <div className="text-center py-16">
                 <p className="text-gray-mid text-sm mb-4">
-                  No listings match your current filters.
+                  No {config.emptyNoun} match your current filters.
                 </p>
                 {hasFilters && (
                   <button
@@ -504,7 +595,7 @@ export function ThingsToDoClient({
                   </button>
                 )}
                 <p className="text-gray-mid text-xs">
-                  Know a great Atlanta activity?{" "}
+                  Know a great Atlanta {config.submitNoun}?{" "}
                   <Link
                     href="/submit"
                     className="text-red-brand hover:text-black underline"
@@ -541,8 +632,7 @@ export function ThingsToDoClient({
             Atlanta in Your Inbox
           </h2>
           <p className="text-white/60 text-sm max-w-[420px] mx-auto mb-8 leading-relaxed">
-            Get weekly activity picks, local gems, and community updates
-            delivered to your inbox.
+            {config.newsletterDescription}
           </p>
           <div className="max-w-lg mx-auto">
             <form

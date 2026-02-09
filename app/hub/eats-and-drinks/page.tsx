@@ -14,7 +14,26 @@ import {
   WidgetTitle,
   NeighborhoodsWidget,
 } from "@/components/Sidebar";
-import { EatsAndDrinksClient } from "./EatsAndDrinksClient";
+import { HubArchiveClient } from "@/components/HubArchiveClient";
+import type { HubArchiveConfig } from "@/components/HubArchiveClient";
+
+const HUB_CONFIG: HubArchiveConfig = {
+  detailBasePath: "/places",
+  searchPlaceholder: "Search restaurants by name, address, or description…",
+  featuredTitle: "Featured Restaurants",
+  featuredCountNoun: ["restaurant", "restaurants"],
+  ctaTitle: "Get Your Restaurant Featured",
+  ctaDescription: "Reach thousands of Atlantans with Premium placement in our dining guide.",
+  mapToggleLabel: "Dining Map",
+  mapImage: "/images/map.png",
+  mapAlt: "Atlanta Dining Map — placeholder",
+  gridEyebrow: "Dining",
+  gridCountNoun: ["restaurant", "restaurants"],
+  loadMoreLabel: "Load More Restaurants",
+  emptyNoun: "restaurants",
+  submitNoun: "restaurant",
+  newsletterDescription: "Get weekly restaurant spotlights, dining deals, and community updates delivered to your inbox.",
+};
 
 /* ============================================================
    CONSTANTS
@@ -424,7 +443,8 @@ export default async function EatsAndDrinksHubPage({
       </div>
 
       {/* ========== CLIENT COMPONENT ========== */}
-      <EatsAndDrinksClient
+      <HubArchiveClient
+        config={HUB_CONFIG}
         areas={areas.map((a) => ({
           id: a.id,
           name: a.name,
@@ -507,7 +527,7 @@ export default async function EatsAndDrinksHubPage({
             </div>
           </div>
         </aside>
-      </EatsAndDrinksClient>
+      </HubArchiveClient>
     </>
   );
 }
