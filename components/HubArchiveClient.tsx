@@ -8,12 +8,11 @@ import {
   Search,
   X,
   ChevronDown,
-  MapPin,
   ArrowRight,
   Map as MapIcon,
   ChevronUp,
-  Star,
 } from "lucide-react";
+import { BusinessCard } from "@/components/ui/BusinessCard";
 
 /* ============================================================
    TYPES
@@ -122,88 +121,8 @@ export interface HubArchiveClientProps {
 /* ============================================================
    HELPERS
    ============================================================ */
-const PH_BIZ = "https://placehold.co/600x400/1a1a1a/e6c46d?text=Business";
-
 function pluralize(count: number, noun: [string, string]) {
   return count === 1 ? noun[0] : noun[1];
-}
-
-/* ============================================================
-   LISTING CARD COMPONENT
-   ============================================================ */
-function ListingCard({
-  biz,
-  detailBasePath,
-  showPremiumBadge = false,
-}: {
-  biz: BusinessData;
-  detailBasePath: string;
-  showPremiumBadge?: boolean;
-}) {
-  const imgSrc = biz.primary_image_url || PH_BIZ;
-  const isPremium = biz.tier === "Premium";
-
-  return (
-    <Link href={`${detailBasePath}/${biz.slug}`} className="group block">
-      {/* Image */}
-      <div className="relative overflow-hidden mb-3 bg-gray-100" style={{ paddingBottom: "66.66%" }}>
-        <Image
-          src={imgSrc}
-          alt={biz.business_name}
-          fill
-          className="object-cover transition-transform duration-500 group-hover:scale-105"
-          sizes="(max-width: 768px) 100vw, (max-width: 1024px) 50vw, 33vw"
-        />
-        {/* Premium badge */}
-        {(showPremiumBadge || isPremium) && isPremium && (
-          <span className="absolute top-3 right-3 flex items-center gap-1 px-3 py-1 bg-[#fee198] text-black text-[10px] font-semibold uppercase tracking-[0.1em] rounded-full z-10 shadow-sm">
-            <Star size={10} fill="currentColor" />
-            Premium
-          </span>
-        )}
-        {/* Price badge */}
-        {biz.price_range && (
-          <span className="absolute bottom-3 right-3 bg-white px-2.5 py-1.5 shadow-lg z-10 text-[13px] font-semibold text-black tracking-wider">
-            {biz.price_range}
-          </span>
-        )}
-      </div>
-
-      {/* Category pill */}
-      {biz.categories?.name && (
-        <span className="inline-block px-3 py-1 bg-[#fee198] text-black text-[10px] font-semibold uppercase tracking-[0.1em] rounded-full mb-2">
-          {biz.categories.name}
-        </span>
-      )}
-
-      {/* Title */}
-      <h3 className="font-display text-xl font-semibold leading-snug text-black group-hover:text-red-brand transition-colors line-clamp-2">
-        {biz.business_name}
-      </h3>
-
-      {/* Address */}
-      {biz.street_address && (
-        <div className="flex items-center gap-1 mt-2 text-[13px] text-gray-mid">
-          <MapPin size={13} className="flex-shrink-0" />
-          {biz.street_address}
-        </div>
-      )}
-
-      {/* Neighborhood */}
-      {biz.neighborhoods?.name && (
-        <div className="mt-1 pl-[17px]">
-          <span
-            className="text-xs text-gray-mid hover:text-black hover:underline transition-colors"
-            onClick={(e) => e.stopPropagation()}
-          >
-            <Link href={`/neighborhoods/${biz.neighborhoods.slug}`}>
-              {biz.neighborhoods.name}
-            </Link>
-          </span>
-        </div>
-      )}
-    </Link>
-  );
 }
 
 /* ============================================================
@@ -480,7 +399,20 @@ export function HubArchiveClient({
           </div>
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
             {featuredBusinesses.map((biz) => (
-              <ListingCard key={biz.id} biz={biz} detailBasePath={config.detailBasePath} showPremiumBadge />
+              <BusinessCard
+                key={biz.id}
+                name={biz.business_name}
+                slug={biz.slug}
+                detailRoute={config.detailBasePath}
+                imageUrl={biz.primary_image_url || biz.logo || undefined}
+                category={biz.categories?.name}
+                neighborhood={biz.neighborhoods?.name}
+                neighborhoodSlug={biz.neighborhoods?.slug}
+                address={biz.street_address}
+                priceRange={biz.price_range}
+                tier={biz.tier}
+                showPremiumBadge
+              />
             ))}
           </div>
         </section>
@@ -563,7 +495,19 @@ export function HubArchiveClient({
               <>
                 <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
                   {gridBusinesses.slice(0, visibleCount).map((biz) => (
-                    <ListingCard key={biz.id} biz={biz} detailBasePath={config.detailBasePath} />
+                    <BusinessCard
+                      key={biz.id}
+                      name={biz.business_name}
+                      slug={biz.slug}
+                      detailRoute={config.detailBasePath}
+                      imageUrl={biz.primary_image_url || biz.logo || undefined}
+                      category={biz.categories?.name}
+                      neighborhood={biz.neighborhoods?.name}
+                      neighborhoodSlug={biz.neighborhoods?.slug}
+                      address={biz.street_address}
+                      priceRange={biz.price_range}
+                      tier={biz.tier}
+                    />
                   ))}
                 </div>
 

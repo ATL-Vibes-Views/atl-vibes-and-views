@@ -1,7 +1,8 @@
 import Link from "next/link";
 import Image from "next/image";
 import { notFound } from "next/navigation";
-import { MapPin, Calendar, ArrowRight, ChevronRight } from "lucide-react";
+import { MapPin, ArrowRight, ChevronRight } from "lucide-react";
+import { EventCard } from "@/components/ui/EventCard";
 import { SearchBar } from "@/components/SearchBar";
 import {
   Sidebar,
@@ -34,14 +35,6 @@ function formatDate(dateStr?: string | null): string {
     day: "numeric",
     year: "numeric",
   });
-}
-
-function eventDateParts(dateStr: string): { month: string; day: string } {
-  const d = new Date(dateStr + "T00:00:00");
-  return {
-    month: d.toLocaleDateString("en-US", { month: "short" }).toUpperCase(),
-    day: d.getDate().toString(),
-  };
 }
 
 /* Deterministic headline rotation based on slug */
@@ -401,43 +394,16 @@ export default async function AreaDetailPage({
 
               {events.length > 0 ? (
                 <div className="space-y-0 divide-y divide-gray-100">
-                  {events.map((event) => {
-                    const { month, day } = eventDateParts(event.start_date);
-                    return (
-                      <Link
-                        key={event.id}
-                        href={`/events/${event.slug}`}
-                        className="group flex items-center gap-4 py-4 first:pt-0 last:pb-0"
-                      >
-                        <div className="shrink-0 w-14 h-14 bg-[#c1121f] text-white flex flex-col items-center justify-center">
-                          <span className="text-[10px] font-semibold uppercase">
-                            {month}
-                          </span>
-                          <span className="text-lg font-display font-bold leading-none">
-                            {day}
-                          </span>
-                        </div>
-                        <div className="min-w-0 flex-1">
-                          <h4 className="font-display text-base font-semibold text-black group-hover:text-red-brand transition-colors truncate">
-                            {event.title}
-                          </h4>
-                          <div className="flex items-center gap-3 text-xs text-gray-mid mt-1">
-                            <span className="flex items-center gap-1">
-                              <Calendar size={11} />
-                              {formatDate(event.start_date)}
-                            </span>
-                            {event.event_type && (
-                              <span>{event.event_type}</span>
-                            )}
-                          </div>
-                        </div>
-                        <ArrowRight
-                          size={16}
-                          className="shrink-0 text-gray-mid group-hover:text-red-brand transition-colors"
-                        />
-                      </Link>
-                    );
-                  })}
+                  {events.map((event) => (
+                    <EventCard
+                      key={event.id}
+                      name={event.title}
+                      slug={event.slug}
+                      startDate={event.start_date}
+                      eventType={event.event_type}
+                      variant="list"
+                    />
+                  ))}
                 </div>
               ) : (
                 <p className="text-gray-mid text-base">

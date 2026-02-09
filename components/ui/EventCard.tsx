@@ -1,27 +1,32 @@
 import Link from "next/link";
-import { MapPin, Calendar } from "lucide-react";
+import { MapPin, Calendar, ArrowRight } from "lucide-react";
 
 /* ============================================================
-   EVENT CARD
-   
-   Used on: Hub events landing, events archive, neighborhood
-   pages, area pages, homepage featured events.
-   
+   EVENT CARD v2
+
+   Unified card for event listings across all pages.
+
    Variants:
    - "featured" — larger with image and featured badge
    - "standard" — image + date overlay
-   - "list" — horizontal row (thumbnail, date, name, location)
+   - "list"     — horizontal row with date badge, title, arrow
    ============================================================ */
 
 interface EventCardProps {
   name: string;
   slug: string;
+  /** Raw date string (e.g. "2026-02-14") — computes badge and display date */
+  startDate?: string;
+  /** Override: pre-formatted short date (e.g. "Feb 14") */
+  dateShort?: string;
+  /** Override: pre-formatted display date (e.g. "Feb 14, 2026") */
   date?: string;
-  dateShort?: string; // "Feb 14" for overlay
   time?: string;
   category?: string;
+  eventType?: string;
   neighborhood?: string;
   neighborhoodSlug?: string;
+  venue?: string;
   imageUrl?: string;
   description?: string;
   featured?: boolean;
@@ -29,41 +34,78 @@ interface EventCardProps {
   className?: string;
 }
 
+/* ---------- Helpers ---------- */
+
+function eventDateParts(dateStr: string): { month: string; day: string } {
+  const d = new Date(dateStr + "T00:00:00");
+  return {
+    month: d.toLocaleDateString("en-US", { month: "short" }).toUpperCase(),
+    day: d.getDate().toString(),
+  };
+}
+
+function formatDateStr(dateStr: string): string {
+  return new Date(dateStr).toLocaleDateString("en-US", {
+    month: "short",
+    day: "numeric",
+    year: "numeric",
+  });
+}
+
+/* ---------- Component ---------- */
+
 export function EventCard({
   name,
   slug,
+  startDate,
   date,
   dateShort,
   time,
   category,
+  eventType,
   neighborhood,
+  neighborhoodSlug,
+  venue,
   imageUrl,
   description,
   featured = false,
   variant = "standard",
   className = "",
 }: EventCardProps) {
+  /* Compute date parts from startDate or dateShort */
+  const dateParts = startDate
+    ? eventDateParts(startDate)
+    : dateShort
+      ? {
+          month: dateShort.split(" ")[0]?.toUpperCase(),
+          day: dateShort.split(" ")[1],
+        }
+      : null;
+
+  const displayDate =
+    date || (startDate ? formatDateStr(startDate) : undefined);
+
   /* --- List Variant --- */
   if (variant === "list") {
     return (
       <Link
         href={`/events/${slug}`}
-        className={`group flex gap-4 py-3 border-b border-gray-100 last:border-0 ${className}`}
+        className={`group flex items-center gap-4 py-4 first:pt-0 last:pb-0 ${className}`}
       >
         {/* Date Block */}
-        {dateShort && (
-          <div className="shrink-0 w-14 h-14 bg-red-brand text-white flex flex-col items-center justify-center">
+        {dateParts && (
+          <div className="shrink-0 w-14 h-14 bg-[#c1121f] text-white flex flex-col items-center justify-center">
             <span className="text-[10px] font-semibold uppercase">
-              {dateShort.split(" ")[0]}
+              {dateParts.month}
             </span>
             <span className="text-lg font-display font-bold leading-none">
-              {dateShort.split(" ")[1]}
+              {dateParts.day}
             </span>
           </div>
         )}
 
-        {/* Thumbnail */}
-        {imageUrl && !dateShort && (
+        {/* Thumbnail (fallback when no date) */}
+        {imageUrl && !dateParts && (
           <div className="w-14 h-14 shrink-0 overflow-hidden bg-gray-light">
             <img
               src={imageUrl}
@@ -74,25 +116,31 @@ export function EventCard({
         )}
 
         {/* Content */}
-        <div className="min-w-0 flex flex-col justify-center">
-          <h4 className="font-display text-sm font-semibold leading-tight group-hover:text-red-brand transition-colors line-clamp-1">
+        <div className="min-w-0 flex-1">
+          <h4 className="font-display text-base font-semibold text-black leading-tight group-hover:text-red-brand transition-colors truncate">
             {name}
           </h4>
-          <div className="flex items-center gap-2 mt-1 text-meta-sm text-gray-mid">
-            {neighborhood && (
+          <div className="flex items-center gap-3 text-xs text-gray-mid mt-1">
+            {displayDate && (
+              <span className="flex items-center gap-1">
+                <Calendar size={11} />
+                {displayDate}
+              </span>
+            )}
+            {eventType && <span>{eventType}</span>}
+            {neighborhood && !eventType && (
               <span className="flex items-center gap-0.5">
                 <MapPin size={10} />
                 {neighborhood}
               </span>
             )}
-            {category && (
-              <>
-                <span>·</span>
-                <span>{category}</span>
-              </>
-            )}
           </div>
         </div>
+
+        <ArrowRight
+          size={16}
+          className="shrink-0 text-gray-mid group-hover:text-red-brand transition-colors"
+        />
       </Link>
     );
   }
@@ -121,13 +169,13 @@ export function EventCard({
           )}
 
           {/* Date Overlay */}
-          {dateShort && (
+          {dateParts && (
             <div className="absolute bottom-3 right-3 bg-white px-3 py-1.5 text-center shadow-sm">
               <span className="block text-[10px] font-semibold uppercase text-red-brand">
-                {dateShort.split(" ")[0]}
+                {dateParts.month}
               </span>
               <span className="block text-lg font-display font-bold leading-none">
-                {dateShort.split(" ")[1]}
+                {dateParts.day}
               </span>
             </div>
           )}
@@ -156,16 +204,16 @@ export function EventCard({
           )}
 
           <div className="flex items-center gap-3 mt-2 text-meta-sm text-gray-mid">
-            {date && (
+            {displayDate && (
               <span className="flex items-center gap-1">
                 <Calendar size={11} />
-                {date}
+                {displayDate}
               </span>
             )}
-            {neighborhood && (
+            {(neighborhood || venue) && (
               <span className="flex items-center gap-1">
                 <MapPin size={11} />
-                {neighborhood}
+                {venue || neighborhood}
               </span>
             )}
           </div>
