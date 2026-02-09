@@ -151,66 +151,6 @@ export function NeighborhoodsWidget({
 }
 
 /* ============================================================
-   FEATURED STORIES WIDGET
-   ============================================================ */
-interface FeaturedStory {
-  title: string;
-  slug: string;
-  category?: string;
-  imageUrl?: string;
-}
-
-export function FeaturedStoriesWidget({
-  title = "Editor's Picks",
-  stories,
-}: {
-  title?: string;
-  stories: FeaturedStory[];
-}) {
-  return (
-    <SidebarWidget>
-      <WidgetTitle>{title}</WidgetTitle>
-      <ul className="space-y-4">
-        {stories.map((story, i) => (
-          <li key={story.slug}>
-            <Link
-              href={`/stories/${story.slug}`}
-              className="group flex gap-3"
-            >
-              {story.imageUrl ? (
-                <div className="w-16 h-16 shrink-0 bg-gray-light overflow-hidden">
-                  <img
-                    src={story.imageUrl}
-                    alt=""
-                    className="w-full h-full object-cover group-hover:scale-105 transition-transform"
-                  />
-                </div>
-              ) : (
-                <div className="w-16 h-16 shrink-0 bg-gray-light flex items-center justify-center">
-                  <span className="font-display text-lg text-gray-mid">
-                    {i + 1}
-                  </span>
-                </div>
-              )}
-              <div className="min-w-0">
-                {story.category && (
-                  <span className="eyebrow eyebrow-red text-[10px]">
-                    {story.category}
-                  </span>
-                )}
-                <h5 className="font-display text-sm font-semibold leading-tight group-hover:text-red-brand transition-colors line-clamp-2">
-                  {story.title}
-                </h5>
-              </div>
-            </Link>
-          </li>
-        ))}
-      </ul>
-    </SidebarWidget>
-  );
-}
-
-/* ============================================================
    SUBMIT CTA WIDGET (Sidebar A)
    — hover: white bg + black text
    ============================================================ */
@@ -234,32 +174,6 @@ export function SubmitCTA({
         className="inline-flex items-center px-4 py-2 bg-gold-light text-black text-xs font-semibold uppercase tracking-eyebrow hover:bg-white hover:text-black transition-colors"
       >
         {buttonText}
-      </Link>
-    </SidebarWidget>
-  );
-}
-
-/* ============================================================
-   GUIDE PROMO WIDGET
-   ============================================================ */
-export function GuidePromoWidget({
-  title = "Atlanta Guide",
-  description = "Your ultimate guide to the city — neighborhoods, eats, events, and more.",
-  href = "/hub/atlanta-guide",
-}: {
-  title?: string;
-  description?: string;
-  href?: string;
-}) {
-  return (
-    <SidebarWidget className="border-gold-dark border-2">
-      <WidgetTitle>{title}</WidgetTitle>
-      <p className="text-sm text-gray-dark mb-4">{description}</p>
-      <Link
-        href={href}
-        className="inline-flex items-center text-xs font-semibold uppercase tracking-eyebrow text-red-brand hover:text-black transition-colors"
-      >
-        Explore the Guide →
       </Link>
     </SidebarWidget>
   );
