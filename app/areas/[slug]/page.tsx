@@ -1,8 +1,10 @@
 import Link from "next/link";
 import Image from "next/image";
 import { notFound } from "next/navigation";
-import { MapPin, ArrowRight, ChevronRight } from "lucide-react";
+import { MapPin } from "lucide-react";
 import { EventCard } from "@/components/ui/EventCard";
+import { Breadcrumbs } from "@/components/ui/Breadcrumbs";
+import { SectionHeader } from "@/components/ui/SectionHeader";
 import { SearchBar } from "@/components/SearchBar";
 import {
   Sidebar,
@@ -205,17 +207,14 @@ export default async function AreaDetailPage({
 
       {/* ========== 2. BREADCRUMBS ========== */}
       <div className="site-container pt-6 pb-2">
-        <nav className="flex items-center gap-2 text-xs text-gray-mid mb-4">
-          <Link href="/" className="hover:text-black transition-colors">
-            Home
-          </Link>
-          <ChevronRight size={12} />
-          <Link href="/areas" className="hover:text-black transition-colors">
-            Areas
-          </Link>
-          <ChevronRight size={12} />
-          <span className="text-black font-medium">{area.name}</span>
-        </nav>
+        <Breadcrumbs
+          items={[
+            { label: "Home", href: "/" },
+            { label: "Areas", href: "/areas" },
+            { label: area.name },
+          ]}
+          className="mb-4"
+        />
 
         {/* ========== 3. SEARCH BAR ========== */}
         <SearchBar
@@ -236,23 +235,12 @@ export default async function AreaDetailPage({
           <div className="space-y-28">
             {/* ===== STORIES (editorial) ===== */}
             <section>
-              <div className="flex items-end justify-between mb-10 border-b border-gray-200 pb-4">
-                <div>
-                  <span className="text-[#c1121f] text-[11px] font-semibold uppercase tracking-eyebrow">
-                    Stories
-                  </span>
-                  <h2 className="font-display text-3xl md:text-4xl font-semibold text-black leading-tight mt-1">
-                    Latest from {storiesLabel}
-                  </h2>
-                </div>
-                <Link
-                  href="/city-watch"
-                  className="flex items-center gap-1 text-xs font-semibold uppercase tracking-eyebrow text-black hover:text-red-brand transition-colors shrink-0 pb-1"
-                >
-                  See All
-                  <ArrowRight size={14} />
-                </Link>
-              </div>
+              <SectionHeader
+                eyebrow="Stories"
+                title={`Latest from ${storiesLabel}`}
+                action={{ label: "See All", href: "/city-watch" }}
+                className="mb-10"
+              />
 
               {stories.length > 0 ? (
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-10">
@@ -315,23 +303,12 @@ export default async function AreaDetailPage({
 
             {/* ===== EATS & DRINKS ===== */}
             <section>
-              <div className="flex items-end justify-between mb-10 border-b border-gray-200 pb-4">
-                <div>
-                  <span className="text-[#c1121f] text-[11px] font-semibold uppercase tracking-eyebrow">
-                    Eats &amp; Drinks
-                  </span>
-                  <h2 className="font-display text-3xl md:text-4xl font-semibold text-black leading-tight mt-1">
-                    {eatsHeadline}
-                  </h2>
-                </div>
-                <Link
-                  href="/hub/eats-and-drinks"
-                  className="flex items-center gap-1 text-xs font-semibold uppercase tracking-eyebrow text-black hover:text-red-brand transition-colors shrink-0 pb-1"
-                >
-                  See All
-                  <ArrowRight size={14} />
-                </Link>
-              </div>
+              <SectionHeader
+                eyebrow="Eats & Drinks"
+                title={eatsHeadline}
+                action={{ label: "See All", href: "/hub/eats-and-drinks" }}
+                className="mb-10"
+              />
 
               {eatsBusinesses.length > 0 ? (
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-10">
@@ -374,23 +351,12 @@ export default async function AreaDetailPage({
 
             {/* ===== EVENTS / THINGS TO DO ===== */}
             <section>
-              <div className="flex items-end justify-between mb-10 border-b border-gray-200 pb-4">
-                <div>
-                  <span className="text-[#c1121f] text-[11px] font-semibold uppercase tracking-eyebrow">
-                    Events
-                  </span>
-                  <h2 className="font-display text-3xl md:text-4xl font-semibold text-black leading-tight mt-1">
-                    {eventsHeadline}
-                  </h2>
-                </div>
-                <Link
-                  href="/hub/events"
-                  className="flex items-center gap-1 text-xs font-semibold uppercase tracking-eyebrow text-black hover:text-red-brand transition-colors shrink-0 pb-1"
-                >
-                  See All
-                  <ArrowRight size={14} />
-                </Link>
-              </div>
+              <SectionHeader
+                eyebrow="Events"
+                title={eventsHeadline}
+                action={{ label: "See All", href: "/hub/events" }}
+                className="mb-10"
+              />
 
               {events.length > 0 ? (
                 <div className="space-y-0 divide-y divide-gray-100">

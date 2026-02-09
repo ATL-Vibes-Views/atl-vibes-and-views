@@ -1,8 +1,10 @@
 import Link from "next/link";
 import Image from "next/image";
 import { notFound } from "next/navigation";
-import { MapPin, ArrowRight, ChevronRight, Play } from "lucide-react";
+import { MapPin, ArrowRight, Play } from "lucide-react";
 import { EventCard } from "@/components/ui/EventCard";
+import { Breadcrumbs } from "@/components/ui/Breadcrumbs";
+import { SectionHeader } from "@/components/ui/SectionHeader";
 import { SearchBar } from "@/components/SearchBar";
 import {
   Sidebar,
@@ -303,45 +305,24 @@ export default async function NeighborhoodDetailPage({
 
       {/* ========== 2. BREADCRUMBS ========== */}
       <div className="site-container pt-4 pb-2">
-        <nav
-          aria-label="Breadcrumb"
-          className="flex items-center gap-1.5 text-xs text-gray-mid"
-        >
-          <Link href="/" className="hover:text-black transition-colors">
-            Home
-          </Link>
-          <ChevronRight size={12} />
-          {area ? (
-            <>
-              <Link href="/areas" className="hover:text-black transition-colors">
-                Areas
-              </Link>
-              <ChevronRight size={12} />
-              {areaSlug ? (
-                <Link
-                  href={`/areas/${areaSlug}`}
-                  className="hover:text-black transition-colors"
-                >
-                  {areaName}
-                </Link>
-              ) : (
-                <span>{areaName}</span>
-              )}
-              <ChevronRight size={12} />
-            </>
-          ) : (
-            <>
-              <Link
-                href="/neighborhoods"
-                className="hover:text-black transition-colors"
-              >
-                Neighborhoods
-              </Link>
-              <ChevronRight size={12} />
-            </>
-          )}
-          <span className="text-black font-medium">{neighborhood.name}</span>
-        </nav>
+        <Breadcrumbs
+          items={
+            area
+              ? [
+                  { label: "Home", href: "/" },
+                  { label: "Areas", href: "/areas" },
+                  ...(areaSlug
+                    ? [{ label: areaName, href: `/areas/${areaSlug}` }]
+                    : [{ label: areaName }]),
+                  { label: neighborhood.name },
+                ]
+              : [
+                  { label: "Home", href: "/" },
+                  { label: "Neighborhoods", href: "/neighborhoods" },
+                  { label: neighborhood.name },
+                ]
+          }
+        />
       </div>
 
       {/* ========== 3. SEARCH BAR ========== */}
@@ -359,22 +340,12 @@ export default async function NeighborhoodDetailPage({
           <div className="space-y-28">
             {/* ===== 4. STORIES ===== */}
             <section>
-              <div className="flex items-end justify-between mb-10 border-b border-gray-200 pb-4">
-                <div>
-                  <span className="text-[#c1121f] text-[11px] font-semibold uppercase tracking-eyebrow">
-                    Stories
-                  </span>
-                  <h2 className="font-display text-3xl md:text-4xl font-semibold text-black leading-tight mt-1">
-                    Latest from {storiesLabel}
-                  </h2>
-                </div>
-                <Link
-                  href="/city-watch"
-                  className="flex items-center gap-1 text-xs font-semibold uppercase tracking-eyebrow text-black hover:text-red-brand transition-colors shrink-0 pb-1"
-                >
-                  See All <ArrowRight size={14} />
-                </Link>
-              </div>
+              <SectionHeader
+                eyebrow="Stories"
+                title={`Latest from ${storiesLabel}`}
+                action={{ label: "See All", href: "/city-watch" }}
+                className="mb-10"
+              />
               {stories.length > 0 ? (
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-10">
                   {stories.map((post) => (
@@ -636,22 +607,12 @@ export default async function NeighborhoodDetailPage({
           <div className="space-y-28">
             {/* ===== 7. EATS & DRINKS (6 items) ===== */}
             <section>
-              <div className="flex items-end justify-between mb-10 border-b border-gray-200 pb-4">
-                <div>
-                  <span className="text-[#c1121f] text-[11px] font-semibold uppercase tracking-eyebrow">
-                    Eats &amp; Drinks
-                  </span>
-                  <h2 className="font-display text-3xl md:text-4xl font-semibold text-black leading-tight mt-1">
-                    {eatsHeadline}
-                  </h2>
-                </div>
-                <Link
-                  href="/hub/eats-and-drinks"
-                  className="flex items-center gap-1 text-xs font-semibold uppercase tracking-eyebrow text-black hover:text-red-brand transition-colors shrink-0 pb-1"
-                >
-                  See All <ArrowRight size={14} />
-                </Link>
-              </div>
+              <SectionHeader
+                eyebrow="Eats & Drinks"
+                title={eatsHeadline}
+                action={{ label: "See All", href: "/hub/eats-and-drinks" }}
+                className="mb-10"
+              />
               {eatsBusinesses.length > 0 ? (
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-10">
                   {eatsBusinesses.map((biz) => (
@@ -693,22 +654,12 @@ export default async function NeighborhoodDetailPage({
 
             {/* ===== 8. EVENTS (6 items) ===== */}
             <section>
-              <div className="flex items-end justify-between mb-10 border-b border-gray-200 pb-4">
-                <div>
-                  <span className="text-[#c1121f] text-[11px] font-semibold uppercase tracking-eyebrow">
-                    Events
-                  </span>
-                  <h2 className="font-display text-3xl md:text-4xl font-semibold text-black leading-tight mt-1">
-                    {eventsHeadline}
-                  </h2>
-                </div>
-                <Link
-                  href="/hub/events"
-                  className="flex items-center gap-1 text-xs font-semibold uppercase tracking-eyebrow text-black hover:text-red-brand transition-colors shrink-0 pb-1"
-                >
-                  See All <ArrowRight size={14} />
-                </Link>
-              </div>
+              <SectionHeader
+                eyebrow="Events"
+                title={eventsHeadline}
+                action={{ label: "See All", href: "/hub/events" }}
+                className="mb-10"
+              />
               {events.length > 0 ? (
                 <div className="space-y-0 divide-y divide-gray-100">
                   {events.map((event) => (

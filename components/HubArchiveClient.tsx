@@ -13,6 +13,8 @@ import {
   ChevronUp,
 } from "lucide-react";
 import { BusinessCard } from "@/components/ui/BusinessCard";
+import { SectionHeader } from "@/components/ui/SectionHeader";
+import { NewsletterBlock } from "@/components/ui/NewsletterBlock";
 
 /* ============================================================
    TYPES
@@ -116,13 +118,6 @@ export interface HubArchiveClientProps {
     identity?: string;
   };
   children: ReactNode; // sidebar
-}
-
-/* ============================================================
-   HELPERS
-   ============================================================ */
-function pluralize(count: number, noun: [string, string]) {
-  return count === 1 ? noun[0] : noun[1];
 }
 
 /* ============================================================
@@ -384,19 +379,12 @@ export function HubArchiveClient({
       {/* ========== 4. FEATURED (Premium only) ========== */}
       {featuredBusinesses.length > 0 && (
         <section className="site-container pb-12">
-          <div className="flex items-end justify-between border-b border-gray-200 pb-4 mb-8">
-            <div>
-              <span className="text-[11px] font-semibold uppercase tracking-[0.1em] text-red-brand">
-                Featured
-              </span>
-              <h2 className="font-display text-4xl lg:text-[36px] font-semibold leading-[1.1] mt-1">
-                {config.featuredTitle}
-              </h2>
-            </div>
-            <span className="text-xs text-gray-mid pb-1">
-              {featuredBusinesses.length} {pluralize(featuredBusinesses.length, config.featuredCountNoun)}
-            </span>
-          </div>
+          <SectionHeader
+            eyebrow="Featured"
+            title={config.featuredTitle}
+            count={featuredBusinesses.length}
+            countNoun={config.featuredCountNoun}
+          />
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
             {featuredBusinesses.map((biz) => (
               <BusinessCard
@@ -477,19 +465,12 @@ export function HubArchiveClient({
         <div className="grid grid-cols-1 lg:grid-cols-[1fr_340px] gap-9 lg:gap-16">
           {/* Main grid */}
           <div>
-            <div className="flex items-end justify-between border-b border-gray-200 pb-4 mb-8">
-              <div>
-                <span className="text-[11px] font-semibold uppercase tracking-[0.1em] text-red-brand">
-                  {config.gridEyebrow}
-                </span>
-                <h2 className="font-display text-4xl lg:text-[36px] font-semibold leading-[1.1] mt-1">
-                  More to Explore
-                </h2>
-              </div>
-              <span className="text-xs text-gray-mid pb-1">
-                {totalGridCount} {pluralize(totalGridCount, config.gridCountNoun)}
-              </span>
-            </div>
+            <SectionHeader
+              eyebrow={config.gridEyebrow}
+              title="More to Explore"
+              count={totalGridCount}
+              countNoun={config.gridCountNoun}
+            />
 
             {gridBusinesses.length > 0 ? (
               <>
@@ -567,37 +548,10 @@ export function HubArchiveClient({
       </div>
 
       {/* ========== 9. NEWSLETTER (FINAL) ========== */}
-      <section className="bg-black py-16 mt-12">
-        <div className="site-container text-center">
-          <span className="text-[11px] font-semibold uppercase tracking-[0.1em] text-[#e6c46d]">
-            Stay in the Loop
-          </span>
-          <h2 className="font-display text-4xl text-white mt-2 mb-3">
-            Atlanta in Your Inbox
-          </h2>
-          <p className="text-white/60 text-sm max-w-[420px] mx-auto mb-8 leading-relaxed">
-            {config.newsletterDescription}
-          </p>
-          <div className="max-w-lg mx-auto">
-            <form
-              className="flex items-center bg-white rounded-full overflow-hidden shadow-sm border border-gray-200"
-              onSubmit={(e) => e.preventDefault()}
-            >
-              <input
-                type="email"
-                placeholder="Enter Your Email"
-                className="flex-1 px-6 py-4 text-sm outline-none bg-transparent placeholder:text-gray-mid"
-              />
-              <button
-                type="submit"
-                className="flex items-center gap-2 px-6 py-3.5 bg-black text-white text-xs font-semibold uppercase tracking-[0.08em] rounded-full mr-1 hover:text-[#fee198] transition-colors"
-              >
-                Subscribe
-              </button>
-            </form>
-          </div>
-        </div>
-      </section>
+      <NewsletterBlock
+        description={config.newsletterDescription}
+        className="mt-12"
+      />
     </>
   );
 }

@@ -27,6 +27,8 @@ export {
   CategoryPills,
   StatCounter,
   PaginationBar,
-  SectionHeader,
   NeighborhoodCard,
 } from "./ui/index";
+export { SectionHeader } from "./ui/SectionHeader";
+export { NewsletterBlock } from "./ui/NewsletterBlock";
+export { Breadcrumbs } from "./ui/Breadcrumbs";

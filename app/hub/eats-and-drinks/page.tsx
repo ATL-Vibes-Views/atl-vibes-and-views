@@ -1,6 +1,6 @@
 import Link from "next/link";
 import Image from "next/image";
-import { ChevronRight } from "lucide-react";
+import { Breadcrumbs } from "@/components/ui/Breadcrumbs";
 import {
   getAreas,
   getNeighborhoods,
@@ -337,41 +337,10 @@ export default async function EatsAndDrinksHubPage({
   };
 
   /* ============================================================
-     JSON-LD
-     ============================================================ */
-  const breadcrumbSchema = {
-    "@context": "https://schema.org",
-    "@type": "BreadcrumbList",
-    itemListElement: [
-      {
-        "@type": "ListItem",
-        position: 1,
-        name: "Home",
-        item: "https://atlvibesandviews.com",
-      },
-      {
-        "@type": "ListItem",
-        position: 2,
-        name: "The Hub",
-        item: "https://atlvibesandviews.com/hub",
-      },
-      {
-        "@type": "ListItem",
-        position: 3,
-        name: "Eats & Drinks",
-      },
-    ],
-  };
-
-  /* ============================================================
      RENDER
      ============================================================ */
   return (
     <>
-      <script
-        type="application/ld+json"
-        dangerouslySetInnerHTML={{ __html: JSON.stringify(breadcrumbSchema) }}
-      />
 
       {/* ========== 1. HERO ========== */}
       {/* Desktop hero */}
@@ -431,15 +400,13 @@ export default async function EatsAndDrinksHubPage({
 
       {/* ========== 2. BREADCRUMBS ========== */}
       <div className="site-container pt-6 pb-2">
-        <nav className="flex items-center gap-2 text-xs text-gray-mid">
-          <Link href="/" className="hover:text-black transition-colors">
-            Home
-          </Link>
-          <ChevronRight size={12} />
-          <span className="hover:text-black transition-colors">The Hub</span>
-          <ChevronRight size={12} />
-          <span className="text-black font-medium">Eats & Drinks</span>
-        </nav>
+        <Breadcrumbs
+          items={[
+            { label: "Home", href: "/" },
+            { label: "The Hub", href: "/hub" },
+            { label: "Eats & Drinks" },
+          ]}
+        />
       </div>
 
       {/* ========== CLIENT COMPONENT ========== */}

@@ -179,52 +179,6 @@ export function PaginationBar({
 }
 
 /* ============================================================
-   SECTION HEADER — Consistent section titles across pages
-   ============================================================ */
-
-interface SectionHeaderProps {
-  eyebrow?: string;
-  title: string;
-  description?: string;
-  action?: { label: string; href: string };
-  className?: string;
-}
-
-export function SectionHeader({
-  eyebrow,
-  title,
-  description,
-  action,
-  className = "",
-}: SectionHeaderProps) {
-  return (
-    <div
-      className={`flex flex-col md:flex-row md:items-end justify-between gap-4 mb-8 ${className}`}
-    >
-      <div>
-        {eyebrow && (
-          <span className="eyebrow eyebrow-red mb-2 block">{eyebrow}</span>
-        )}
-        <h2 className="font-display text-section-sm md:text-section font-semibold">
-          {title}
-        </h2>
-        {description && (
-          <p className="text-gray-dark mt-2 max-w-xl">{description}</p>
-        )}
-      </div>
-      {action && (
-        <Link
-          href={action.href}
-          className="text-xs font-semibold uppercase tracking-eyebrow text-red-brand hover:text-black transition-colors shrink-0"
-        >
-          {action.label} →
-        </Link>
-      )}
-    </div>
-  );
-}
-
-/* ============================================================
    NEIGHBORHOOD CARD — Browse neighborhoods on overview pages
    ============================================================ */
 
