@@ -171,7 +171,7 @@ async function getPrimaryImagesForBusinesses(
   if (!data) return {};
 
   const map: Record<string, string> = {};
-  for (const row of data) {
+  for (const row of data as any[]) {
     if (!map[row.business_id] || row.is_primary) {
       map[row.business_id] = row.image_url;
     }
