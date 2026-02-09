@@ -1,6 +1,6 @@
 import Link from "next/link";
 import Image from "next/image";
-import { ChevronRight, Sparkles } from "lucide-react";
+import { ChevronRight } from "lucide-react";
 import {
   getAreas,
   getNeighborhoods,
@@ -32,6 +32,7 @@ export default async function EventsArchivePage({
     area?: string;
     neighborhood?: string;
     type?: string;
+    category?: string;
     mode?: string;
   }>;
 }) {
@@ -40,6 +41,7 @@ export default async function EventsArchivePage({
   const areaFilter = filters.area || undefined;
   const neighborhoodFilter = filters.neighborhood || undefined;
   const typeFilter = filters.type || undefined;
+  const categoryFilter = filters.category || undefined;
   const mode = filters.mode || "upcoming";
 
   const today = new Date().toISOString().split("T")[0];
@@ -48,7 +50,7 @@ export default async function EventsArchivePage({
   const [areas, allNeighborhoods, popularNeighborhoods] = await Promise.all([
     getAreas(),
     getNeighborhoods(),
-    getNeighborhoodsByPopularity({ limit: 5 }),
+    getNeighborhoodsByPopularity({ limit: 8 }),
   ]);
 
   /* ── Resolve neighborhood IDs for area-based filtering ── */
@@ -74,6 +76,11 @@ export default async function EventsArchivePage({
     return e.start_date >= today;
   });
 
+  const currentEvents = allEvents.filter((e) => {
+    if (e.end_date) return e.start_date <= today && e.end_date >= today;
+    return e.start_date === today;
+  });
+
   const pastEvents = allEvents
     .filter((e) => {
       if (e.end_date) return e.end_date < today;
@@ -84,17 +91,34 @@ export default async function EventsArchivePage({
         new Date(b.start_date).getTime() - new Date(a.start_date).getTime()
     );
 
-  /* ── Apply event_type filter ── */
-  const filterByType = (events: typeof allEvents) =>
-    typeFilter ? events.filter((e) => e.event_type === typeFilter) : events;
+  /* ── Apply event_type + category filters ── */
+  const filterByTypeAndCategory = (events: typeof allEvents) => {
+    let result = events;
+    if (typeFilter) result = result.filter((e) => e.event_type === typeFilter);
+    if (categoryFilter)
+      result = result.filter((e) => e.categories?.slug === categoryFilter);
+    return result;
+  };
 
-  const filteredUpcoming = filterByType(upcomingEvents);
-  const filteredPast = filterByType(pastEvents);
+  const filteredUpcoming = filterByTypeAndCategory(upcomingEvents);
+  const filteredCurrent = filterByTypeAndCategory(currentEvents);
+  const filteredPast = filterByTypeAndCategory(pastEvents);
 
   /* ── Distinct event types for filter dropdown ── */
   const eventTypes = [
     ...new Set(allEvents.map((e) => e.event_type).filter(Boolean)),
   ].sort() as string[];
+
+  /* ── Distinct categories for filter dropdown ── */
+  const categories = [
+    ...new Map(
+      allEvents
+        .filter((e) => e.categories?.name && e.categories?.slug)
+        .map((e) => [e.categories!.slug, e.categories!.name])
+    ),
+  ]
+    .map(([slug, name]) => ({ slug, name }))
+    .sort((a, b) => a.name.localeCompare(b.name));
 
   /* ── Section 3: Featured Events (Premium-first) ── */
   const seenEventIds = new Set<string>();
@@ -109,13 +133,13 @@ export default async function EventsArchivePage({
     .slice(0, 3);
 
   /* Fallback: latest 3 upcoming if no premium/featured */
-  if (featuredEvents.length === 0 && !search && !typeFilter) {
+  if (featuredEvents.length === 0 && !search && !typeFilter && !categoryFilter) {
     featuredEvents = filteredUpcoming.slice(0, 3);
   }
 
   featuredEvents.forEach((e) => seenEventIds.add(e.id));
 
-  /* ── Section 4: Map events (all upcoming with coordinates, NO dedup) ── */
+  /* ── Map events (all upcoming with coordinates, NO dedup) ── */
   const mapEvents = filteredUpcoming
     .filter((e) => e.latitude != null && e.longitude != null)
     .map((e) => ({
@@ -128,8 +152,13 @@ export default async function EventsArchivePage({
       tier: e.tier,
     }));
 
-  /* ── Section 6: Grid events (deduped against featured) ── */
-  const activeList = mode === "past" ? filteredPast : filteredUpcoming;
+  /* ── Grid events (deduped against featured) ── */
+  const activeList =
+    mode === "past"
+      ? filteredPast
+      : mode === "current"
+      ? filteredCurrent
+      : filteredUpcoming;
   const gridEvents = activeList.filter((e) => !seenEventIds.has(e.id));
 
   /* ── Sidebar: popular neighborhoods ── */
@@ -144,25 +173,19 @@ export default async function EventsArchivePage({
       {/* Submit Event CTA (primary) */}
       <SubmitEventCTA />
 
-      {/* Get Featured CTA (secondary) */}
-      <SidebarWidget className="bg-white border-2 border-[#e6c46d]">
-        <div className="flex items-center gap-2 mb-3">
-          <Sparkles size={18} className="text-[#e6c46d]" />
-          <WidgetTitle className="!mb-0">Get Featured</WidgetTitle>
+      {/* Ad Slot — Sidebar */}
+      <SidebarWidget className="bg-gray-50 border border-gray-200">
+        <div className="flex items-center justify-center h-[250px] text-center">
+          <div>
+            <p className="text-xs text-gray-400 font-semibold uppercase tracking-[0.1em]">
+              Advertisement
+            </p>
+            <p className="text-[10px] text-gray-300 mt-1">300 × 250</p>
+          </div>
         </div>
-        <p className="text-sm text-gray-mid mb-4">
-          Put your event in front of thousands of Atlantans with a Featured
-          placement.
-        </p>
-        <Link
-          href="/partner"
-          className="inline-flex items-center px-5 py-2.5 bg-[#1a1a1a] text-white text-xs font-semibold uppercase tracking-[0.08em] rounded-full hover:bg-[#fee198] hover:text-black transition-colors"
-        >
-          Learn More
-        </Link>
       </SidebarWidget>
 
-      {/* Top Neighborhoods */}
+      {/* Top Neighborhoods — From Supabase · By Event Count */}
       <NeighborhoodsWidget
         title="Top Neighborhoods"
         neighborhoods={sidebarNeighborhoodLinks}
@@ -248,7 +271,7 @@ export default async function EventsArchivePage({
         </nav>
       </div>
 
-      {/* ========== SECTIONS 2–7 (interactive) ========== */}
+      {/* ========== SECTIONS 3–END (interactive) ========== */}
       <EventsClient
         areas={areas.map((a) => ({ id: a.id, name: a.name, slug: a.slug }))}
         neighborhoods={allNeighborhoods.map((n) => ({
@@ -258,6 +281,7 @@ export default async function EventsArchivePage({
           area_id: n.area_id,
         }))}
         eventTypes={eventTypes}
+        categories={categories}
         featuredEvents={featuredEvents}
         mapEvents={mapEvents}
         gridEvents={gridEvents}
@@ -267,6 +291,7 @@ export default async function EventsArchivePage({
           area: areaFilter,
           neighborhood: neighborhoodFilter,
           type: typeFilter,
+          category: categoryFilter,
           mode: mode === "upcoming" ? undefined : mode,
         }}
         sidebar={sidebarContent}

@@ -11,10 +11,9 @@ import {
   MapPin,
   Calendar,
   ArrowRight,
-  Map as MapIcon,
-  ChevronUp,
   Ticket,
   Star,
+  Sparkles,
 } from "lucide-react";
 
 /* ============================================================
@@ -31,6 +30,11 @@ interface FilterNeighborhood {
   name: string;
   slug: string;
   area_id: string;
+}
+
+interface FilterCategory {
+  slug: string;
+  name: string;
 }
 
 interface EventCard {
@@ -70,6 +74,7 @@ interface EventsClientProps {
   areas: FilterArea[];
   neighborhoods: FilterNeighborhood[];
   eventTypes: string[];
+  categories: FilterCategory[];
   featuredEvents: EventCard[];
   mapEvents: MapEvent[];
   gridEvents: EventCard[];
@@ -79,6 +84,7 @@ interface EventsClientProps {
     area?: string;
     neighborhood?: string;
     type?: string;
+    category?: string;
     mode?: string;
   };
   /** Server-rendered sidebar passed via composition */
@@ -125,6 +131,7 @@ export function EventsClient({
   areas,
   neighborhoods,
   eventTypes,
+  categories,
   featuredEvents,
   mapEvents,
   gridEvents,
@@ -139,7 +146,6 @@ export function EventsClient({
 
   /* --- Filter state (mirrors URL params) --- */
   const [searchValue, setSearchValue] = useState(currentFilters.q ?? "");
-  const [showMap, setShowMap] = useState(false);
   const [visibleCount, setVisibleCount] = useState(12);
 
   /* Cascading neighborhoods: filter by selected area */
@@ -183,6 +189,7 @@ export function EventsClient({
     currentFilters.area ||
     currentFilters.neighborhood ||
     currentFilters.type ||
+    currentFilters.category ||
     (currentFilters.mode && currentFilters.mode !== "upcoming");
 
   /* Visible grid events (progressive reveal) */
@@ -191,7 +198,7 @@ export function EventsClient({
 
   return (
     <>
-      {/* ========== 2. SEARCH + FILTER BAR ========== */}
+      {/* ========== 3. SEARCH + FILTER BAR ========== */}
       <section className="site-container py-8 md:py-10">
         <div className="space-y-4">
           {/* Search row */}
@@ -273,6 +280,30 @@ export function EventsClient({
               />
             </div>
 
+            {/* Category */}
+            {categories.length > 0 && (
+              <div className="relative">
+                <select
+                  value={currentFilters.category ?? ""}
+                  onChange={(e) =>
+                    pushFilters({ category: e.target.value || undefined })
+                  }
+                  className="appearance-none bg-white border border-gray-200 rounded-full px-4 py-2 pr-8 text-sm text-gray-dark focus:border-[#e6c46d] focus:outline-none transition-colors cursor-pointer"
+                >
+                  <option value="">All Categories</option>
+                  {categories.map((c) => (
+                    <option key={c.slug} value={c.slug}>
+                      {c.name}
+                    </option>
+                  ))}
+                </select>
+                <ChevronDown
+                  size={14}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-mid pointer-events-none"
+                />
+              </div>
+            )}
+
             {/* Event Type */}
             {eventTypes.length > 0 && (
               <div className="relative">
@@ -283,7 +314,7 @@ export function EventsClient({
                   }
                   className="appearance-none bg-white border border-gray-200 rounded-full px-4 py-2 pr-8 text-sm text-gray-dark focus:border-[#e6c46d] focus:outline-none transition-colors cursor-pointer"
                 >
-                  <option value="">All Types</option>
+                  <option value="">All Event Types</option>
                   {eventTypes.map((t) => (
                     <option key={t} value={t}>
                       {t}
@@ -297,23 +328,27 @@ export function EventsClient({
               </div>
             )}
 
-            {/* Date Mode Toggle */}
+            {/* Date Mode Toggle — 3 modes: Upcoming / Current / Past */}
             <div className="flex items-center bg-gray-100 rounded-full p-0.5">
-              {["upcoming", "past"].map((mode) => (
+              {(["upcoming", "current", "past"] as const).map((m) => (
                 <button
-                  key={mode}
+                  key={m}
                   onClick={() =>
                     pushFilters({
-                      mode: mode === "upcoming" ? undefined : mode,
+                      mode: m === "upcoming" ? undefined : m,
                     })
                   }
                   className={`px-4 py-1.5 text-xs font-semibold uppercase tracking-[0.08em] rounded-full transition-colors ${
-                    (currentFilters.mode ?? "upcoming") === mode
+                    (currentFilters.mode ?? "upcoming") === m
                       ? "bg-black text-white"
                       : "text-gray-mid hover:text-black"
                   }`}
                 >
-                  {mode === "upcoming" ? "Upcoming" : "Past"}
+                  {m === "upcoming"
+                    ? "Upcoming"
+                    : m === "current"
+                    ? "Current"
+                    : "Past"}
                 </button>
               ))}
             </div>
@@ -337,7 +372,7 @@ export function EventsClient({
         </div>
       </section>
 
-      {/* ========== 3. FEATURED EVENTS ========== */}
+      {/* ========== 4. FEATURED EVENTS ========== */}
       {featuredEvents.length > 0 && (
         <section className="site-container pb-12 md:pb-16">
           <div className="flex items-end justify-between mb-8 border-b border-gray-200 pb-4">
@@ -352,178 +387,61 @@ export function EventsClient({
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-            {featuredEvents.map((event) => {
-              const { month, day } = eventDateParts(event.start_date);
-              const price = priceLabel(event);
-
-              return (
-                <Link
-                  key={event.id}
-                  href={`/events/${event.slug}`}
-                  className="group block"
-                >
-                  <div className="relative aspect-[4/3] overflow-hidden mb-4">
-                    <Image
-                      src={event.featured_image_url || PH_EVENT}
-                      alt={event.title}
-                      fill
-                      unoptimized
-                      className="object-cover group-hover:scale-105 transition-transform duration-500"
-                    />
-                    {/* Date badge */}
-                    <div className="absolute top-3 left-3 w-12 h-12 bg-[#c1121f] text-white flex flex-col items-center justify-center">
-                      <span className="text-[9px] font-semibold uppercase leading-none">
-                        {month}
-                      </span>
-                      <span className="text-base font-display font-bold leading-none">
-                        {day}
-                      </span>
-                    </div>
-                    {/* Featured badge */}
-                    {(event.tier === "Premium" || event.is_featured) && (
-                      <span className="absolute top-3 right-3 flex items-center gap-1 px-2 py-0.5 bg-[#fee198] text-black text-[10px] font-semibold uppercase tracking-[0.08em]">
-                        <Star size={10} />
-                        Featured
-                      </span>
-                    )}
-                  </div>
-
-                  {/* Meta */}
-                  <div className="flex items-center gap-2 mb-2">
-                    {event.categories?.name && (
-                      <span className="px-3 py-1 bg-[#fee198] text-black text-[10px] font-semibold uppercase tracking-[0.08em] rounded-full">
-                        {event.categories.name}
-                      </span>
-                    )}
-                    {event.event_type && !event.categories?.name && (
-                      <span className="px-3 py-1 bg-gray-100 text-gray-dark text-[10px] font-semibold uppercase tracking-[0.08em] rounded-full">
-                        {event.event_type}
-                      </span>
-                    )}
-                  </div>
-
-                  <h3 className="font-display text-xl md:text-2xl font-semibold text-black leading-snug group-hover:text-[#c1121f] transition-colors">
-                    {event.title}
-                  </h3>
-
-                  <div className="flex items-center gap-3 mt-2 text-sm text-gray-mid">
-                    <span className="flex items-center gap-1">
-                      <Calendar size={12} />
-                      {formatDate(event.start_date)}
-                    </span>
-                    {event.venue_name && (
-                      <span className="flex items-center gap-1">
-                        <MapPin size={12} />
-                        {event.venue_name}
-                      </span>
-                    )}
-                  </div>
-
-                  {price && (
-                    <div className="flex items-center gap-1 mt-1.5 text-sm">
-                      <Ticket size={12} className="text-gray-mid" />
-                      <span
-                        className={
-                          event.is_free
-                            ? "text-green-700 font-medium"
-                            : "text-gray-dark"
-                        }
-                      >
-                        {price}
-                      </span>
-                    </div>
-                  )}
-                </Link>
-              );
-            })}
+            {featuredEvents.map((event) => (
+              <EventCardComponent key={event.id} event={event} variant="featured" />
+            ))}
           </div>
         </section>
       )}
 
-      {/* ========== 4. EVENTS MAP (Mapbox-ready placeholder) ========== */}
-      {mapEvents.length > 0 && (
-        <section className="site-container pb-12 md:pb-16">
-          {/* Mobile: collapsible toggle */}
-          <button
-            onClick={() => setShowMap(!showMap)}
-            className="md:hidden flex items-center gap-2 text-sm font-semibold text-black mb-4"
-          >
-            <MapIcon size={16} />
-            {showMap ? "Hide Map" : `Show Map (${mapEvents.length} events)`}
-            {showMap ? <ChevronUp size={14} /> : <ChevronDown size={14} />}
-          </button>
-
-          {/* Desktop: always visible. Mobile: toggle */}
-          <div
-            className={`${showMap ? "block" : "hidden"} md:block`}
-          >
-            <div
-              className="w-full h-[400px] bg-gray-100 border border-gray-200 flex items-center justify-center relative overflow-hidden"
-              data-map-events={JSON.stringify(mapEvents)}
-              data-map-center='{"lat":33.749,"lng":-84.388}'
-              data-map-zoom="11"
-            >
-              {/* Placeholder content — replaced when Mapbox is installed */}
-              <div className="text-center">
-                <MapIcon size={40} className="text-gray-mid mx-auto mb-3" />
-                <p className="text-sm text-gray-mid font-medium">
-                  Interactive Map
-                </p>
-                <p className="text-xs text-gray-400 mt-1">
-                  {mapEvents.length} events with locations
-                </p>
-                {/* Pin legend */}
-                <div className="flex items-center justify-center gap-4 mt-4 text-xs text-gray-mid">
-                  <span className="flex items-center gap-1.5">
-                    <span className="w-3 h-3 rounded-full bg-[#c1121f]" />
-                    Featured
-                  </span>
-                  <span className="flex items-center gap-1.5">
-                    <span className="w-2.5 h-2.5 rounded-full bg-[#1a1a1a]" />
-                    Standard
-                  </span>
-                </div>
-              </div>
+      {/* ========== 5. GET YOUR EVENT FEATURED — Centered CTA ========== */}
+      <section className="site-container pb-12 md:pb-16">
+        <div className="flex justify-center">
+          <div className="w-full max-w-[800px] bg-[#fefaf0] border-2 border-[#e6c46d] rounded-lg p-8 text-center">
+            <div className="flex items-center justify-center gap-2 mb-3">
+              <Sparkles size={18} className="text-[#e6c46d]" />
+              <span className="font-display text-2xl font-semibold text-black">
+                Get Your Event Featured
+              </span>
             </div>
-          </div>
-        </section>
-      )}
-
-      {/* ========== 5. NEWSLETTER SIGNUP ========== */}
-      <section className="bg-[#1a1a1a] py-16 md:py-20 mb-12 md:mb-16">
-        <div className="site-container text-center">
-          <span className="text-[#e6c46d] text-[11px] font-semibold uppercase tracking-[0.15em]">
-            Stay in the Loop
-          </span>
-          <h2 className="font-display text-3xl md:text-4xl font-semibold text-white mt-2 mb-3">
-            Never Miss an Event
-          </h2>
-          <p className="text-white/60 text-sm max-w-md mx-auto mb-8">
-            Get weekly events, Atlanta drops, and local culture delivered to your
-            inbox.
-          </p>
-          <div className="max-w-lg mx-auto">
-            <form
-              className="flex items-center bg-white rounded-full overflow-hidden shadow-sm border border-gray-200"
-              onSubmit={(e) => e.preventDefault()}
+            <p className="text-sm text-gray-mid mb-6 max-w-md mx-auto">
+              Put your event in front of thousands of Atlantans with a premium
+              Featured placement at the top of the page.
+            </p>
+            <Link
+              href="/partner"
+              className="inline-flex items-center gap-2 px-8 py-3 bg-[#1a1a1a] text-white text-xs font-semibold uppercase tracking-[0.08em] rounded-full hover:bg-[#fee198] hover:text-black transition-colors"
             >
-              <input
-                type="email"
-                placeholder="Enter Your Email"
-                className="flex-1 px-6 py-4 text-sm outline-none bg-transparent placeholder:text-gray-mid"
-              />
-              <button
-                type="submit"
-                className="flex items-center gap-2 px-6 py-3.5 bg-black text-white text-xs font-semibold uppercase tracking-[0.08em] rounded-full mr-1 hover:text-[#fee198] transition-colors"
-              >
-                Subscribe
-              </button>
-            </form>
+              Learn More
+              <ArrowRight size={14} />
+            </Link>
           </div>
         </div>
       </section>
 
-      {/* ========== 6. MORE TO EXPLORE (Main Grid) ========== */}
+      {/* ========== 6. MAP PLACEHOLDER ========== */}
+      <section className="site-container pb-12 md:pb-16">
+        <div className="relative w-full h-[300px] md:h-[400px] overflow-hidden rounded-lg">
+          <Image
+            src="/images/map.png"
+            alt="Atlanta event locations map"
+            fill
+            unoptimized
+            className="object-cover"
+          />
+          {/* Overlay */}
+          <div className="absolute inset-0 bg-black/40 flex items-center justify-center">
+            <div className="text-center">
+              <p className="text-white font-display text-2xl md:text-3xl font-semibold">
+                Interactive Map
+              </p>
+              <p className="text-white/70 text-sm mt-2">Coming Soon</p>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* ========== 7. EVENTS GRID + SIDEBAR ========== */}
       <section className="site-container pb-16 md:pb-20">
         <div className="grid grid-cols-1 lg:grid-cols-[1fr_340px] gap-12 lg:gap-16">
           {/* ---------- Main Column ---------- */}
@@ -545,74 +463,9 @@ export function EventsClient({
             {visibleGridEvents.length > 0 ? (
               <>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-                  {visibleGridEvents.map((event) => {
-                    const { month, day } = eventDateParts(event.start_date);
-                    const price = priceLabel(event);
-
-                    return (
-                      <Link
-                        key={event.id}
-                        href={`/events/${event.slug}`}
-                        className="group block"
-                      >
-                        <div className="relative aspect-[16/10] overflow-hidden mb-4">
-                          <Image
-                            src={event.featured_image_url || PH_EVENT}
-                            alt={event.title}
-                            fill
-                            unoptimized
-                            className="object-cover group-hover:scale-105 transition-transform duration-500"
-                          />
-                          {/* Date badge */}
-                          <div className="absolute top-3 left-3 w-11 h-11 bg-[#c1121f] text-white flex flex-col items-center justify-center">
-                            <span className="text-[8px] font-semibold uppercase leading-none">
-                              {month}
-                            </span>
-                            <span className="text-sm font-display font-bold leading-none">
-                              {day}
-                            </span>
-                          </div>
-                        </div>
-
-                        {/* Meta row */}
-                        <div className="flex items-center gap-2 mb-2">
-                          {event.event_type && (
-                            <span className="px-2.5 py-0.5 bg-gray-100 text-gray-dark text-[10px] font-semibold uppercase tracking-[0.08em] rounded-full">
-                              {event.event_type}
-                            </span>
-                          )}
-                          {price && (
-                            <span
-                              className={`text-[11px] font-medium ${
-                                event.is_free
-                                  ? "text-green-700"
-                                  : "text-gray-dark"
-                              }`}
-                            >
-                              {price}
-                            </span>
-                          )}
-                        </div>
-
-                        <h3 className="font-display text-lg md:text-xl font-semibold text-black leading-snug group-hover:text-[#c1121f] transition-colors">
-                          {event.title}
-                        </h3>
-
-                        <div className="flex items-center gap-3 mt-2 text-xs text-gray-mid">
-                          <span className="flex items-center gap-1">
-                            <Calendar size={11} />
-                            {formatDate(event.start_date)}
-                          </span>
-                          {event.neighborhoods?.name && (
-                            <span className="flex items-center gap-1">
-                              <MapPin size={11} />
-                              {event.neighborhoods.name}
-                            </span>
-                          )}
-                        </div>
-                      </Link>
-                    );
-                  })}
+                  {visibleGridEvents.map((event) => (
+                    <EventCardComponent key={event.id} event={event} variant="grid" />
+                  ))}
                 </div>
 
                 {/* Load More */}
@@ -656,14 +509,165 @@ export function EventsClient({
             )}
           </div>
 
-          {/* ---------- Sidebar (desktop only) ---------- */}
+          {/* ---------- Sidebar (visible desktop + mobile) ---------- */}
           {sidebar && (
-            <aside className="hidden lg:block">
-              <div className="sticky top-6 space-y-8">{sidebar}</div>
+            <aside>
+              <div className="lg:sticky lg:top-6 space-y-8 overflow-hidden">
+                {sidebar}
+              </div>
             </aside>
           )}
         </div>
       </section>
+
+      {/* ========== 8. HORIZONTAL AD ========== */}
+      <section className="site-container pb-12 md:pb-16">
+        <div className="bg-gray-50 border border-gray-200 flex items-center justify-center h-[90px] md:h-[120px]">
+          <div className="text-center">
+            <p className="text-xs text-gray-400 font-semibold uppercase tracking-[0.1em]">
+              Advertisement
+            </p>
+            <p className="text-[10px] text-gray-300 mt-1">728 × 90</p>
+          </div>
+        </div>
+      </section>
+
+      {/* ========== 9. NEWSLETTER SIGNUP (always last) ========== */}
+      <section className="bg-[#1a1a1a] py-16 md:py-20">
+        <div className="site-container text-center">
+          <span className="text-[#e6c46d] text-[11px] font-semibold uppercase tracking-[0.15em]">
+            Stay in the Loop
+          </span>
+          <h2 className="font-display text-3xl md:text-4xl font-semibold text-white mt-2 mb-3">
+            Never Miss an Event
+          </h2>
+          <p className="text-white/60 text-sm max-w-md mx-auto mb-8">
+            Get weekly events, Atlanta drops, and local culture delivered to your
+            inbox.
+          </p>
+          <div className="max-w-lg mx-auto">
+            <form
+              className="flex items-center bg-white rounded-full overflow-hidden shadow-sm border border-gray-200"
+              onSubmit={(e) => e.preventDefault()}
+            >
+              <input
+                type="email"
+                placeholder="Enter Your Email"
+                className="flex-1 px-6 py-4 text-sm outline-none bg-transparent placeholder:text-gray-mid"
+              />
+              <button
+                type="submit"
+                className="flex items-center gap-2 px-6 py-3.5 bg-black text-white text-xs font-semibold uppercase tracking-[0.08em] rounded-full mr-1 hover:text-[#fee198] transition-colors"
+              >
+                Subscribe
+              </button>
+            </form>
+          </div>
+        </div>
+      </section>
     </>
+  );
+}
+
+/* ============================================================
+   EVENT CARD COMPONENT
+   Matches /events/[slug] related events card pattern:
+   - Image with Featured badge (top-right, gold pill) + Date badge (bottom-right, white bg, month above day)
+   - Category pill (gold, rounded-full)
+   - Title (max 2 lines desktop, 1 line mobile)
+   - Location (venue/street with MapPin)
+   - Neighborhood (always link to /neighborhoods/[slug], always last)
+   ============================================================ */
+function EventCardComponent({
+  event,
+  variant,
+}: {
+  event: EventCard;
+  variant: "featured" | "grid";
+}) {
+  const { month, day } = eventDateParts(event.start_date);
+  const price = priceLabel(event);
+  const isFeatured = event.tier === "Premium" || event.is_featured;
+
+  return (
+    <Link href={`/events/${event.slug}`} className="group block">
+      {/* Image container — 3:2 aspect */}
+      <div className="relative w-full overflow-hidden mb-3" style={{ paddingBottom: "66.66%" }}>
+        <Image
+          src={event.featured_image_url || PH_EVENT}
+          alt={event.title}
+          fill
+          unoptimized
+          className="object-cover group-hover:scale-105 transition-transform duration-500 absolute top-0 left-0 w-full h-full"
+        />
+
+        {/* Featured badge — top-right, gold pill */}
+        {isFeatured && (
+          <span className="absolute top-3 right-3 flex items-center gap-1 px-2.5 py-1 bg-[#fee198] text-black text-[10px] font-semibold uppercase tracking-[0.08em] rounded-full shadow-sm">
+            <Star size={10} />
+            Featured
+          </span>
+        )}
+
+        {/* Date badge — bottom-right, white bg, shadow, month above day */}
+        <div className="absolute bottom-3 right-3 w-12 h-14 bg-white rounded shadow-md flex flex-col items-center justify-center">
+          <span className="text-[9px] font-semibold uppercase tracking-wider text-gray-mid leading-none block">
+            {month}
+          </span>
+          <span className="text-lg font-display font-bold text-black leading-none block mt-0.5">
+            {day}
+          </span>
+        </div>
+      </div>
+
+      {/* Category pill — gold */}
+      <div className="mb-2">
+        {event.categories?.name ? (
+          <span className="inline-block px-3 py-1 bg-[#fee198] text-black text-[10px] font-semibold uppercase tracking-[0.08em] rounded-full">
+            {event.categories.name}
+          </span>
+        ) : event.event_type ? (
+          <span className="inline-block px-3 py-1 bg-[#fee198] text-black text-[10px] font-semibold uppercase tracking-[0.08em] rounded-full">
+            {event.event_type}
+          </span>
+        ) : null}
+      </div>
+
+      {/* Title — 2 lines desktop, 1 line mobile */}
+      <h3
+        className={`font-display font-semibold text-black leading-snug group-hover:text-[#c1121f] transition-colors line-clamp-1 md:line-clamp-2 ${
+          variant === "featured"
+            ? "text-xl md:text-2xl"
+            : "text-lg md:text-xl"
+        }`}
+      >
+        {event.title}
+      </h3>
+
+      {/* Location — venue/street with MapPin */}
+      {event.venue_name && (
+        <div className="flex items-center gap-1.5 mt-2 text-sm text-gray-mid">
+          <MapPin size={12} className="flex-shrink-0" />
+          <span className="truncate">{event.venue_name}</span>
+        </div>
+      )}
+
+      {/* Neighborhood — always a link, always last */}
+      {event.neighborhoods?.name && event.neighborhoods?.slug && (
+        <div className="mt-1.5">
+          <span
+            onClick={(e) => e.stopPropagation()}
+            className="inline-block"
+          >
+            <Link
+              href={`/neighborhoods/${event.neighborhoods.slug}`}
+              className="text-xs text-[#c1121f] font-medium hover:text-black transition-colors"
+            >
+              {event.neighborhoods.name}
+            </Link>
+          </span>
+        </div>
+      )}
+    </Link>
   );
 }
