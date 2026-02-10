@@ -1,7 +1,7 @@
 "use client";
 
 import { useRouter, usePathname, useSearchParams } from "next/navigation";
-import { useCallback, useState, useTransition, type ReactNode } from "react";
+import { Fragment, useCallback, useState, useTransition, type ReactNode } from "react";
 import Link from "next/link";
 import Image from "next/image";
 import {
@@ -16,6 +16,7 @@ import { BusinessCard } from "@/components/ui/BusinessCard";
 import { SectionHeader } from "@/components/ui/SectionHeader";
 import { NewsletterBlock } from "@/components/ui/NewsletterBlock";
 import { AdBlock } from "@/components/ui/AdBlock";
+import { NewsletterWidget, SubmitCTA } from "@/components/Sidebar";
 
 /* ============================================================
    TYPES
@@ -485,21 +486,37 @@ export function HubArchiveClient({
             {gridBusinesses.length > 0 ? (
               <>
                 <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-                  {gridBusinesses.slice(0, visibleCount).map((biz) => (
-                    <BusinessCard
-                      key={biz.id}
-                      name={biz.business_name}
-                      slug={biz.slug}
-                      detailRoute={config.detailBasePath}
-                      imageUrl={biz.primary_image_url || biz.logo || undefined}
-                      category={biz.categories?.name}
-                      neighborhood={biz.neighborhoods?.name}
-                      neighborhoodSlug={biz.neighborhoods?.slug}
-                      address={biz.street_address}
-                      priceRange={biz.price_range}
-                      tier={biz.tier}
-                    />
+                  {gridBusinesses.slice(0, visibleCount).map((biz, index) => (
+                    <Fragment key={biz.id}>
+                      <BusinessCard
+                        name={biz.business_name}
+                        slug={biz.slug}
+                        detailRoute={config.detailBasePath}
+                        imageUrl={biz.primary_image_url || biz.logo || undefined}
+                        category={biz.categories?.name}
+                        neighborhood={biz.neighborhoods?.name}
+                        neighborhoodSlug={biz.neighborhoods?.slug}
+                        address={biz.street_address}
+                        priceRange={biz.price_range}
+                        tier={biz.tier}
+                      />
+                      {index === 5 && (
+                        <div className="col-span-full lg:hidden my-4">
+                          <NewsletterWidget />
+                        </div>
+                      )}
+                      {index === 11 && (
+                        <div className="col-span-full lg:hidden my-4">
+                          <AdBlock variant="inline" />
+                        </div>
+                      )}
+                    </Fragment>
                   ))}
+                </div>
+
+                {/* Mobile-only: SubmitCTA before Load More */}
+                <div className="lg:hidden my-8">
+                  <SubmitCTA />
                 </div>
 
                 {/* Load More */}
@@ -543,8 +560,10 @@ export function HubArchiveClient({
             )}
           </div>
 
-          {/* Sidebar (server-rendered via children) */}
-          {children}
+          {/* Sidebar (server-rendered via children, desktop only) */}
+          <div className="hidden lg:block">
+            {children}
+          </div>
         </div>
       </section>
 

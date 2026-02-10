@@ -254,6 +254,26 @@ export default async function AreaDetailPage({
         )}
       </div>
 
+      {/* ========== MOBILE: Neighborhood pills (horizontal scroll) ========== */}
+      {sidebarNeighborhoodLinks.length > 0 && (
+        <div className="lg:hidden site-container pb-6 overflow-x-auto -mx-4 px-4">
+          <p className="text-[10px] font-semibold uppercase tracking-eyebrow text-[#c1121f] mb-2">
+            Neighborhoods in {area.name}
+          </p>
+          <div className="flex gap-2 whitespace-nowrap">
+            {sidebarNeighborhoodLinks.map((n) => (
+              <Link
+                key={n.slug}
+                href={`/neighborhoods/${n.slug}`}
+                className="inline-block px-3 py-1.5 bg-[#f8f5f0] text-sm text-[#1a1a1a] hover:bg-[#fee198] transition-colors flex-shrink-0"
+              >
+                {n.name}
+              </Link>
+            ))}
+          </div>
+        </div>
+      )}
+
       {/* ========== VIDEO MODULE ========== */}
       {areaVideos.length > 0 && (
         <div className="site-container pt-8 pb-4">
@@ -412,6 +432,14 @@ export default async function AreaDetailPage({
               )}
             </section>
 
+            {/* ===== MOBILE: Newsletter after stories ===== */}
+            <div className="lg:hidden">
+              <NewsletterWidget
+                title={`${area.name} Updates`}
+                description={`Get the latest stories, events, and business openings from ${area.name}.`}
+              />
+            </div>
+
             {/* ===== AD SPACE — horizontal (matches homepage) ===== */}
             <section>
               <AdBlock variant="inline" />
@@ -464,6 +492,14 @@ export default async function AreaDetailPage({
                 </p>
               )}
             </section>
+
+            {/* ===== MOBILE: SubmitCTA between sections ===== */}
+            <div className="lg:hidden">
+              <SubmitCTA
+                heading={`Own a Business in ${area.name}?`}
+                description="Get your business in front of thousands of Atlantans."
+              />
+            </div>
 
             {/* ===== EVENTS / THINGS TO DO ===== */}
             <section>

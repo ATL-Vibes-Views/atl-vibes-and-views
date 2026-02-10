@@ -1,12 +1,14 @@
 "use client";
 
 import { useRouter, usePathname, useSearchParams } from "next/navigation";
-import { useCallback, useState, useTransition } from "react";
+import { Fragment, useCallback, useState, useTransition } from "react";
 import Link from "next/link";
 import Image from "next/image";
 import { Search, X, ChevronDown, MapPin, ArrowRight, FileText } from "lucide-react";
 import { RelatedStoryCard } from "@/components/ui/RelatedStoryCard";
 import type { RelatedPost } from "@/components/ui/RelatedStoryCard";
+import { NewsletterWidget, SubmitCTA } from "@/components/Sidebar";
+import { AdBlock } from "@/components/ui/AdBlock";
 
 /* ============================================================
    TYPES
@@ -466,21 +468,42 @@ export function StoriesArchiveClient({
             {visibleGridPosts.length > 0 ? (
               <>
                 <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-8">
-                  {visibleGridPosts.map((post) => (
-                    <RelatedStoryCard
-                      key={post.id}
-                      post={{
-                        slug: post.slug,
-                        title: post.title,
-                        featured_image_url: post.featured_image_url,
-                        category_name: post.category_name,
-                        published_at: post.published_at,
-                        neighborhood_name: post.neighborhood_name,
-                        neighborhood_slug: post.neighborhood_slug,
-                        excerpt: post.excerpt,
-                      }}
-                    />
+                  {visibleGridPosts.map((post, index) => (
+                    <Fragment key={post.id}>
+                      <RelatedStoryCard
+                        post={{
+                          slug: post.slug,
+                          title: post.title,
+                          featured_image_url: post.featured_image_url,
+                          category_name: post.category_name,
+                          published_at: post.published_at,
+                          neighborhood_name: post.neighborhood_name,
+                          neighborhood_slug: post.neighborhood_slug,
+                          excerpt: post.excerpt,
+                        }}
+                      />
+                      {index === 5 && (
+                        <div className="col-span-full lg:hidden my-4">
+                          <NewsletterWidget />
+                        </div>
+                      )}
+                      {index === 11 && (
+                        <div className="col-span-full lg:hidden my-4">
+                          <AdBlock variant="inline" />
+                        </div>
+                      )}
+                    </Fragment>
                   ))}
+                </div>
+
+                {/* Mobile-only: SubmitCTA before Load More */}
+                <div className="lg:hidden my-8">
+                  <SubmitCTA
+                    heading="Have a Story Tip?"
+                    description="Know something happening in Atlanta? We want to hear from you."
+                    buttonText="Contact Us"
+                    href="/contact"
+                  />
                 </div>
 
                 {/* Load More */}
@@ -516,9 +539,9 @@ export function StoriesArchiveClient({
             )}
           </div>
 
-          {/* ---------- Sidebar ---------- */}
+          {/* ---------- Sidebar (desktop only) ---------- */}
           {sidebar && (
-            <aside>
+            <aside className="hidden lg:block">
               <div className="lg:sticky lg:top-6 space-y-8 overflow-hidden">
                 {sidebar}
               </div>

@@ -901,6 +901,30 @@ export default async function BusinessDetailPage({
               <DetailsBlock />
             </section>
 
+            {/* ── MOBILE ONLY: Newsletter after details ── */}
+            <div className="lg:hidden mb-10">
+              <div className="border border-gray-100 p-5 bg-[#fee198]">
+                <h4 className="font-display text-card-sm font-semibold mb-2">Stay in the Loop</h4>
+                <p className="text-sm text-gray-dark mb-3">
+                  Get the latest on Atlanta businesses, events, and neighborhood stories.
+                </p>
+                <form action="#" className="flex">
+                  <input
+                    type="email"
+                    placeholder="Enter Your Email"
+                    required
+                    className="flex-1 px-3 py-2.5 border border-gray-300 text-sm focus:outline-none focus:border-[#e6c46d]"
+                  />
+                  <button
+                    type="submit"
+                    className="px-4 py-2.5 bg-black text-white text-xs font-semibold uppercase tracking-eyebrow hover:bg-[#e6c46d] hover:text-black transition-colors"
+                  >
+                    Subscribe
+                  </button>
+                </form>
+              </div>
+            </div>
+
             {/* ── Photos ── */}
             {images.length > 0 && (
               <section className="mb-10">
@@ -1017,6 +1041,22 @@ export default async function BusinessDetailPage({
                 </div>
               )}
             </section>
+
+            {/* ── MOBILE ONLY: SubmitCTA before In the News ── */}
+            <div className="lg:hidden mb-10">
+              <div className="border border-gray-100 p-5 bg-[#1a1a1a] text-white">
+                <h4 className="font-display text-card-sm font-semibold text-white mb-2">Claim This Listing</h4>
+                <p className="text-sm text-white/70 mb-4">
+                  Is this your business? Claim it to update your info and reach more customers.
+                </p>
+                <Link
+                  href="/submit"
+                  className="block w-full text-center bg-[#fee198] text-[#1a1a1a] font-semibold text-sm uppercase tracking-wide px-6 py-3 hover:bg-[#f5d87a] transition-colors"
+                >
+                  Claim Listing
+                </Link>
+              </div>
+            </div>
 
             {/* ── In the News ── */}
             {inTheNewsPosts.length > 0 && (

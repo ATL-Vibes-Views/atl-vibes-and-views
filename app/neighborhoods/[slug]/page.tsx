@@ -328,6 +328,26 @@ export default async function NeighborhoodDetailPage({
         />
       </div>
 
+      {/* ========== MOBILE: Nearby Neighborhoods (horizontal scroll pills) ========== */}
+      {nearbyNeighborhoods.length > 0 && (
+        <div className="lg:hidden site-container pb-6 overflow-x-auto -mx-4 px-4">
+          <p className="text-[10px] font-semibold uppercase tracking-eyebrow text-[#c1121f] mb-2">
+            Nearby in {areaName}
+          </p>
+          <div className="flex gap-2 whitespace-nowrap">
+            {nearbyNeighborhoods.map((n) => (
+              <Link
+                key={n.slug}
+                href={`/neighborhoods/${n.slug}`}
+                className="inline-block px-3 py-1.5 bg-[#f8f5f0] text-sm text-[#1a1a1a] hover:bg-[#fee198] transition-colors flex-shrink-0"
+              >
+                {n.name}
+              </Link>
+            ))}
+          </div>
+        </div>
+      )}
+
       {/* ========== GRID A: STORIES + AD | SIDEBAR 1 ========== */}
       <div className="site-container pb-16 md:pb-20">
         <div className="grid grid-cols-1 lg:grid-cols-[1fr_340px] gap-12 lg:gap-16">
@@ -382,6 +402,14 @@ export default async function NeighborhoodDetailPage({
                 </p>
               )}
             </section>
+
+            {/* ===== MOBILE: Newsletter after stories ===== */}
+            <div className="lg:hidden">
+              <NewsletterWidget
+                title={`${neighborhood.name} Updates`}
+                description={`Get the latest stories, events, and business openings from ${neighborhood.name}.`}
+              />
+            </div>
 
             {/* ===== 4b. MORE FROM [AREA] ===== */}
             {areaStories.length > 0 && (
@@ -441,6 +469,11 @@ export default async function NeighborhoodDetailPage({
                 Submit a Tip <ArrowRight size={14} />
               </Link>
             </section>
+
+            {/* ===== MOBILE: Ad slot between stories and eats ===== */}
+            <div className="lg:hidden">
+              <AdBlock variant="inline" />
+            </div>
 
             {/* ===== 5. HORIZONTAL AD ===== */}
             <section>
@@ -693,6 +726,14 @@ export default async function NeighborhoodDetailPage({
                 </p>
               )}
             </section>
+
+            {/* ===== MOBILE: SubmitCTA between sections ===== */}
+            <div className="lg:hidden">
+              <SubmitCTA
+                heading={`Own a Business in ${neighborhood.name}?`}
+                description="Get your business in front of thousands of Atlantans."
+              />
+            </div>
 
             {/* ===== 8. EVENTS (6 items) ===== */}
             <section>
