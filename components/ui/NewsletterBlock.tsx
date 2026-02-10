@@ -1,3 +1,5 @@
+"use client";
+
 interface NewsletterBlockProps {
   heading?: string;
   description: string;
