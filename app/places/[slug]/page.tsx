@@ -324,6 +324,26 @@ export default async function BusinessDetailPage({
     biz.logo ||
     "/images/default-hero.png";
 
+  /* ── In the News: blog posts linked via post_businesses ── */
+  const { data: linkedPostRows } = await sb()
+    .from("post_businesses")
+    .select("post_id")
+    .eq("business_id", biz.id)
+    .returns<{ post_id: string }[]>();
+
+  let inTheNewsPosts: any[] = [];
+  if (linkedPostRows && linkedPostRows.length > 0) {
+    const postIds = linkedPostRows.map((r) => r.post_id);
+    const { data: posts } = await sb()
+      .from("blog_posts")
+      .select("id, title, slug, excerpt, featured_image_url, published_at, categories ( name, slug )")
+      .in("id", postIds)
+      .eq("status", "published")
+      .order("published_at", { ascending: false })
+      .limit(4);
+    inTheNewsPosts = posts ?? [];
+  }
+
   /* ── More places ── */
   const morePlaces = await getMorePlaces(
     biz.id,
@@ -997,6 +1017,69 @@ export default async function BusinessDetailPage({
                 </div>
               )}
             </section>
+
+            {/* ── In the News ── */}
+            {inTheNewsPosts.length > 0 && (
+              <section className="mb-10">
+                <div className="mb-6">
+                  <span className="text-[#c1121f] text-[11px] font-semibold uppercase tracking-eyebrow">
+                    In the News
+                  </span>
+                  <h2 className="font-display text-2xl font-bold text-black mt-1">
+                    Stories Featuring {biz.business_name}
+                  </h2>
+                </div>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
+                  {inTheNewsPosts.map((post: any) => (
+                    <Link
+                      key={post.id}
+                      href={`/stories/${post.slug}`}
+                      className="group block border border-gray-200 hover:border-[#e6c46d] transition-colors overflow-hidden"
+                    >
+                      <div className="relative aspect-[4/3] overflow-hidden">
+                        <Image
+                          src={post.featured_image_url || "/images/default-hero.png"}
+                          alt={post.title}
+                          fill
+                          unoptimized
+                          className="object-cover group-hover:scale-105 transition-transform duration-500"
+                        />
+                      </div>
+                      <div className="p-4">
+                        {post.categories?.name && (
+                          <span className="text-[10px] font-semibold uppercase tracking-eyebrow text-[#c1121f]">
+                            {post.categories.name}
+                          </span>
+                        )}
+                        <h3 className="font-display text-base font-semibold text-black mt-1 leading-snug group-hover:text-red-brand transition-colors">
+                          {post.title}
+                        </h3>
+                        {post.excerpt && (
+                          <p className="text-sm text-gray-mid mt-2 line-clamp-2">
+                            {post.excerpt}
+                          </p>
+                        )}
+                        {post.published_at && (
+                          <p className="text-xs text-gray-400 mt-2">
+                            {formatDate(post.published_at)}
+                          </p>
+                        )}
+                      </div>
+                    </Link>
+                  ))}
+                </div>
+                {linkedPostRows && linkedPostRows.length > 4 && (
+                  <div className="mt-4">
+                    <Link
+                      href={`/stories?search=${encodeURIComponent(biz.business_name)}`}
+                      className="inline-flex items-center gap-1 text-sm font-semibold text-black hover:text-[#c1121f] transition-colors"
+                    >
+                      View All Stories <ArrowRight size={14} />
+                    </Link>
+                  </div>
+                )}
+              </section>
+            )}
           </div>
 
           {/* ========== SIDEBAR (desktop only) ========== */}

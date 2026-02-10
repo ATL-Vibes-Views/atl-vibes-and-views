@@ -209,10 +209,22 @@ export default async function NeighborhoodDetailPage({
     if (eventsList.length > 0) eventsLabel = "Atlanta";
   }
 
+  /* ── Area-wide stories (sibling neighborhoods, excluding this one) ── */
+  const areaStoryIds = new Set(posts.map((p) => p.id));
+  let areaStories: typeof posts = [];
+  if (area && neighborIds.length > 0 && !search) {
+    const areaPostsRaw = await getBlogPosts({
+      neighborhoodIds: neighborIds,
+      limit: 6,
+    }).catch(() => []);
+    areaStories = areaPostsRaw.filter((p) => !areaStoryIds.has(p.id)).slice(0, 6);
+  }
+
   /* ── Dedup: track used IDs ── */
   const usedIds = new Set<string>();
   const stories = posts.slice(0, 4);
   stories.forEach((p) => usedIds.add(p.id));
+  areaStories.forEach((p) => usedIds.add(p.id));
 
   const eatsBusinesses = eatsList.filter((b) => !usedIds.has(b.id));
   eatsBusinesses.forEach((b) => usedIds.add(b.id));
@@ -369,6 +381,65 @@ export default async function NeighborhoodDetailPage({
                   No stories in {storiesLabel} yet. Check back soon.
                 </p>
               )}
+            </section>
+
+            {/* ===== 4b. MORE FROM [AREA] ===== */}
+            {areaStories.length > 0 && (
+              <section>
+                <SectionHeader
+                  eyebrow="From the Area"
+                  title={`More from ${areaName}`}
+                  action={areaSlug ? { label: "View All", href: `/stories?area=${areaSlug}` } : undefined}
+                  className="mb-10"
+                />
+                <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-10">
+                  {areaStories.map((post) => (
+                    <Link
+                      key={post.id}
+                      href={`/stories/${post.slug}`}
+                      className="group block"
+                    >
+                      <div className="relative aspect-[4/3] overflow-hidden mb-4">
+                        <Image
+                          src={post.featured_image_url || PH_POST}
+                          alt={post.title}
+                          fill
+                          unoptimized
+                          className="object-cover group-hover:scale-105 transition-transform duration-500"
+                        />
+                      </div>
+                      <div className="flex items-center gap-2 mb-3">
+                        {post.categories?.name && (
+                          <span className="px-3 py-1 bg-gold-light text-black text-[10px] font-semibold uppercase tracking-eyebrow rounded-full">
+                            {post.categories.name}
+                          </span>
+                        )}
+                      </div>
+                      <h3 className="font-display text-lg font-semibold text-black leading-snug group-hover:text-red-brand transition-colors">
+                        {post.title}
+                      </h3>
+                      {post.published_at && (
+                        <p className="text-gray-mid text-xs mt-2">
+                          {formatDate(post.published_at)}
+                        </p>
+                      )}
+                    </Link>
+                  ))}
+                </div>
+              </section>
+            )}
+
+            {/* ===== STORY TIP CTA ===== */}
+            <section className="bg-[#f8f5f0] px-6 py-8 md:px-10">
+              <p className="text-sm text-gray-dark mb-3">
+                Know something happening in {neighborhood.name}?
+              </p>
+              <Link
+                href="/contact"
+                className="inline-flex items-center gap-2 text-sm font-semibold text-black hover:text-red-brand transition-colors"
+              >
+                Submit a Tip <ArrowRight size={14} />
+              </Link>
             </section>
 
             {/* ===== 5. HORIZONTAL AD ===== */}

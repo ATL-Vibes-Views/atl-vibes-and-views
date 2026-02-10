@@ -1,7 +1,7 @@
 import Link from "next/link";
 import Image from "next/image";
 import { notFound } from "next/navigation";
-import { MapPin } from "lucide-react";
+import { MapPin, ArrowRight, Play } from "lucide-react";
 import { EventCard } from "@/components/ui/EventCard";
 import { Breadcrumbs } from "@/components/ui/Breadcrumbs";
 import { SectionHeader } from "@/components/ui/SectionHeader";
@@ -23,7 +23,9 @@ import {
   getBusinesses,
   getEvents,
   getCategoryBySlug,
+  getMediaItems,
 } from "@/lib/queries";
+import { createServerClient } from "@/lib/supabase";
 
 /* ============================================================
    HELPERS
@@ -31,6 +33,15 @@ import {
 const PH_HERO = "https://placehold.co/1920x600/1a1a1a/e6c46d?text=Area";
 const PH_POST = "https://placehold.co/600x400/1a1a1a/e6c46d?text=Story";
 const PH_BIZ = "https://placehold.co/600x400/c1121f/fee198?text=Business";
+const PH_NEIGHBORHOOD = "https://placehold.co/400x260/1a1a1a/e6c46d?text=Neighborhood";
+const PH_VIDEO = "https://placehold.co/960x540/222222/e6c46d?text=Video";
+
+function extractYouTubeId(url: string): string {
+  const match = url.match(
+    /(?:youtu\.be\/|youtube\.com\/(?:watch\?v=|embed\/|v\/))([a-zA-Z0-9_-]{11})/
+  );
+  return match?.[1] ?? "";
+}
 
 function formatDate(dateStr?: string | null): string {
   if (!dateStr) return "";
@@ -121,6 +132,38 @@ export default async function AreaDetailPage({
         : Promise.resolve([]),
     ]);
 
+  /* ── Video module: area-linked → citywide fallback ── */
+  let areaVideos = await getMediaItems({
+    limit: 3,
+    targetType: "area",
+    targetIds: [area.id],
+  }).catch(() => []);
+  if (areaVideos.length === 0) {
+    areaVideos = await getMediaItems({ limit: 3 }).catch(() => []);
+  }
+
+  /* ── Full neighborhood cards with business counts ── */
+  const allAreaNeighborhoods = await getNeighborhoods({ areaId: area.id, limit: 100 });
+
+  const supabase = createServerClient();
+  const allAreaNIds = allAreaNeighborhoods.map((n) => n.id);
+  const { data: bizCountRows } = allAreaNIds.length > 0
+    ? await supabase
+        .from("business_listings")
+        .select("neighborhood_id")
+        .eq("status", "active")
+        .in("neighborhood_id", allAreaNIds)
+        .returns<{ neighborhood_id: string }[]>()
+    : { data: [] as { neighborhood_id: string }[] };
+
+  const neighborhoodBizCount = new Map<string, number>();
+  for (const row of bizCountRows ?? []) {
+    neighborhoodBizCount.set(
+      row.neighborhood_id,
+      (neighborhoodBizCount.get(row.neighborhood_id) ?? 0) + 1
+    );
+  }
+
   /* ── Stories fallback: if 0 area-specific, show city-wide (limit 3) ── */
   let posts = areaPosts;
   const isStoriesFallback = areaPosts.length === 0 && !search;
@@ -210,6 +253,108 @@ export default async function AreaDetailPage({
           </p>
         )}
       </div>
+
+      {/* ========== VIDEO MODULE ========== */}
+      {areaVideos.length > 0 && (
+        <div className="site-container pt-8 pb-4">
+          <div className="border-b border-gray-200 pb-3 mb-8">
+            <span className="text-[#c1121f] text-[11px] font-semibold uppercase tracking-eyebrow">
+              Watch &amp; Listen
+            </span>
+            <h2 className="font-display text-3xl md:text-4xl font-semibold text-black leading-tight mt-1">
+              Video from {area.name}
+            </h2>
+          </div>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+            {areaVideos.slice(0, 3).map((vid) => (
+              <Link key={vid.id} href="/media" className="group block">
+                <div className="relative aspect-video bg-[#111] overflow-hidden">
+                  {vid.embed_url ? (
+                    <Image
+                      src={`https://img.youtube.com/vi/${extractYouTubeId(vid.embed_url)}/hqdefault.jpg`}
+                      alt={vid.title}
+                      fill
+                      unoptimized
+                      className="object-cover group-hover:scale-105 transition-transform duration-500"
+                    />
+                  ) : (
+                    <Image
+                      src={PH_VIDEO}
+                      alt={vid.title}
+                      fill
+                      unoptimized
+                      className="object-cover"
+                    />
+                  )}
+                  <div className="absolute inset-0 flex items-center justify-center">
+                    <div className="w-12 h-12 rounded-full bg-[#fee198]/90 flex items-center justify-center group-hover:bg-[#fee198] transition-colors">
+                      <Play size={18} className="text-black ml-0.5 fill-black" />
+                    </div>
+                  </div>
+                </div>
+                <div className="mt-3">
+                  <span className="text-[10px] font-semibold uppercase tracking-eyebrow text-[#c1121f]">
+                    Video
+                  </span>
+                  <h3 className="font-display text-base font-semibold text-black mt-1 leading-snug group-hover:text-red-brand transition-colors">
+                    {vid.title}
+                  </h3>
+                </div>
+              </Link>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* ========== NEIGHBORHOOD CARDS GRID ========== */}
+      {allAreaNeighborhoods.length > 0 && (
+        <div className="site-container pt-8 pb-8">
+          <SectionHeader
+            eyebrow="Neighborhoods"
+            title={`Neighborhoods in ${area.name}`}
+            action={{ label: "View All Neighborhoods", href: "/neighborhoods" }}
+            className="mb-10"
+          />
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+            {allAreaNeighborhoods.map((n) => {
+              const bizCount = neighborhoodBizCount.get(n.id) ?? 0;
+              return (
+                <Link
+                  key={n.id}
+                  href={`/neighborhoods/${n.slug}`}
+                  className="group block border border-gray-200 hover:border-[#e6c46d] transition-colors overflow-hidden"
+                >
+                  <div className="relative aspect-[4/3] overflow-hidden">
+                    <Image
+                      src={n.hero_image_url || PH_NEIGHBORHOOD}
+                      alt={n.name}
+                      fill
+                      unoptimized
+                      className="object-cover group-hover:scale-105 transition-transform duration-500"
+                    />
+                  </div>
+                  <div className="p-4">
+                    <h3 className="font-display text-lg font-semibold text-black group-hover:text-red-brand transition-colors">
+                      {n.name}
+                    </h3>
+                    {n.tagline && (
+                      <p className="text-sm text-gray-mid mt-1 line-clamp-1">
+                        {n.tagline}
+                      </p>
+                    )}
+                    <div className="flex items-center gap-1 mt-2 text-xs text-gray-mid">
+                      <MapPin size={12} />
+                      {bizCount > 0
+                        ? `${bizCount} business${bizCount !== 1 ? "es" : ""}`
+                        : "No businesses yet"}
+                    </div>
+                  </div>
+                </Link>
+              );
+            })}
+          </div>
+        </div>
+      )}
 
       {/* ========== 4. MAIN CONTENT + SIDEBAR ========== */}
       <div className="site-container pt-12 pb-16 md:pt-16 md:pb-20">

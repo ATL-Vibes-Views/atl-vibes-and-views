@@ -20,7 +20,9 @@ import {
   getNeighborhoodsByPopularity,
   getCategoryBySlug,
 } from "@/lib/queries";
+import { createServerClient } from "@/lib/supabase";
 import type { Metadata } from "next";
+import type { Area } from "@/lib/types";
 
 /* ============================================================
    NEIGHBORHOOD LANDING PAGE — /neighborhoods — Server Component
@@ -158,6 +160,59 @@ export default async function NeighborhoodsLandingPage({
     : [];
 
   const hasSearchResults = !search || filteredNeighborhoods.length > 0;
+
+  /* ── Area grouping with business + story counts ── */
+  const areaMap = new Map<string, Area>();
+  for (const a of areas) areaMap.set(a.id, a);
+
+  const supabase = createServerClient();
+
+  const [{ data: bizCountRows }, { data: storyCountRows }] = await Promise.all([
+    supabase
+      .from("business_listings")
+      .select("neighborhood_id")
+      .eq("status", "active")
+      .not("neighborhood_id", "is", null)
+      .returns<{ neighborhood_id: string }[]>(),
+    supabase
+      .from("blog_posts")
+      .select("neighborhood_id")
+      .eq("status", "published")
+      .not("neighborhood_id", "is", null)
+      .returns<{ neighborhood_id: string }[]>(),
+  ]);
+
+  const bizCountMap = new Map<string, number>();
+  for (const row of bizCountRows ?? []) {
+    bizCountMap.set(row.neighborhood_id, (bizCountMap.get(row.neighborhood_id) ?? 0) + 1);
+  }
+
+  const storyCountMap = new Map<string, number>();
+  for (const row of storyCountRows ?? []) {
+    storyCountMap.set(row.neighborhood_id, (storyCountMap.get(row.neighborhood_id) ?? 0) + 1);
+  }
+
+  type AreaGroup = {
+    area: Area;
+    neighborhoods: typeof allNeighborhoods;
+  };
+
+  const grouped: AreaGroup[] = [];
+  const byArea = new Map<string, typeof allNeighborhoods>();
+  for (const n of allNeighborhoods) {
+    if (!n.area_id) continue;
+    if (!byArea.has(n.area_id)) byArea.set(n.area_id, []);
+    byArea.get(n.area_id)!.push(n);
+  }
+  for (const [areaId, hoods] of byArea) {
+    const area = areaMap.get(areaId);
+    if (!area) continue;
+    grouped.push({
+      area,
+      neighborhoods: hoods.sort((a, b) => a.name.localeCompare(b.name)),
+    });
+  }
+  grouped.sort((a, b) => a.area.name.localeCompare(b.area.name));
 
   /* ── Masonry feed: mix blogs + videos ── */
   const usedIds = new Set<string>();
@@ -329,6 +384,65 @@ export default async function NeighborhoodsLandingPage({
               No matches &mdash; try a different search.
             </p>
           )}
+        </div>
+      )}
+
+      {/* ========== AREA-GROUPED NEIGHBORHOODS (default, non-search view) ========== */}
+      {!search && grouped.length > 0 && (
+        <div className="site-container pt-12 pb-16 md:pt-16 md:pb-20">
+          {grouped.map((group) => (
+            <section key={group.area.id} className="mb-16 last:mb-0">
+              <div className="border-b border-gray-200 pb-3 mb-8">
+                <Link
+                  href={`/areas/${group.area.slug}`}
+                  className="group"
+                >
+                  <h2 className="font-display text-3xl md:text-4xl font-semibold text-black leading-tight group-hover:text-red-brand transition-colors">
+                    {group.area.name}
+                  </h2>
+                </Link>
+                {group.area.tagline && (
+                  <p className="text-sm text-gray-mid mt-1">
+                    {group.area.tagline}
+                  </p>
+                )}
+              </div>
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+                {group.neighborhoods.map((n) => {
+                  const bizCount = bizCountMap.get(n.id) ?? 0;
+                  const storyCount = storyCountMap.get(n.id) ?? 0;
+                  return (
+                    <Link
+                      key={n.id}
+                      href={`/neighborhoods/${n.slug}`}
+                      className="group block border border-gray-200 hover:border-[#e6c46d] transition-colors"
+                    >
+                      <div className="p-4">
+                        <span className="text-[10px] font-semibold uppercase tracking-eyebrow text-[#c1121f]">
+                          {group.area.name}
+                        </span>
+                        <h3 className="font-display text-lg font-semibold text-black mt-1 group-hover:text-red-brand transition-colors">
+                          {n.name}
+                        </h3>
+                        <div className="flex items-center gap-3 mt-2 text-xs text-gray-mid">
+                          <span>
+                            {bizCount > 0
+                              ? `${bizCount} business${bizCount !== 1 ? "es" : ""}`
+                              : "No businesses yet"}
+                          </span>
+                          {storyCount > 0 && (
+                            <span>
+                              {storyCount} {storyCount === 1 ? "story" : "stories"}
+                            </span>
+                          )}
+                        </div>
+                      </div>
+                    </Link>
+                  );
+                })}
+              </div>
+            </section>
+          ))}
         </div>
       )}
 
