@@ -90,7 +90,6 @@ export default async function BusinessHubPage({
   const { data: amenities } = await supabase
     .from("amenities")
     .select("id, name, slug")
-    .eq("is_active", true)
     .order("name")
     .returns<LookupRow[]>();
 
@@ -98,7 +97,6 @@ export default async function BusinessHubPage({
   const { data: identityOptions } = await supabase
     .from("business_identity_options")
     .select("id, name, slug")
-    .eq("is_active", true)
     .order("name")
     .returns<LookupRow[]>();
 

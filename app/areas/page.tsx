@@ -303,23 +303,50 @@ export default async function AreasLandingPage({
         <div className="grid grid-cols-1 lg:grid-cols-[1fr_340px] gap-12 lg:gap-16">
           {/* ---------- MAIN COLUMN ---------- */}
           <div className="space-y-28">
-            {/* ===== 3. INTERACTIVE MAP / AREA LIST ===== */}
+            {/* ===== 3. AREA CARDS GRID ===== */}
             <section>
               <SectionHeader eyebrow="Areas" title="Explore Atlanta" />
-              {/* Map placeholder — falls back to text list */}
-              <div className="relative overflow-hidden bg-[#f5f0eb] aspect-[16/7]">
-                <div className="absolute inset-0 flex flex-col items-center justify-center text-center px-6">
-                  <div className="w-16 h-16 rounded-full bg-gold-light/50 flex items-center justify-center mb-4">
-                    <MapPin size={28} className="text-black" />
-                  </div>
-                  <h3 className="font-display text-2xl md:text-3xl font-semibold text-black mb-2">
-                    Interactive Map Coming Soon
-                  </h3>
-                  <p className="text-gray-mid text-sm max-w-md">
-                    Explore {areas.length} areas and 261 neighborhoods across Atlanta
-                  </p>
+              {areas.length > 0 ? (
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+                  {areas.map((area) => (
+                    <Link
+                      key={area.id}
+                      href={`/areas/${area.slug}`}
+                      className="group block relative overflow-hidden aspect-[4/3]"
+                    >
+                      {area.hero_image_url ? (
+                        <Image
+                          src={area.hero_image_url}
+                          alt={area.name}
+                          fill
+                          unoptimized
+                          className="object-cover group-hover:scale-105 transition-transform duration-500"
+                        />
+                      ) : (
+                        <div className="absolute inset-0 bg-[#1a1a1a]" />
+                      )}
+                      <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/30 to-transparent" />
+                      <div className="absolute bottom-0 left-0 right-0 p-5">
+                        <h3 className="font-display text-xl md:text-2xl font-semibold text-white group-hover:text-[#fee198] transition-colors">
+                          {area.name}
+                        </h3>
+                        {area.tagline && (
+                          <p className="text-white/60 text-xs mt-1 line-clamp-2">
+                            {area.tagline}
+                          </p>
+                        )}
+                      </div>
+                      <div className="absolute top-3 right-3 opacity-0 group-hover:opacity-100 transition-opacity">
+                        <ChevronRight size={18} className="text-white" />
+                      </div>
+                    </Link>
+                  ))}
                 </div>
-              </div>
+              ) : (
+                <p className="text-gray-mid text-sm text-center py-12">
+                  Area listings coming soon.
+                </p>
+              )}
               {/* Transition CTA to neighborhoods */}
               <div className="flex justify-center mt-8 pt-6 border-t border-gray-100">
                 <Link

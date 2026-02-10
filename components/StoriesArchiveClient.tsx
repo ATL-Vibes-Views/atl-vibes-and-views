@@ -43,7 +43,7 @@ interface StoriesArchiveClientProps {
   initialPosts: StoryPost[];
   categories: FilterCategory[];
   areas: FilterArea[];
-  contentType: "news" | "guide";
+  contentType?: "news" | "guide";
   heroTitle: string;
   heroSubtitle: string;
   heroImage?: string;
@@ -194,7 +194,7 @@ export function StoriesArchiveClient({
         <div className="absolute inset-0 flex items-end">
           <div className="site-container pb-10 md:pb-14">
             <span className="text-[#e6c46d] text-[11px] font-semibold uppercase tracking-[0.15em] mb-3 block">
-              {contentType === "news" ? "Atlanta News" : "Local Knowledge"}
+              {contentType === "news" ? "Atlanta News" : contentType === "guide" ? "Local Knowledge" : "Stories"}
             </span>
             <h1 className="font-display text-4xl md:text-5xl lg:text-6xl font-semibold text-white leading-[1.05]">
               {heroTitle}
@@ -336,7 +336,7 @@ export function StoriesArchiveClient({
                 Featured
               </span>
               <h2 className="font-display text-3xl md:text-4xl font-semibold text-black leading-tight mt-1">
-                {contentType === "news" ? "Top Stories" : "Editor\u2019s Picks"}
+                {contentType === "news" ? "Top Stories" : contentType === "guide" ? "Editor\u2019s Picks" : "Featured Stories"}
               </h2>
             </div>
           </div>
