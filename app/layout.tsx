@@ -3,6 +3,7 @@ import { Cormorant_Garamond, Inter } from "next/font/google";
 import "./globals.css";
 import { Header } from "@/components/Header";
 import { Footer } from "@/components/Footer";
+import { getNeighborhoodsGrouped } from "@/lib/queries";
 
 /* --- Font Loading --- */
 const cormorant = Cormorant_Garamond({
@@ -49,18 +50,20 @@ export const metadata: Metadata = {
 };
 
 /* --- Root Layout --- */
-export default function RootLayout({
+export default async function RootLayout({
   children,
 }: {
   children: React.ReactNode;
 }) {
+  const exploreData = await getNeighborhoodsGrouped();
+
   return (
     <html
       lang="en"
       className={`${cormorant.variable} ${inter.variable} ${codecProVariable}`}
     >
       <body className="font-body text-black bg-white min-h-screen flex flex-col">
-        <Header />
+        <Header exploreData={exploreData} />
         <main className="flex-1">{children}</main>
         <Footer />
       </body>

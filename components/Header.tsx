@@ -11,13 +11,14 @@ const TikTokIcon = ({ size = 14, ...props }: { size?: number; [key: string]: any
   </svg>
 );
 
-const AREAS = [
-  { name: "Buckhead", slug: "buckhead" }, { name: "Midtown", slug: "midtown" },
-  { name: "Downtown", slug: "downtown" }, { name: "Eastside", slug: "eastside" },
-  { name: "Westside", slug: "westside" },
-  { name: "South Atlanta", slug: "south-atlanta" },
-  { name: "Southwest Atlanta", slug: "southwest-atlanta" },
-];
+/* === Explore ATL data shape (passed from server) === */
+interface ExploreGroup {
+  area_name: string;
+  area_slug: string;
+  neighborhoods: { id: string; name: string; slug: string }[];
+}
+
+const MAX_NEIGHBORHOODS = 12;
 
 const HUB_ITEMS = [
   { name: "Businesses", slug: "businesses", image: "https://placehold.co/200x120/1a1a1a/e6c46d?text=Businesses" },
@@ -35,11 +36,6 @@ const BEYOND_ATL_CITIES = [
   { name: "Sandy Springs", slug: "sandy-springs" },
 ];
 
-const BEYOND_ATL_MENU = [
-  { name: "Cities", slug: "cities", hasSubmenu: true },
-  { name: "Relocation", slug: "relocation", hasSubmenu: false },
-];
-
 const SOCIAL_LINKS = [
   { icon: Facebook, label: "Facebook", count: "56K", href: "https://facebook.com/atlvibesandviews", hoverClass: "group-hover:text-[#1877F2]" },
   { icon: Twitter, label: "X", count: "1K", href: "https://x.com/atlvibes_views", hoverClass: "group-hover:text-black" },
@@ -54,28 +50,29 @@ const DRAWER_STORIES = [
   { slug: "best-weekend-brunch-spots", title: "The Best Weekend Brunch Spots in the City", image: "https://placehold.co/80x80/e6c46d/1a1a1a?text=3" },
 ];
 
-/* Mobile nav items — shown in drawer when main nav is hidden */
-const MOBILE_NAV_ITEMS = [
-  { name: "Home", href: "/" },
-  { name: "Areas", href: "/areas" },
-  { name: "The Hub", href: "/hub" },
-  { name: "City Watch", href: "/city-watch" },
-  { name: "Media", href: "/media" },
-];
+interface HeaderProps {
+  exploreData?: ExploreGroup[];
+}
 
-export function Header() {
+export function Header({ exploreData = [] }: HeaderProps) {
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [drawerVisible, setDrawerVisible] = useState(false);
   const [activeDropdown, setActiveDropdown] = useState<string | null>(null);
   const [beyondSubmenuOpen, setBeyondSubmenuOpen] = useState(false);
   const [searchOpen, setSearchOpen] = useState(false);
   const [closeSpinning, setCloseSpinning] = useState(false);
+  /* Desktop: which area is hovered in the Explore ATL flyout */
+  const [hoveredAreaSlug, setHoveredAreaSlug] = useState<string | null>(null);
   /* Mobile drawer sub-menus */
   const [mobileAreasOpen, setMobileAreasOpen] = useState(false);
+  const [mobileExploreAreaSlug, setMobileExploreAreaSlug] = useState<string | null>(null);
   const [mobileHubOpen, setMobileHubOpen] = useState(false);
   const [mobileBeyondOpen, setMobileBeyondOpen] = useState(false);
   const [mobileCitiesOpen, setMobileCitiesOpen] = useState(false);
   const dropdownTimeout = useRef<NodeJS.Timeout | null>(null);
+
+  /* Auto-select first area when Explore dropdown opens */
+  const firstAreaSlug = exploreData[0]?.area_slug ?? null;
 
   useEffect(() => {
     const handleClick = () => { setActiveDropdown(null); setBeyondSubmenuOpen(false); };
@@ -93,10 +90,11 @@ export function Header() {
   const handleDropdownEnter = (name: string) => {
     if (dropdownTimeout.current) clearTimeout(dropdownTimeout.current);
     setActiveDropdown(name);
+    if (name === "areas") setHoveredAreaSlug(firstAreaSlug);
     if (name !== "beyond") setBeyondSubmenuOpen(false);
   };
   const handleDropdownLeave = () => {
-    dropdownTimeout.current = setTimeout(() => { setActiveDropdown(null); setBeyondSubmenuOpen(false); }, 200);
+    dropdownTimeout.current = setTimeout(() => { setActiveDropdown(null); setBeyondSubmenuOpen(false); setHoveredAreaSlug(null); }, 200);
   };
 
   const openDrawer = () => {
@@ -111,6 +109,9 @@ export function Header() {
       setTimeout(() => { setDrawerOpen(false); setCloseSpinning(false); }, 400);
     }, 250);
   };
+
+  /* Find active area group for desktop flyout */
+  const activeAreaGroup = exploreData.find((g) => g.area_slug === hoveredAreaSlug) ?? null;
 
   return (
     <header className="w-full bg-white sticky top-0 z-50 border-b border-gray-200">
@@ -131,7 +132,6 @@ export function Header() {
             <div className="text-[10px] md:text-xs tracking-[0.15em] text-gray-mid mt-1.5 uppercase">The City. The Culture. The Conversation.</div>
           </Link>
 
-          {/* CHANGE #5 & #6 — Search + Login icons: yellow default, black hover */}
           <div className="flex items-center gap-3 ml-auto">
             <button onClick={() => setSearchOpen(!searchOpen)} className="p-2.5 rounded-full transition-colors duration-200 text-[#e6c46d] hover:text-black" aria-label="Search"><Search size={20} strokeWidth={1.5} /></button>
             <Link href="/login" className="p-2.5 rounded-full transition-colors duration-200 text-[#e6c46d] hover:text-black" aria-label="Sign in"><User size={20} strokeWidth={1.5} /></Link>
@@ -158,18 +158,76 @@ export function Header() {
         <nav className="hidden lg:flex items-center gap-10 absolute left-1/2 -translate-x-1/2">
           <NavLink href="/">Home</NavLink>
 
-          {/* CHANGE #1 — AREAS: label is clickable link to /areas, dropdown still works on hover */}
+          {/* EXPLORE ATL — hierarchical areas → neighborhoods flyout */}
           <div className="relative" onMouseEnter={() => handleDropdownEnter("areas")} onMouseLeave={handleDropdownLeave}>
             <NavDropdownTriggerLink href="/areas" active={activeDropdown === "areas"}>Explore ATL</NavDropdownTriggerLink>
-            {activeDropdown === "areas" && (
-              <DropdownPanel>
-                {AREAS.map((a) => <DropdownLink key={a.slug} href={`/areas/${a.slug}`}>{a.name}</DropdownLink>)}
-                <div className="border-t border-gray-100 mt-1 pt-1"><DropdownLink href="/neighborhoods" highlight>Explore All Neighborhoods</DropdownLink></div>
-              </DropdownPanel>
+            {activeDropdown === "areas" && exploreData.length > 0 && (
+              <div className="absolute top-full left-1/2 -translate-x-1/2 mt-2 bg-white border border-gray-100 shadow-lg z-50 flex" style={{ minWidth: 520 }}>
+                {/* Left — Area list */}
+                <div className="w-[200px] border-r border-gray-100 py-3">
+                  {exploreData.map((group) => (
+                    <Link
+                      key={group.area_slug}
+                      href={`/areas/${group.area_slug}`}
+                      className={`flex items-center justify-between px-5 py-2.5 text-sm font-medium transition-colors ${
+                        hoveredAreaSlug === group.area_slug
+                          ? "bg-[#f8f5f0] text-[#1a1a1a]"
+                          : "text-[#1a1a1a] hover:bg-[#f8f5f0]"
+                      }`}
+                      onMouseEnter={() => setHoveredAreaSlug(group.area_slug)}
+                    >
+                      <span>{group.area_name}</span>
+                      <ChevronRight size={14} className="text-gray-400" />
+                    </Link>
+                  ))}
+                  <div className="border-t border-gray-100 mt-2 pt-2 px-5">
+                    <Link href="/neighborhoods" className="text-[#c1121f] text-sm font-semibold hover:underline">
+                      All Neighborhoods &rarr;
+                    </Link>
+                  </div>
+                </div>
+                {/* Right — Neighborhoods for hovered area */}
+                <div className="flex-1 py-3 min-w-[300px]">
+                  {activeAreaGroup ? (
+                    <>
+                      <div className="px-5 pb-2 mb-1 border-b border-gray-100">
+                        <span className="text-[10px] font-semibold uppercase tracking-eyebrow text-[#c1121f]">
+                          {activeAreaGroup.area_name}
+                        </span>
+                      </div>
+                      <div className="grid grid-cols-2 gap-x-2">
+                        {activeAreaGroup.neighborhoods.slice(0, MAX_NEIGHBORHOODS).map((n) => (
+                          <Link
+                            key={n.slug}
+                            href={`/neighborhoods/${n.slug}`}
+                            className="block px-5 py-2 text-sm text-gray-600 hover:text-[#1a1a1a] hover:bg-[#f8f5f0] transition-colors"
+                          >
+                            {n.name}
+                          </Link>
+                        ))}
+                      </div>
+                      {activeAreaGroup.neighborhoods.length > MAX_NEIGHBORHOODS && (
+                        <div className="px-5 pt-2 mt-1 border-t border-gray-100">
+                          <Link
+                            href={`/neighborhoods?area=${activeAreaGroup.area_slug}`}
+                            className="text-[#c1121f] text-sm font-semibold hover:underline"
+                          >
+                            See All Neighborhoods &rarr;
+                          </Link>
+                        </div>
+                      )}
+                    </>
+                  ) : (
+                    <div className="px-5 py-4 text-sm text-gray-mid">
+                      Hover an area to see neighborhoods
+                    </div>
+                  )}
+                </div>
+              </div>
             )}
           </div>
 
-          {/* CHANGE #8 — THE HUB: label is clickable link to /hub, mega menu still works on hover */}
+          {/* THE HUB — mega menu */}
           <div className="relative" onMouseEnter={() => handleDropdownEnter("hub")} onMouseLeave={handleDropdownLeave}>
             <NavDropdownTriggerLink href="/hub" active={activeDropdown === "hub"}>The Hub</NavDropdownTriggerLink>
             {activeDropdown === "hub" && (
@@ -186,12 +244,11 @@ export function Header() {
             )}
           </div>
 
-          {/* CHANGE #3 — Beyond ATL: Cities has a submenu listing the 4 cities */}
+          {/* Beyond ATL */}
           <div className="relative" onMouseEnter={() => handleDropdownEnter("beyond")} onMouseLeave={handleDropdownLeave}>
             <NavDropdownTrigger active={activeDropdown === "beyond"}>Beyond ATL</NavDropdownTrigger>
             {activeDropdown === "beyond" && (
               <DropdownPanel>
-                {/* Cities — with submenu */}
                 <div
                   className="relative"
                   onMouseEnter={() => setBeyondSubmenuOpen(true)}
@@ -209,7 +266,6 @@ export function Header() {
                     </div>
                   )}
                 </div>
-                {/* Relocation */}
                 <DropdownLink href="/beyond-atl/relocation">Relocation</DropdownLink>
               </DropdownPanel>
             )}
@@ -219,12 +275,10 @@ export function Header() {
           <NavLink href="/media">Media</NavLink>
         </nav>
 
-        {/* CHANGE #4 — Submit Listing: yellow bg, hover to black */}
         <Link href="/submit" className="hidden md:inline-flex items-center px-5 py-2 bg-[#e6c46d] text-black text-xs font-semibold uppercase tracking-eyebrow rounded-full hover:bg-black hover:text-[#fee198] transition-colors">Submit Listing</Link>
       </div>
 
       {/* ===== CHRONICLE-STYLE DRAWER ===== */}
-      {/* CHANGE #7 — Dual-mode: mobile shows nav menu, desktop/tablet shows blog stories */}
       {drawerOpen && (
         <>
           <div
@@ -261,20 +315,19 @@ export function Header() {
             {/* Spacer */}
             <div className="px-8 pt-4 pb-2" />
 
-            {/* ===== MOBILE VERSION — Full nav menu (visible when main nav is hidden: < lg) ===== */}
+            {/* ===== MOBILE VERSION — Full nav menu (< lg) ===== */}
             <div className="lg:hidden px-8 flex-1">
               <nav className="space-y-1">
-                {/* Submit CTA — prominent at top */}
+                {/* Submit CTA */}
                 <div className="pb-4 mb-2 border-b border-white/10">
                   <Link href="/submit" onClick={closeDrawer} className="block w-full text-center bg-[#fee198] text-[#1a1a1a] text-xs font-semibold uppercase tracking-eyebrow px-5 py-3 hover:bg-[#f5d87a] transition-colors">
                     Submit a Listing
                   </Link>
                 </div>
 
-                {/* Simple links */}
                 <MobileNavLink href="/" onClick={closeDrawer}>Home</MobileNavLink>
 
-                {/* Areas — expandable */}
+                {/* Explore ATL — accordion with areas → neighborhoods */}
                 <div>
                   <button onClick={() => setMobileAreasOpen(!mobileAreasOpen)} className="flex items-center justify-between w-full py-3 text-white text-[15px] font-semibold hover:text-gold-light transition-colors">
                     <span>Explore ATL</span>
@@ -282,10 +335,61 @@ export function Header() {
                   </button>
                   {mobileAreasOpen && (
                     <div className="pl-4 pb-2 space-y-0.5">
-                      {AREAS.map((a) => (
-                        <Link key={a.slug} href={`/areas/${a.slug}`} onClick={closeDrawer} className="block py-2 text-white/60 text-sm hover:text-gold-light transition-colors">{a.name}</Link>
+                      {exploreData.map((group) => (
+                        <div key={group.area_slug}>
+                          {/* Area row — tap to expand neighborhoods */}
+                          <button
+                            onClick={() =>
+                              setMobileExploreAreaSlug(
+                                mobileExploreAreaSlug === group.area_slug ? null : group.area_slug
+                              )
+                            }
+                            className="flex items-center justify-between w-full py-2 text-white/70 text-sm font-medium hover:text-gold-light transition-colors"
+                          >
+                            <span>{group.area_name}</span>
+                            <ChevronDown
+                              size={14}
+                              className={`transition-transform duration-200 ${
+                                mobileExploreAreaSlug === group.area_slug ? "rotate-180" : ""
+                              }`}
+                            />
+                          </button>
+                          {/* Neighborhoods sub-list */}
+                          {mobileExploreAreaSlug === group.area_slug && (
+                            <div className="pl-4 pb-1 space-y-0.5">
+                              <Link
+                                href={`/areas/${group.area_slug}`}
+                                onClick={closeDrawer}
+                                className="block py-1.5 text-[#c1121f] text-sm font-semibold hover:text-gold-light transition-colors"
+                              >
+                                View {group.area_name} &rarr;
+                              </Link>
+                              {group.neighborhoods.slice(0, MAX_NEIGHBORHOODS).map((n) => (
+                                <Link
+                                  key={n.slug}
+                                  href={`/neighborhoods/${n.slug}`}
+                                  onClick={closeDrawer}
+                                  className="block py-1.5 text-white/50 text-sm hover:text-gold-light transition-colors"
+                                >
+                                  {n.name}
+                                </Link>
+                              ))}
+                              {group.neighborhoods.length > MAX_NEIGHBORHOODS && (
+                                <Link
+                                  href={`/neighborhoods?area=${group.area_slug}`}
+                                  onClick={closeDrawer}
+                                  className="block py-1.5 text-[#c1121f] text-sm font-semibold hover:text-gold-light transition-colors"
+                                >
+                                  See All Neighborhoods &rarr;
+                                </Link>
+                              )}
+                            </div>
+                          )}
+                        </div>
                       ))}
-                      <Link href="/neighborhoods" onClick={closeDrawer} className="block py-2 text-white text-sm font-semibold hover:text-gold-light transition-colors">Explore All Neighborhoods</Link>
+                      <Link href="/neighborhoods" onClick={closeDrawer} className="block py-2 text-white text-sm font-semibold hover:text-gold-light transition-colors">
+                        Explore All Neighborhoods
+                      </Link>
                     </div>
                   )}
                 </div>
@@ -314,7 +418,6 @@ export function Header() {
                   </button>
                   {mobileBeyondOpen && (
                     <div className="pl-4 pb-2 space-y-0.5">
-                      {/* Cities sub-section */}
                       <button onClick={() => setMobileCitiesOpen(!mobileCitiesOpen)} className="flex items-center justify-between w-full py-2 text-white/60 text-sm hover:text-gold-light transition-colors">
                         <span>Cities</span>
                         <ChevronDown size={14} className={`transition-transform duration-200 ${mobileCitiesOpen ? "rotate-180" : ""}`} />
@@ -336,7 +439,7 @@ export function Header() {
               </nav>
             </div>
 
-            {/* ===== DESKTOP/TABLET VERSION — What's Shaping Atlanta (visible when main nav is shown: >= lg) ===== */}
+            {/* ===== DESKTOP/TABLET VERSION — What's Shaping Atlanta (>= lg) ===== */}
             <div className="hidden lg:block px-8 flex-1">
               <p className="text-[#c1121f] text-[10px] font-semibold uppercase tracking-eyebrow mb-1">Stories</p>
               <h3 className="font-display text-lg font-semibold text-white mb-6">What&rsquo;s Shaping Atlanta</h3>
@@ -352,18 +455,15 @@ export function Header() {
               </div>
             </div>
 
-            {/* Bottom — White Social Icons + Copyright (both mobile & desktop) */}
+            {/* Bottom — Social + Copyright */}
             <div className="px-8 pb-10 pt-16 mt-auto">
               <div className="border-t border-white/10 pt-8">
-                {/* Social icons — WHITE */}
                 <div className="flex items-center gap-5 mb-6">
                   {SOCIAL_LINKS.map(({ icon: Icon, label, href }) => (
                     <a key={label} href={href} target="_blank" rel="noopener noreferrer" className="text-white hover:text-gold-light transition-colors" aria-label={label}><Icon size={18} /></a>
                   ))}
                 </div>
-                {/* Copyright */}
                 <p className="text-white/30 text-xs">&copy; {new Date().getFullYear()} ATL Vibes &amp; Views. All Rights Reserved.</p>
-                {/* AVV Media credit in gold */}
                 <a href="https://avv-media.com" target="_blank" rel="noopener noreferrer" className="text-[#e6c46d] text-xs hover:text-[#fee198] transition-colors mt-1.5 inline-block">
                   Website by AVV Media
                 </a>
@@ -383,7 +483,6 @@ function NavLink({ href, children }: { href: string; children: React.ReactNode }
   return <Link href={href} className="text-[13px] font-semibold uppercase tracking-eyebrow text-black hover:text-red-brand transition-colors py-1">{children}</Link>;
 }
 
-/* Clickable nav label that also acts as a link — for AREAS and THE HUB */
 function NavDropdownTriggerLink({ href, children, active }: { href: string; children: React.ReactNode; active: boolean }) {
   return (
     <Link href={href} className={`flex items-center gap-1 text-[13px] font-semibold uppercase tracking-eyebrow py-1 transition-colors ${active ? "text-red-brand" : "text-black hover:text-red-brand"}`}>
@@ -408,7 +507,6 @@ function DropdownLink({ href, children, highlight }: { href: string; children: R
   return <Link href={href} className={`block px-5 py-2.5 text-sm transition-colors ${highlight ? "text-red-brand font-semibold hover:bg-gray-50" : "text-gray-dark hover:bg-gray-50 hover:text-black"}`}>{children}</Link>;
 }
 
-/* Mobile nav link for drawer */
 function MobileNavLink({ href, children, onClick }: { href: string; children: React.ReactNode; onClick?: () => void }) {
   return <Link href={href} onClick={onClick} className="block py-3 text-white text-[15px] font-semibold hover:text-gold-light transition-colors">{children}</Link>;
 }
