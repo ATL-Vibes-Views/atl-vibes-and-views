@@ -46,6 +46,8 @@ const PH_HERO = "/images/default-hero.png";
  * Used to filter categories until 'dining' is added to applies_to.
  */
 const DINING_CATEGORY_SLUGS = [
+  "dining",
+  "nightlife",
   "restaurants",
   "bars",
   "cafes",
