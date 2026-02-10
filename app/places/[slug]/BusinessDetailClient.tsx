@@ -318,7 +318,7 @@ export function MorePlacesScroller({
                 sizes="280px"
               />
               {place.categories && (
-                <span className="absolute top-2 left-2 bg-black/60 backdrop-blur-sm px-2.5 py-0.5 text-[10px] font-semibold uppercase tracking-widest text-white">
+                <span className="absolute top-2 left-2 bg-black/60 backdrop-blur-sm px-2.5 py-0.5 text-[10px] font-semibold uppercase tracking-widest text-white rounded-full">
                   {place.categories.name}
                 </span>
               )}

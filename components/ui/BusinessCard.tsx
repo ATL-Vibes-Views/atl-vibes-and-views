@@ -72,7 +72,7 @@ export function BusinessCard({
         />
         {/* Premium badge */}
         {(showPremiumBadge || isPremium) && isPremium && (
-          <span className="absolute top-3 right-3 flex items-center gap-1 px-3 py-1 bg-[#fee198] text-black text-[10px] font-semibold uppercase tracking-[0.1em] z-10 shadow-sm">
+          <span className="absolute top-3 right-3 flex items-center gap-1 px-3 py-1 bg-[#fee198] text-black text-[10px] font-semibold uppercase tracking-[0.1em] z-10 shadow-sm rounded-full">
             <Star size={10} fill="currentColor" />
             Premium
           </span>
@@ -87,7 +87,7 @@ export function BusinessCard({
 
       {/* Category pill */}
       {category && (
-        <span className="inline-block px-3 py-1.5 bg-[#f8f5f0] text-[#1a1a1a] text-xs font-medium hover:bg-[#fee198] transition-colors mb-2">
+        <span className="inline-block px-3 py-1.5 bg-[#f8f5f0] text-[#1a1a1a] text-xs font-medium hover:bg-[#fee198] transition-colors mb-2 rounded-full">
           {category}
         </span>
       )}
@@ -159,7 +159,7 @@ export function BusinessCard({
           {tags.slice(0, 3).map((tag) => (
             <span
               key={tag}
-              className="inline-block bg-[#f8f5f0] text-[#1a1a1a] text-xs font-medium px-3 py-1.5 hover:bg-[#fee198] transition-colors"
+              className="inline-block bg-[#f8f5f0] text-[#1a1a1a] text-xs font-medium px-3 py-1.5 hover:bg-[#fee198] transition-colors rounded-full"
             >
               {tag}
             </span>

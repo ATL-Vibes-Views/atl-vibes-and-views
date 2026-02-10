@@ -607,7 +607,7 @@ export default async function BusinessDetailPage({
                 {amenities.map((a: any) => (
                   <span
                     key={a.id}
-                    className="inline-block bg-[#f8f5f0] text-[#1a1a1a] text-xs font-medium px-3 py-1.5 hover:bg-[#fee198] transition-colors"
+                    className="inline-block bg-[#f8f5f0] text-[#1a1a1a] text-xs font-medium px-3 py-1.5 hover:bg-[#fee198] transition-colors rounded-full"
                   >
                     {a.name}
                   </span>
@@ -629,7 +629,7 @@ export default async function BusinessDetailPage({
                 {tags.map((t: any) => (
                   <span
                     key={t.id}
-                    className="inline-block bg-[#f8f5f0] text-[#1a1a1a] text-xs font-medium px-3 py-1.5 hover:bg-[#fee198] transition-colors"
+                    className="inline-block bg-[#f8f5f0] text-[#1a1a1a] text-xs font-medium px-3 py-1.5 hover:bg-[#fee198] transition-colors rounded-full"
                   >
                     {t.name}
                   </span>
@@ -651,7 +651,7 @@ export default async function BusinessDetailPage({
                 {identities.map((id: any) => (
                   <span
                     key={id.id}
-                    className="inline-flex items-center gap-1 bg-[#f8f5f0] text-[#1a1a1a] text-xs font-medium px-3 py-1.5 hover:bg-[#fee198] transition-colors"
+                    className="inline-flex items-center gap-1 bg-[#f8f5f0] text-[#1a1a1a] text-xs font-medium px-3 py-1.5 hover:bg-[#fee198] transition-colors rounded-full"
                   >
                     <BadgeCheck size={12} /> {id.name}
                   </span>
@@ -766,13 +766,13 @@ export default async function BusinessDetailPage({
             {category && (
               <Link
                 href={`/hub/businesses?category=${category.slug}`}
-                className="inline-block bg-white/20 backdrop-blur-sm px-3 py-1 text-xs font-semibold uppercase tracking-widest text-white hover:bg-white/30 transition-colors"
+                className="inline-block bg-white/20 backdrop-blur-sm px-3 py-1 text-xs font-semibold uppercase tracking-widest text-white hover:bg-white/30 transition-colors rounded-full"
               >
                 {category.name}
               </Link>
             )}
             {biz.is_featured && (
-              <span className="inline-flex items-center gap-1 bg-[#fee198] px-3 py-1 text-xs font-semibold uppercase tracking-widest text-[#1a1a1a]">
+              <span className="inline-flex items-center gap-1 bg-[#fee198] px-3 py-1 text-xs font-semibold uppercase tracking-widest text-[#1a1a1a] rounded-full">
                 <Star size={12} className="fill-current" /> Featured
               </span>
             )}
@@ -803,7 +803,7 @@ export default async function BusinessDetailPage({
           BUSINESS LOGO (overlaps hero bottom)
           ============================================================ */}
       <div className="relative max-w-[1280px] mx-auto px-6">
-        <div className="-mt-12 relative z-10">
+        <div className="-mt-12 mb-4 relative z-10">
           <div className="w-[96px] h-[96px] bg-white border border-gray-200 shadow-sm flex items-center justify-center overflow-hidden">
             {biz.logo ? (
               <Image
