@@ -771,8 +771,7 @@ export async function getNeighborhoodsGrouped(): Promise<NeighborhoodGrouped[]> 
 export async function getAmenities(): Promise<Amenity[]> {
   const { data, error } = await sb()
     .from("amenities")
-    .select("id, name, amenity_group, sort_order, is_active")
-    .eq("is_active", true)
+    .select("id, name, amenity_group, sort_order")
     .order("sort_order")
     .returns<Amenity[]>();
   if (error) throw error;
@@ -786,8 +785,7 @@ export async function getAmenities(): Promise<Amenity[]> {
 export async function getIdentityOptions(): Promise<IdentityOption[]> {
   const { data, error } = await sb()
     .from("business_identity_options")
-    .select("id, name, sort_order, is_active")
-    .eq("is_active", true)
+    .select("id, name, sort_order")
     .order("sort_order")
     .returns<IdentityOption[]>();
   if (error) throw error;

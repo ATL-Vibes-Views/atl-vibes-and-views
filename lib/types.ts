@@ -409,14 +409,12 @@ export interface Amenity {
   name: string;
   amenity_group: string;
   sort_order?: number;
-  is_active?: boolean;
 }
 
 export interface IdentityOption {
   id: string;
   name: string;
   sort_order?: number;
-  is_active?: boolean;
 }
 
 export interface NeighborhoodGrouped {
