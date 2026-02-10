@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useState } from "react";
+import { Suspense, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import { createBrowserClient } from "@/lib/supabase";
 
@@ -14,7 +14,7 @@ const GoogleIcon = () => (
   </svg>
 );
 
-export default function LoginPage() {
+function LoginPageContent() {
   const searchParams = useSearchParams();
   const urlError = searchParams.get("error");
 
@@ -172,5 +172,13 @@ export default function LoginPage() {
         </p>
       </div>
     </div>
+  );
+}
+
+export default function LoginPage() {
+  return (
+    <Suspense fallback={<div className="bg-[#f8f5f0] min-h-[60vh] flex items-center justify-center">Loading…</div>}>
+      <LoginPageContent />
+    </Suspense>
   );
 }

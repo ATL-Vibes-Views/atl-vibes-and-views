@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useState } from "react";
+import { Suspense, useState } from "react";
 import { createBrowserClient } from "@/lib/supabase";
 
 const GoogleIcon = () => (
@@ -13,7 +13,7 @@ const GoogleIcon = () => (
   </svg>
 );
 
-export default function SignupPage() {
+function SignupPageContent() {
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -179,5 +179,13 @@ export default function SignupPage() {
         )}
       </div>
     </div>
+  );
+}
+
+export default function SignupPage() {
+  return (
+    <Suspense fallback={<div className="bg-[#f8f5f0] min-h-[60vh] flex items-center justify-center">Loading…</div>}>
+      <SignupPageContent />
+    </Suspense>
   );
 }
