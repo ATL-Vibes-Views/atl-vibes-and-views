@@ -1,9 +1,8 @@
 import Link from "next/link";
 import Image from "next/image";
 import { ArrowRight, ChevronRight, Play } from "lucide-react";
-import { SearchBar } from "@/components/SearchBar";
 import { NewsletterForm } from "@/components/NewsletterForm";
-import { NeighborhoodsFilterGrid } from "@/components/NeighborhoodsFilterGrid";
+import { NeighborhoodsDiscover } from "@/components/NeighborhoodsDiscover";
 import {
   Sidebar,
   SidebarWidget,
@@ -18,7 +17,6 @@ import {
   getBusinesses,
   getContentIndexByToken,
   getMediaItems,
-  getNeighborhoodsByPopularity,
   getCategoryBySlug,
 } from "@/lib/queries";
 import { createServerClient } from "@/lib/supabase";
@@ -27,31 +25,19 @@ import type { Metadata } from "next";
 /* ============================================================
    NEIGHBORHOOD LANDING PAGE — /neighborhoods — Server Component
 
-   LOCKED SECTION ORDER:
+   SECTION ORDER:
 
-   GRID A (main + sidebar A):
    1. Hero
-   2. Search Bar
-   3. Featured Neighborhoods Cluster
-   + Sidebar A: Social Share, SubmitCTA, SubmitEventCTA
-
-   FULL-WIDTH BREAKS:
+   2. Breadcrumbs
+   3. Grid A: Discover Your Neighborhood (search + area dropdown + cards) + Sidebar A
    4. Horizontal Ad
-   5. Video Scroller (black page break, 3 videos)
-
-   GRID B (main + sidebar B):
-   6. Masonry Feed
-   + Sidebar B: Social Share, SubmitCTA, Featured in the Hub
-
-   FULL-WIDTH:
-   7. Newsletter CTA
-
-   DO NOT TOUCH: app/page.tsx, app/areas/page.tsx, app/areas/[slug]/page.tsx
+   5. Video Scroller (full-width black page break)
+   6. Grid B: Masonry Feed + Sidebar B
+   7. Newsletter CTA (full-width)
    ============================================================ */
 
 const PH_HERO = "https://placehold.co/1920x600/1a1a1a/e6c46d?text=Explore+Neighborhoods";
 const PH_POST = "https://placehold.co/600x400/1a1a1a/e6c46d?text=Story";
-const PH_NEIGHBORHOOD = "https://placehold.co/400x260/1a1a1a/e6c46d?text=Neighborhood";
 const PH_VIDEO = "https://placehold.co/960x540/222222/e6c46d?text=Video";
 
 const DEFAULT_TITLE = "Explore Atlanta Neighborhoods";
@@ -89,10 +75,9 @@ export async function generateMetadata(): Promise<Metadata> {
 export default async function NeighborhoodsLandingPage({
   searchParams,
 }: {
-  searchParams: Promise<{ q?: string }>;
+  searchParams: Promise<Record<string, string | undefined>>;
 }) {
-  const { q } = await searchParams;
-  const search = q?.trim() || undefined;
+  await searchParams;
 
   /* ── Content index for hero/SEO ── */
   const ci = await getContentIndexByToken("page-neighborhoods", {
@@ -101,13 +86,11 @@ export default async function NeighborhoodsLandingPage({
   }).catch(() => null);
 
   /* ── Parallel data fetch ── */
-  const [areas, allNeighborhoods, featuredNeighborhoods, blogPosts] =
-    await Promise.all([
-      getAreas(),
-      getNeighborhoods({ limit: 261 }),
-      getNeighborhoodsByPopularity({ limit: 12 }).catch(() => []),
-      getBlogPosts({ limit: 8 }),
-    ]);
+  const [areas, allNeighborhoods, blogPosts] = await Promise.all([
+    getAreas(),
+    getNeighborhoods({ limit: 261 }),
+    getBlogPosts({ limit: 8 }),
+  ]);
 
   /* ── Video Scroller: area-linked → citywide fallback (3 videos) ── */
   const areaIds = areas.map((a) => a.id);
@@ -152,15 +135,6 @@ export default async function NeighborhoodsLandingPage({
   const heroVideoUrl = ci?.hero_video_url || null;
   const heroImageUrl = ci?.hero_image_url || PH_HERO;
 
-  /* ── Search: neighborhoods only ── */
-  const filteredNeighborhoods = search
-    ? allNeighborhoods.filter((n) =>
-        n.name.toLowerCase().includes(search.toLowerCase())
-      )
-    : [];
-
-  const hasSearchResults = !search || filteredNeighborhoods.length > 0;
-
   /* ── Business + story counts per neighborhood ── */
   const supabase = createServerClient();
 
@@ -193,12 +167,25 @@ export default async function NeighborhoodsLandingPage({
   const areaNameMap: Record<string, string> = {};
   for (const a of areas) areaNameMap[a.id] = a.name;
 
-  /* ── Neighborhoods for filter grid (search-filtered if active) ── */
-  const filterGridNeighborhoods = (search ? filteredNeighborhoods : allNeighborhoods)
-    .map((n) => ({ id: n.id, name: n.name, slug: n.slug, area_id: n.area_id }))
-    .sort((a, b) => a.name.localeCompare(b.name));
+  /* ── Sort neighborhoods by story count (most stories first, 0 stories last alphabetically) ── */
+  const sortedNeighborhoods = [...allNeighborhoods]
+    .sort((a, b) => {
+      const aCount = storyCounts[a.id] ?? 0;
+      const bCount = storyCounts[b.id] ?? 0;
+      if (aCount === 0 && bCount === 0) return a.name.localeCompare(b.name);
+      if (aCount === 0) return 1;
+      if (bCount === 0) return -1;
+      return bCount - aCount;
+    })
+    .map((n) => ({
+      id: n.id,
+      name: n.name,
+      slug: n.slug,
+      area_id: n.area_id,
+      hero_image_url: n.hero_image_url ?? null,
+    }));
 
-  const filterGridAreas = areas.map((a) => ({ id: a.id, name: a.name, slug: a.slug }));
+  const discoverAreas = areas.map((a) => ({ id: a.id, name: a.name, slug: a.slug }));
 
   /* ── Masonry feed: mix blogs + videos ── */
   const usedIds = new Set<string>();
@@ -327,107 +314,19 @@ export default async function NeighborhoodsLandingPage({
         </nav>
       </div>
 
-      {/* ========== 3. SEARCH BAR ========== */}
-      <div className="site-container pt-10 pb-4">
-        <SearchBar
-          placeholder="Search neighborhoods…"
-          className="mx-auto"
-        />
-        {search && (
-          <p className="text-sm text-gray-mid mt-3 text-center">
-            Showing results for &ldquo;{search}&rdquo;
-          </p>
-        )}
-      </div>
-
-      {/* ── Search Results (only when searching) ── */}
-      {search && (
-        <div className="site-container pb-8">
-          {hasSearchResults ? (
-            <div>
-              <h3 className="text-xs font-semibold uppercase tracking-eyebrow text-[#c1121f] mb-3">
-                Neighborhoods
-              </h3>
-              <div className="flex flex-wrap gap-2">
-                {filteredNeighborhoods.slice(0, 16).map((n) => (
-                  <Link
-                    key={n.id}
-                    href={`/neighborhoods/${n.slug}`}
-                    className="px-4 py-1.5 border border-gray-200 text-xs text-black rounded-full hover:border-[#e6c46d] hover:bg-gold-light/30 transition-colors"
-                  >
-                    {n.name}
-                  </Link>
-                ))}
-                {filteredNeighborhoods.length > 16 && (
-                  <span className="px-4 py-1.5 text-xs text-gray-mid">
-                    +{filteredNeighborhoods.length - 16} more
-                  </span>
-                )}
-              </div>
-            </div>
-          ) : (
-            <p className="text-gray-mid text-sm text-center">
-              No matches &mdash; try a different search.
-            </p>
-          )}
-        </div>
-      )}
-
-      {/* ========== FILTERABLE NEIGHBORHOOD GRID ========== */}
-      <NeighborhoodsFilterGrid
-        neighborhoods={filterGridNeighborhoods}
-        areas={filterGridAreas}
-        bizCounts={bizCounts}
-        storyCounts={storyCounts}
-        areaNameMap={areaNameMap}
-      />
-
-      {/* ========== GRID A: Featured Neighborhoods + Sidebar A ========== */}
+      {/* ========== 3. DISCOVER YOUR NEIGHBORHOOD + SIDEBAR A ========== */}
       <div className="site-container pt-12 pb-16 md:pt-16 md:pb-20">
         <div className="grid grid-cols-1 lg:grid-cols-[1fr_340px] gap-12 lg:gap-16">
-          {/* ---------- MAIN: 3. FEATURED NEIGHBORHOODS CLUSTER ---------- */}
-          <div>
-            <SectionHeader
-              eyebrow="Neighborhoods"
-              title="Discover Your Neighborhood"
-            />
-            <div className="columns-2 sm:columns-3 lg:columns-4 gap-4">
-              {featuredNeighborhoods.map((n) => (
-                <Link
-                  key={n.id}
-                  href={`/neighborhoods/${n.slug}`}
-                  className="group block break-inside-avoid mb-4"
-                >
-                  <div className="relative overflow-hidden bg-[#f5f0eb] aspect-[3/2]">
-                    <Image
-                      src={n.hero_image_url || PH_NEIGHBORHOOD}
-                      alt={n.name}
-                      fill
-                      unoptimized
-                      className="object-cover group-hover:scale-105 transition-transform duration-500"
-                    />
-                    <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent" />
-                    <div className="absolute bottom-0 left-0 right-0 p-3">
-                      <h3 className="font-display text-sm font-semibold text-white leading-tight">
-                        {n.name}
-                      </h3>
-                    </div>
-                  </div>
-                </Link>
-              ))}
-            </div>
-            {/* Transition CTA */}
-            <div className="flex justify-center mt-8 pt-6 border-t border-gray-100">
-              <Link
-                href="/neighborhoods"
-                className="flex items-center gap-2 text-sm font-semibold text-black hover:text-[#c1121f] transition-colors"
-              >
-                Explore all Atlanta neighborhoods <ArrowRight size={15} />
-              </Link>
-            </div>
-          </div>
+          {/* ---------- MAIN: Discover Section ---------- */}
+          <NeighborhoodsDiscover
+            neighborhoods={sortedNeighborhoods}
+            areas={discoverAreas}
+            bizCounts={bizCounts}
+            storyCounts={storyCounts}
+            areaNameMap={areaNameMap}
+          />
 
-          {/* ---------- SIDEBAR A (original, unchanged) ---------- */}
+          {/* ---------- SIDEBAR A ---------- */}
           <aside className="hidden lg:block">
             <Sidebar>
               {/* Social Share */}
@@ -755,7 +654,7 @@ export default async function NeighborhoodsLandingPage({
             )}
           </div>
 
-          {/* ---------- SIDEBAR B (NEW) ---------- */}
+          {/* ---------- SIDEBAR B ---------- */}
           <aside className="hidden lg:block">
             <Sidebar>
               {/* 1. SubmitCTA */}
