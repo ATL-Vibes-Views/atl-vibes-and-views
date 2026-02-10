@@ -210,30 +210,39 @@ export function HubArchiveClient({
       {/* ========== 3. SEARCH + FILTERS ========== */}
       <section className="site-container pt-8 pb-10">
         {/* Search row */}
-        <form onSubmit={handleSearch} className="relative max-w-[640px] mb-4">
-          <Search
-            size={16}
-            className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-mid"
-          />
-          <input
-            type="text"
-            value={searchValue}
-            onChange={(e) => setSearchValue(e.target.value)}
-            placeholder={config.searchPlaceholder}
-            className="w-full py-3 pl-11 pr-4 text-sm border-2 border-[#e6c46d] rounded-full outline-none bg-white placeholder:text-gray-mid"
-          />
-          {searchValue && (
-            <button
-              type="button"
-              onClick={() => {
-                setSearchValue("");
-                pushFilters({ q: undefined });
-              }}
-              className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-mid hover:text-black"
-            >
-              <X size={14} />
-            </button>
-          )}
+        <form onSubmit={handleSearch} className="relative max-w-[640px] mb-4 flex">
+          <div className="relative flex-1">
+            <Search
+              size={16}
+              className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-mid"
+            />
+            <input
+              type="text"
+              value={searchValue}
+              onChange={(e) => setSearchValue(e.target.value)}
+              placeholder={config.searchPlaceholder}
+              className="w-full py-3 pl-11 pr-10 text-sm border-2 border-[#e6c46d] border-r-0 rounded-l-full outline-none bg-white placeholder:text-gray-mid"
+            />
+            {searchValue && (
+              <button
+                type="button"
+                onClick={() => {
+                  setSearchValue("");
+                  pushFilters({ q: undefined });
+                }}
+                className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-mid hover:text-black"
+              >
+                <X size={14} />
+              </button>
+            )}
+          </div>
+          <button
+            type="submit"
+            className="shrink-0 px-5 bg-[#c1121f] text-white hover:bg-[#a50f1a] transition-colors rounded-r-full"
+            aria-label="Search"
+          >
+            <Search size={16} />
+          </button>
         </form>
 
         {/* Filter dropdowns */}
@@ -299,7 +308,7 @@ export function HubArchiveClient({
             }
             className="appearance-none bg-white border border-gray-200 rounded-full px-4 py-2 pr-8 text-[13px] text-gray-dark cursor-pointer"
           >
-            <option value="">All Tiers</option>
+            <option value="">All Listings</option>
             <option value="Premium">Premium</option>
             <option value="Standard">Standard</option>
             <option value="Free">Free</option>
