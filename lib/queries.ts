@@ -106,6 +106,7 @@ export async function getBlogPosts(opts?: {
   featured?: boolean;
   limit?: number;
   status?: string;
+  contentType?: string;
 }): Promise<BlogPostWithAuthor[]> {
   let q = sb()
     .from("blog_posts")
@@ -113,6 +114,7 @@ export async function getBlogPosts(opts?: {
     .eq("status", opts?.status ?? "published")
     .order("published_at", { ascending: false });
 
+  if (opts?.contentType) q = q.eq("content_type", opts.contentType);
   if (opts?.featured) q = q.eq("is_featured", true);
   if (opts?.categoryId) q = q.eq("category_id", opts.categoryId);
   if (opts?.neighborhoodIds?.length)
@@ -150,6 +152,35 @@ export async function getBlogPostById(
     .single();
   if (error && error.code !== "PGRST116") throw error;
   return data as BlogPostWithAuthor | null;
+}
+
+/** Blog posts with neighborhood + area joins (for archive pages) */
+export async function getBlogPostsWithNeighborhood(opts?: {
+  contentType?: string;
+  categoryId?: string;
+  neighborhoodIds?: string[];
+  search?: string;
+  featured?: boolean;
+  limit?: number;
+}): Promise<BlogPostFull[]> {
+  let q = sb()
+    .from("blog_posts")
+    .select("*, authors(*), categories(*), neighborhoods(*, areas(*))")
+    .eq("status", "published")
+    .order("published_at", { ascending: false });
+
+  if (opts?.contentType) q = q.eq("content_type", opts.contentType);
+  if (opts?.categoryId) q = q.eq("category_id", opts.categoryId);
+  if (opts?.neighborhoodIds?.length)
+    q = q.in("neighborhood_id", opts.neighborhoodIds);
+  if (opts?.search)
+    q = q.or(`title.ilike.%${opts.search}%,excerpt.ilike.%${opts.search}%`);
+  if (opts?.featured) q = q.eq("is_featured", true);
+  if (opts?.limit) q = q.limit(opts.limit);
+
+  const { data, error } = await q;
+  if (error) throw error;
+  return (data as BlogPostFull[]) ?? [];
 }
 
 /** Full blog post by slug — includes neighborhood + area joins */
