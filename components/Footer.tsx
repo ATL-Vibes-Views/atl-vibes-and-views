@@ -93,10 +93,10 @@ export function Footer() {
                   />
                   <button
                     type="submit"
-                    className="shrink-0 px-5 py-3 bg-gold-light hover:bg-gold-dark transition-colors rounded-r-full"
+                    className="shrink-0 px-5 py-3 bg-white/10 hover:bg-white/20 transition-colors rounded-r-full"
                     aria-label="Subscribe"
                   >
-                    <Send size={14} className="text-white" />
+                    <Send size={14} className="text-[#fee198]" />
                   </button>
                 </form>
               )}
