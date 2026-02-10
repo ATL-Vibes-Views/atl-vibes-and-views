@@ -233,7 +233,7 @@ export default async function AreasLandingPage({
       {/* ========== 2. SEARCH BAR ========== */}
       <div className="site-container pt-10 pb-4">
         <SearchBar
-          placeholder="Search areas and neighborhoods…"
+          placeholder="Search ATL Vibes & Views..."
           className="mx-auto"
         />
         {search && (
@@ -305,7 +305,6 @@ export default async function AreasLandingPage({
           <div className="space-y-28">
             {/* ===== 3. AREA CARDS GRID ===== */}
             <section>
-              <SectionHeader eyebrow="Areas" title="Explore Atlanta" />
               {areas.length > 0 ? (
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
                   {areas.map((area) => (
