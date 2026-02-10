@@ -387,3 +387,137 @@ export interface MediaItemLink {
   created_at: string;
   updated_at: string;
 }
+
+/* --- Submission types --- */
+
+export interface Submission {
+  id: string;
+  submission_type: "business" | "event";
+  submitter_name: string;
+  submitter_email: string;
+  data: Record<string, unknown>;
+  status: "pending" | "under_review" | "approved" | "rejected" | "needs_info";
+  created_at: string;
+  updated_at: string;
+  reviewed_at?: string;
+  rejection_reason?: string;
+  created_record_id?: string;
+}
+
+export interface Amenity {
+  id: string;
+  name: string;
+  amenity_group: string;
+  sort_order?: number;
+  is_active?: boolean;
+}
+
+export interface IdentityOption {
+  id: string;
+  name: string;
+  sort_order?: number;
+  is_active?: boolean;
+}
+
+export interface NeighborhoodGrouped {
+  area_name: string;
+  area_slug: string;
+  neighborhoods: { id: string; name: string; slug: string }[];
+}
+
+/* Form data shapes stored in submissions.data JSONB */
+
+export interface BusinessHoursEntry {
+  day_of_week: string;
+  open_time: string;
+  close_time: string;
+  is_closed: boolean;
+  notes: string;
+}
+
+export interface BusinessContactEntry {
+  contact_name: string;
+  contact_title: string;
+  contact_email: string;
+  contact_phone: string;
+  is_primary: boolean;
+  is_public: boolean;
+}
+
+export interface ImageEntry {
+  image_url: string;
+  caption: string;
+  alt_text: string;
+  sort_order: number;
+  is_primary: boolean;
+}
+
+export interface BusinessFormData {
+  tier: string;
+  business_name: string;
+  category_id: string;
+  tagline: string;
+  description: string;
+  price_range: string;
+  street_address: string;
+  street_address_2: string;
+  city: string;
+  state: string;
+  zip_code: string;
+  neighborhood_id: string;
+  phone: string;
+  email: string;
+  website: string;
+  primary_link: string;
+  primary_link_label: string;
+  instagram: string;
+  facebook: string;
+  tiktok: string;
+  x_twitter: string;
+  logo_url: string;
+  video_url: string;
+  special_offers: string;
+  is_owner: boolean;
+  display_identity_publicly: boolean;
+  certified_diversity_program: boolean;
+  hours: BusinessHoursEntry[];
+  contacts: BusinessContactEntry[];
+  images: ImageEntry[];
+  amenity_ids: string[];
+  identity_option_ids: string[];
+}
+
+export interface EventFormData {
+  tier: string;
+  title: string;
+  event_type: string;
+  category_id: string;
+  tagline: string;
+  description: string;
+  start_date: string;
+  end_date: string;
+  start_time: string;
+  end_time: string;
+  is_recurring: boolean;
+  recurrence_rule: string;
+  venue_name: string;
+  venue_business_id: string;
+  street_address: string;
+  street_address_2: string;
+  city: string;
+  state: string;
+  zip_code: string;
+  neighborhood_id: string;
+  is_free: boolean;
+  ticket_price_min: string;
+  ticket_price_max: string;
+  ticket_url: string;
+  organizer_name: string;
+  organizer_url: string;
+  organizer_business_id: string;
+  website: string;
+  logo_url: string;
+  featured_image_url: string;
+  video_url: string;
+  images: ImageEntry[];
+}

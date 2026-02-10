@@ -24,6 +24,9 @@ import type {
   NeighborhoodWithArea,
   ContentIndex,
   MediaItem,
+  Amenity,
+  IdentityOption,
+  NeighborhoodGrouped,
 } from "./types";
 
 function sb() {
@@ -729,6 +732,66 @@ export async function getContentIndexByToken(
   const { data, error } = await q.single();
   if (error && error.code !== "PGRST116") throw error;
   return data as ContentIndex | null;
+}
+
+/* ============================================================
+   MEDIA ITEMS
+   ============================================================ */
+
+/* ============================================================
+   NEIGHBORHOODS — grouped by area (for submit form dropdown)
+   ============================================================ */
+
+export async function getNeighborhoodsGrouped(): Promise<NeighborhoodGrouped[]> {
+  const { data, error } = await sb()
+    .from("neighborhoods")
+    .select("id, name, slug, areas(name, slug)")
+    .eq("is_active", true)
+    .order("name")
+    .returns<{ id: string; name: string; slug: string; areas: { name: string; slug: string } }[]>();
+  if (error) throw error;
+  if (!data?.length) return [];
+
+  const grouped = new Map<string, NeighborhoodGrouped>();
+  for (const n of data) {
+    const areaName = n.areas?.name ?? "Other";
+    const areaSlug = n.areas?.slug ?? "other";
+    if (!grouped.has(areaSlug)) {
+      grouped.set(areaSlug, { area_name: areaName, area_slug: areaSlug, neighborhoods: [] });
+    }
+    grouped.get(areaSlug)!.neighborhoods.push({ id: n.id, name: n.name, slug: n.slug });
+  }
+  return Array.from(grouped.values()).sort((a, b) => a.area_name.localeCompare(b.area_name));
+}
+
+/* ============================================================
+   AMENITIES
+   ============================================================ */
+
+export async function getAmenities(): Promise<Amenity[]> {
+  const { data, error } = await sb()
+    .from("amenities")
+    .select("id, name, amenity_group, sort_order, is_active")
+    .eq("is_active", true)
+    .order("sort_order")
+    .returns<Amenity[]>();
+  if (error) throw error;
+  return data ?? [];
+}
+
+/* ============================================================
+   BUSINESS IDENTITY OPTIONS
+   ============================================================ */
+
+export async function getIdentityOptions(): Promise<IdentityOption[]> {
+  const { data, error } = await sb()
+    .from("business_identity_options")
+    .select("id, name, sort_order, is_active")
+    .eq("is_active", true)
+    .order("sort_order")
+    .returns<IdentityOption[]>();
+  if (error) throw error;
+  return data ?? [];
 }
 
 /* ============================================================
