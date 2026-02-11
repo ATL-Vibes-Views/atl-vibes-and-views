@@ -4,6 +4,7 @@ import { NeighborhoodSelect } from "./NeighborhoodSelect";
 import type {
   EventFormData,
   Category,
+  City,
   NeighborhoodGrouped,
 } from "@/lib/types";
 
@@ -12,6 +13,7 @@ interface EventFormProps {
   onChange: (data: EventFormData) => void;
   categories: Category[];
   neighborhoods: NeighborhoodGrouped[];
+  cities: City[];
 }
 
 const EVENT_TYPES = [
@@ -104,6 +106,7 @@ export function EventForm({
   onChange,
   categories,
   neighborhoods,
+  cities,
 }: EventFormProps) {
   const update = <K extends keyof EventFormData>(
     key: K,
@@ -307,12 +310,20 @@ export function EventForm({
         </div>
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
           <div className="col-span-2 md:col-span-1">
-            <Label htmlFor="event_city">City</Label>
-            <Input
-              id="event_city"
-              value={data.city}
-              onChange={(v) => update("city", v)}
-            />
+            <Label htmlFor="event_city_id">City</Label>
+            <select
+              id="event_city_id"
+              value={data.city_id}
+              onChange={(e) => update("city_id", e.target.value)}
+              className="w-full px-4 py-3 border border-gray-200 text-sm outline-none focus:border-[#c1121f] transition-colors bg-white"
+            >
+              <option value="">Select a city…</option>
+              {cities.map((c) => (
+                <option key={c.id} value={c.id}>
+                  {c.name}
+                </option>
+              ))}
+            </select>
           </div>
           <div>
             <Label htmlFor="event_state">State</Label>

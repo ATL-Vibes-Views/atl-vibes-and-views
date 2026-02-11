@@ -1,6 +1,6 @@
 import { Suspense } from "react";
 import type { Metadata } from "next";
-import { getCategories, getNeighborhoodsGrouped, getAmenities, getIdentityOptions } from "@/lib/queries";
+import { getCategories, getNeighborhoodsGrouped, getAmenities, getIdentityOptions, getCities } from "@/lib/queries";
 import { SubmitClient } from "@/components/submit/SubmitClient";
 import { Breadcrumbs } from "@/components/ui/Breadcrumbs";
 
@@ -17,12 +17,13 @@ export const metadata: Metadata = {
 };
 
 async function SubmitPageContent() {
-  const [categories, neighborhoods, amenities, identityOptions] =
+  const [categories, neighborhoods, amenities, identityOptions, cities] =
     await Promise.all([
       getCategories(),
       getNeighborhoodsGrouped(),
       getAmenities(),
       getIdentityOptions(),
+      getCities(),
     ]);
 
   return (
@@ -47,6 +48,7 @@ async function SubmitPageContent() {
           neighborhoods={neighborhoods}
           amenities={amenities}
           identityOptions={identityOptions}
+          cities={cities}
         />
       </Suspense>
     </>

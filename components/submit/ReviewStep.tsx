@@ -4,6 +4,7 @@ import type {
   BusinessFormData,
   EventFormData,
   Category,
+  City,
   Amenity,
   IdentityOption,
   NeighborhoodGrouped,
@@ -22,6 +23,7 @@ interface ReviewStepProps {
   neighborhoods: NeighborhoodGrouped[];
   amenities: Amenity[];
   identityOptions: IdentityOption[];
+  cities: City[];
   agreed: boolean;
   onAgreeChange: (v: boolean) => void;
   onEdit: (section: string) => void;
@@ -119,6 +121,7 @@ export function ReviewStep({
   neighborhoods,
   amenities,
   identityOptions,
+  cities,
   agreed,
   onAgreeChange,
   onEdit,
@@ -178,7 +181,7 @@ export function ReviewStep({
             )}
             <Field
               label="City/State/ZIP"
-              value={`${businessData.city}, ${businessData.state} ${businessData.zip_code}`}
+              value={`${resolveName(businessData.city_id, cities)}, ${businessData.state} ${businessData.zip_code}`}
             />
             <Field
               label="Neighborhood"
@@ -358,10 +361,10 @@ export function ReviewStep({
           <SectionBlock title="Location" onEdit={() => onEdit("location")}>
             <Field label="Venue" value={eventData.venue_name} />
             <Field label="Address" value={eventData.street_address} />
-            {eventData.city && (
+            {eventData.city_id && (
               <Field
                 label="City/State/ZIP"
-                value={`${eventData.city}, ${eventData.state} ${eventData.zip_code}`}
+                value={`${resolveName(eventData.city_id, cities)}, ${eventData.state} ${eventData.zip_code}`}
               />
             )}
             <Field

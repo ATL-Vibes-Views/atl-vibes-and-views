@@ -6,6 +6,7 @@ import type {
   BusinessHoursEntry,
   BusinessContactEntry,
   Category,
+  City,
   Amenity,
   IdentityOption,
   NeighborhoodGrouped,
@@ -18,6 +19,7 @@ interface BusinessFormProps {
   neighborhoods: NeighborhoodGrouped[];
   amenities: Amenity[];
   identityOptions: IdentityOption[];
+  cities: City[];
   tier: string;
 }
 
@@ -134,6 +136,7 @@ export function BusinessForm({
   neighborhoods,
   amenities,
   identityOptions,
+  cities,
   tier,
 }: BusinessFormProps) {
   const update = <K extends keyof BusinessFormData>(
@@ -357,15 +360,23 @@ export function BusinessForm({
         </div>
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
           <div className="col-span-2 md:col-span-1">
-            <Label htmlFor="city" required>
+            <Label htmlFor="city_id" required>
               City
             </Label>
-            <Input
-              id="city"
-              value={data.city}
-              onChange={(v) => update("city", v)}
+            <select
+              id="city_id"
+              value={data.city_id}
+              onChange={(e) => update("city_id", e.target.value)}
               required
-            />
+              className="w-full px-4 py-3 border border-gray-200 text-sm outline-none focus:border-[#c1121f] transition-colors bg-white"
+            >
+              <option value="">Select a city…</option>
+              {cities.map((c) => (
+                <option key={c.id} value={c.id}>
+                  {c.name}
+                </option>
+              ))}
+            </select>
           </div>
           <div>
             <Label htmlFor="state" required>
