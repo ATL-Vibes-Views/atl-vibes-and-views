@@ -361,29 +361,62 @@ export interface MediaItem {
   id: string;
   title: string;
   slug: string;
-  excerpt?: string;
-  description?: string;
-  media_type: string;
-  source_type?: string;
-  embed_url?: string;
+  excerpt: string | null;
+  description: string | null;
+  media_type: "video" | "audio" | "podcast" | "short";
+  source_type: "embed" | "asset";
+  embed_url: string | null;
   status: string;
-  published_at?: string;
+  published_at: string | null;
   is_featured: boolean;
-  sort_order?: number;
+  sort_order: number;
   is_active: boolean;
-  seo_title?: string;
-  meta_description?: string;
+  seo_title: string | null;
+  meta_description: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface MediaAsset {
+  id: string;
+  file_url: string;
+  file_name: string;
+  file_type: string;
+  mime_type: string | null;
+  file_size: number | null;
+  width: number | null;
+  height: number | null;
+  duration_seconds: number | null;
+  alt_text: string | null;
+  caption: string | null;
+  source: string | null;
+  credit: string | null;
+  tags: Record<string, unknown> | null;
+  uploaded_by: string | null;
+  folder: string | null;
+  is_active: boolean;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface MediaItemAsset {
+  id: string;
+  media_item_id: string;
+  asset_id: string;
+  role: string;
+  is_primary: boolean;
+  sort_order: number;
   created_at: string;
   updated_at: string;
 }
 
 export interface MediaItemLink {
+  id: string;
   media_item_id: string;
   target_type: string;
   target_id: string;
   is_primary_for_target: boolean;
-  sort_order?: number;
-  is_active?: boolean;
+  sort_order: number;
   created_at: string;
   updated_at: string;
 }

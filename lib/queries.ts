@@ -24,6 +24,8 @@ import type {
   NeighborhoodWithArea,
   ContentIndex,
   MediaItem,
+  MediaAsset,
+  MediaItemLink,
   Amenity,
   IdentityOption,
   NeighborhoodGrouped,
@@ -797,8 +799,10 @@ export async function getIdentityOptions(): Promise<IdentityOption[]> {
    ============================================================ */
 
 export async function getMediaItems(opts?: {
+  mediaType?: string;
   limit?: number;
   featured?: boolean;
+  excludeId?: string;
   targetType?: string;
   targetIds?: string[];
 }): Promise<MediaItem[]> {
@@ -810,7 +814,9 @@ export async function getMediaItems(opts?: {
     .order("is_featured", { ascending: false })
     .order("published_at", { ascending: false, nullsFirst: false });
 
+  if (opts?.mediaType) q = q.eq("media_type", opts.mediaType);
   if (opts?.featured) q = q.eq("is_featured", true);
+  if (opts?.excludeId) q = q.neq("id", opts.excludeId);
   if (opts?.limit) q = q.limit(opts.limit);
 
   const { data, error } = await q;
@@ -833,6 +839,48 @@ export async function getMediaItems(opts?: {
   }
 
   return items;
+}
+
+export async function getMediaItemBySlug(
+  slug: string
+): Promise<MediaItem | null> {
+  const { data, error } = await sb()
+    .from("media_items")
+    .select("*")
+    .eq("slug", slug)
+    .eq("status", "published")
+    .eq("is_active", true)
+    .single();
+  if (error && error.code !== "PGRST116") throw error;
+  return data as MediaItem | null;
+}
+
+export async function getMediaItemAssets(mediaItemId: string) {
+  const { data, error } = await sb()
+    .from("media_item_assets")
+    .select("*, media_assets(*)")
+    .eq("media_item_id", mediaItemId)
+    .order("sort_order", { ascending: true })
+    .returns<Array<{ id: string; role: string; is_primary: boolean; sort_order: number; media_assets: MediaAsset }>>();
+  if (error) {
+    console.error("getMediaItemAssets error:", error);
+    return [];
+  }
+  return data ?? [];
+}
+
+export async function getMediaItemLinks(mediaItemId: string): Promise<MediaItemLink[]> {
+  const { data, error } = await sb()
+    .from("media_item_links")
+    .select("*")
+    .eq("media_item_id", mediaItemId)
+    .order("sort_order", { ascending: true })
+    .returns<MediaItemLink[]>();
+  if (error) {
+    console.error("getMediaItemLinks error:", error);
+    return [];
+  }
+  return data ?? [];
 }
 
 /* ============================================================
