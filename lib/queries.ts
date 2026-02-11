@@ -142,7 +142,7 @@ export async function getBlogPostBySlug(
     .from("blog_posts")
     .select("*, authors(*), categories(*)")
     .eq("slug", slug)
-    .eq("status", "sent")
+    .eq("status", "published")
     .single();
   if (error && error.code !== "PGRST116") throw error;
   return data as BlogPostWithAuthor | null;
@@ -155,7 +155,7 @@ export async function getBlogPostById(
     .from("blog_posts")
     .select("*, authors(*), categories(*)")
     .eq("id", id)
-    .eq("status", "sent")
+    .eq("status", "published")
     .single();
   if (error && error.code !== "PGRST116") throw error;
   return data as BlogPostWithAuthor | null;
@@ -173,7 +173,7 @@ export async function getBlogPostsWithNeighborhood(opts?: {
   let q = sb()
     .from("blog_posts")
     .select("*, authors(*), categories(*), neighborhoods(*, areas(*))")
-    .eq("status", "sent")
+    .eq("status", "published")
     .order("published_at", { ascending: false });
 
   if (opts?.contentType) q = q.eq("content_type", opts.contentType);
@@ -198,7 +198,7 @@ export async function getBlogPostBySlugFull(
     .from("blog_posts")
     .select("*, authors(*), categories(*), neighborhoods(*, areas(*))")
     .eq("slug", slug)
-    .eq("status", "sent")
+    .eq("status", "published")
     .single();
   if (error && error.code !== "PGRST116") throw error;
   return data as BlogPostFull | null;
@@ -517,7 +517,7 @@ export async function globalSearch(query: string): Promise<SearchResult[]> {
   const { data: posts } = await sb()
     .from("blog_posts")
     .select("id, title, slug, excerpt, featured_image_url")
-    .eq("status", "sent")
+    .eq("status", "published")
     .or(`title.ilike.%${term}%,excerpt.ilike.%${term}%`)
     .limit(5)
     .returns<{ id: string; title: string; slug: string; excerpt: string | null; featured_image_url: string | null }[]>();
@@ -565,7 +565,7 @@ export async function globalSearch(query: string): Promise<SearchResult[]> {
   const { data: events } = await sb()
     .from("events")
     .select("id, title, slug, tagline, featured_image_url")
-    .eq("status", "sent")
+    .eq("status", "active")
     .or(`title.ilike.%${term}%,description.ilike.%${term}%`)
     .limit(5)
     .returns<{ id: string; title: string; slug: string; tagline: string | null; featured_image_url: string | null }[]>();
@@ -673,7 +673,7 @@ export async function getNeighborhoodsByPopularity(opts?: {
   const { data: postCounts, error: pcErr } = await sb()
     .from("blog_posts")
     .select("neighborhood_id")
-    .eq("status", "sent")
+    .eq("status", "published")
     .not("neighborhood_id", "is", null)
     .returns<{ neighborhood_id: string }[]>();
 
@@ -811,7 +811,7 @@ export async function getMediaItems(opts?: {
   let q = sb()
     .from("media_items")
     .select("*")
-    .eq("status", "sent")
+    .eq("status", "published")
     .eq("is_active", true)
     .order("is_featured", { ascending: false })
     .order("published_at", { ascending: false, nullsFirst: false });
@@ -850,7 +850,7 @@ export async function getMediaItemBySlug(
     .from("media_items")
     .select("*")
     .eq("slug", slug)
-    .eq("status", "sent")
+    .eq("status", "published")
     .eq("is_active", true)
     .single();
   if (error && error.code !== "PGRST116") throw error;
