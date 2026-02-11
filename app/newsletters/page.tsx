@@ -1,5 +1,9 @@
 import type { Metadata } from "next";
 import { Suspense } from "react";
+<<<<<<< Updated upstream
+=======
+import { NewsletterForm } from "@/components/NewsletterForm";
+>>>>>>> Stashed changes
 import { Breadcrumbs } from "@/components/ui/Breadcrumbs";
 import { NewsletterForm } from "@/components/NewsletterForm";
 import { NewsletterArchiveClient } from "@/components/newsletter/NewsletterArchiveClient";
