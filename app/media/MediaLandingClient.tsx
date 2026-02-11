@@ -78,96 +78,96 @@ export function MediaLandingClient({ items, activeTab }: MediaLandingClientProps
   return (
     <>
       {/* ========== HERO ========== */}
-      <section className="bg-[#1a1a1a] pt-8 pb-12">
-        <div className="site-container">
+      <section className="bg-[#1a1a1a] pt-10 pb-10">
+        <div className="site-container text-center">
           <span className="text-[#e6c46d] text-[11px] font-semibold uppercase tracking-[0.15em] mb-2 block">
-            Watch &amp; Listen
+            Media
           </span>
           <h1 className="font-display text-3xl md:text-4xl lg:text-5xl font-semibold text-white leading-[1.05] mb-2">
-            Media
+            Watch &amp; Listen
           </h1>
-          <p className="text-white/60 text-sm max-w-lg mb-8">
+          <p className="text-white/60 text-sm max-w-lg mx-auto">
             Podcast episodes, video features, and short-form content covering Atlanta.
           </p>
-
-          {/* Tabs */}
-          <div className="flex items-center gap-6 border-b border-white/20 mb-8">
-            {TABS.map((t) => (
-              <button
-                key={t.value}
-                onClick={() => switchTab(t.value)}
-                className={`pb-3 text-sm font-semibold transition-colors ${
-                  activeTab === t.value
-                    ? "text-white border-b-2 border-[#e6c46d]"
-                    : "text-white/40 hover:text-white/70"
-                }`}
-              >
-                {t.label}
-              </button>
-            ))}
-          </div>
-
-          {/* Featured item */}
-          {featured && (
-            <div className="grid grid-cols-1 lg:grid-cols-[1fr_400px] gap-8 items-start">
-              <Link
-                href={`/media/${featured.slug}`}
-                className="group relative aspect-video overflow-hidden bg-black block"
-              >
-                <Image
-                  src={getThumbnail(featured)}
-                  alt={featured.title}
-                  fill
-                  unoptimized
-                  className="object-cover group-hover:scale-105 transition-transform duration-500"
-                />
-                <div className="absolute inset-0 flex items-center justify-center">
-                  <div className="w-16 h-16 bg-white/20 backdrop-blur-sm flex items-center justify-center group-hover:bg-white/30 transition-colors">
-                    {featured.media_type === "podcast" ? (
-                      <Headphones size={28} className="text-white" />
-                    ) : (
-                      <Play size={28} className="text-white ml-1" fill="white" />
-                    )}
-                  </div>
-                </div>
-              </Link>
-
-              <div className="flex flex-col justify-center">
-                <span className="text-[#e6c46d] text-[10px] font-semibold uppercase tracking-[0.15em] mb-3">
-                  {featured.is_featured ? "Featured" : "Latest"}{" "}
-                  {activeTab === "podcast" ? "Episode" : "Video"}
-                </span>
-                <Link href={`/media/${featured.slug}`}>
-                  <h2 className="font-display text-2xl md:text-3xl font-semibold text-white leading-tight hover:text-[#fee198] transition-colors">
-                    {featured.title}
-                  </h2>
-                </Link>
-                {featured.excerpt && (
-                  <p className="text-white/60 text-sm mt-3 line-clamp-3">
-                    {featured.excerpt}
-                  </p>
-                )}
-                {featured.published_at && (
-                  <span className="text-white/40 text-xs mt-4 block">
-                    {formatDate(featured.published_at)}
-                  </span>
-                )}
-                <Link
-                  href={`/media/${featured.slug}`}
-                  className="inline-flex items-center gap-2 mt-6 px-6 py-2.5 bg-[#fee198] text-[#1a1a1a] text-xs font-semibold uppercase tracking-[0.1em] hover:bg-[#f5d87a] transition-colors w-fit"
-                >
-                  {activeTab === "podcast" ? "Listen Now" : "Watch Now"}
-                  <ArrowRight size={14} />
-                </Link>
-              </div>
-            </div>
-          )}
         </div>
       </section>
 
-      {/* ========== GRID ========== */}
-      <section className="site-container py-12 md:py-16">
-        <div className="mb-6">
+      {/* ========== TABS + CONTENT ========== */}
+      <section className="site-container pt-8 md:pt-10 pb-16 md:pb-20">
+        {/* Tabs */}
+        <div className="flex items-center gap-6 border-b border-gray-200 mb-8">
+          {TABS.map((t) => (
+            <button
+              key={t.value}
+              onClick={() => switchTab(t.value)}
+              className={`pb-3 text-sm font-semibold transition-colors ${
+                activeTab === t.value
+                  ? "text-black border-b-2 border-[#b89a5a]"
+                  : "text-gray-mid hover:text-black"
+              }`}
+            >
+              {t.label}
+            </button>
+          ))}
+        </div>
+
+        {/* Featured item */}
+        {featured && (
+          <div className="grid grid-cols-1 lg:grid-cols-[1fr_400px] gap-8 items-start">
+            <Link
+              href={`/media/${featured.slug}`}
+              className="group relative aspect-video overflow-hidden bg-gray-100 block"
+            >
+              <Image
+                src={getThumbnail(featured)}
+                alt={featured.title}
+                fill
+                unoptimized
+                className="object-cover group-hover:scale-105 transition-transform duration-500"
+              />
+              <div className="absolute inset-0 flex items-center justify-center">
+                <div className="w-16 h-16 bg-black/40 backdrop-blur-sm flex items-center justify-center group-hover:bg-black/50 transition-colors">
+                  {featured.media_type === "podcast" ? (
+                    <Headphones size={28} className="text-white" />
+                  ) : (
+                    <Play size={28} className="text-white ml-1" fill="white" />
+                  )}
+                </div>
+              </div>
+            </Link>
+
+            <div className="flex flex-col justify-center">
+              <span className="text-[#c1121f] text-[10px] font-semibold uppercase tracking-[0.15em] mb-3">
+                {featured.is_featured ? "Featured" : "Latest"}{" "}
+                {activeTab === "podcast" ? "Episode" : "Video"}
+              </span>
+              <Link href={`/media/${featured.slug}`}>
+                <h2 className="font-display text-2xl md:text-3xl font-semibold text-black leading-tight hover:text-[#c1121f] transition-colors">
+                  {featured.title}
+                </h2>
+              </Link>
+              {featured.excerpt && (
+                <p className="text-gray-mid text-sm mt-3 line-clamp-3">
+                  {featured.excerpt}
+                </p>
+              )}
+              {featured.published_at && (
+                <span className="text-gray-mid text-xs mt-4 block">
+                  {formatDate(featured.published_at)}
+                </span>
+              )}
+              <Link
+                href={`/media/${featured.slug}`}
+                className="inline-flex items-center gap-2 mt-6 px-6 py-2.5 bg-[#fee198] text-[#1a1a1a] text-xs font-semibold uppercase tracking-[0.1em] hover:bg-[#f5d87a] transition-colors w-fit"
+              >
+                {activeTab === "podcast" ? "Listen Now" : "Watch Now"}
+                <ArrowRight size={14} />
+              </Link>
+            </div>
+          </div>
+        )}
+
+        <div className="mb-6 mt-8">
           <span className="text-xs text-gray-mid">
             {items.length} {activeTab === "podcast" ? "episode" : "video"}
             {items.length !== 1 ? "s" : ""}
