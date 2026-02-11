@@ -474,7 +474,7 @@ export default async function HomePage({
                           <div className="flex items-center justify-between mt-2">
                             <span className="flex items-center gap-1 text-sm text-gray-mid">
                               <MapPin size={13} />
-                              {biz.neighborhoods?.name ?? biz.city}
+                              {biz.neighborhoods?.name ?? biz.cities?.name}
                             </span>
                             {biz.categories?.name && (
                               <span className="text-xs text-gray-mid">

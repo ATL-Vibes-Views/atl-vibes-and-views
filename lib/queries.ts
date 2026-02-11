@@ -219,7 +219,7 @@ export async function getBusinessesByPostId(
   const bizIds = links.map((l) => l.business_id);
   const { data, error } = await sb()
     .from("business_listings")
-    .select("*, neighborhoods(*), categories(*)")
+    .select("*, neighborhoods(*), categories(*), cities(name)")
     .in("id", bizIds)
     .eq("status", "active")
     .limit(limit);
@@ -241,7 +241,7 @@ export async function getBusinesses(opts?: {
 }): Promise<BusinessListingWithNeighborhood[]> {
   let q = sb()
     .from("business_listings")
-    .select("*, neighborhoods(*), categories(*)")
+    .select("*, neighborhoods(*), categories(*), cities(name)")
     .eq("status", opts?.status ?? "active")
     .order("is_featured", { ascending: false })
     .order("business_name");
@@ -266,7 +266,7 @@ export async function getBusinessBySlug(
 ): Promise<BusinessListingWithNeighborhood | null> {
   const { data, error } = await sb()
     .from("business_listings")
-    .select("*, neighborhoods(*), categories(*)")
+    .select("*, neighborhoods(*), categories(*), cities(name)")
     .eq("slug", slug)
     .single();
   if (error && error.code !== "PGRST116") throw error;
@@ -288,7 +288,7 @@ export async function getEvents(opts?: {
 }): Promise<EventItemWithNeighborhood[]> {
   let q = sb()
     .from("events")
-    .select("*, neighborhoods(*), categories(*)")
+    .select("*, neighborhoods(*), categories(*), cities(name)")
     .eq("status", opts?.status ?? "active")
     .order("start_date");
 
@@ -313,7 +313,7 @@ export async function getEventBySlug(
 ): Promise<EventItemWithNeighborhood | null> {
   const { data, error } = await sb()
     .from("events")
-    .select("*, neighborhoods(*), categories(*)")
+    .select("*, neighborhoods(*), categories(*), cities(name)")
     .eq("slug", slug)
     .single();
   if (error && error.code !== "PGRST116") throw error;

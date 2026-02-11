@@ -338,11 +338,13 @@ export interface BlogPostWithAuthor extends BlogPost {
 export interface BusinessListingWithNeighborhood extends BusinessListing {
   neighborhoods?: Neighborhood;
   categories?: Category;
+  cities?: { name: string };
 }
 
 export interface EventItemWithNeighborhood extends EventItem {
   neighborhoods?: Neighborhood;
   categories?: Category;
+  cities?: { name: string };
 }
 
 export interface NeighborhoodWithArea extends Neighborhood {

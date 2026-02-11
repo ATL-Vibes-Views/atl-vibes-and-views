@@ -198,7 +198,7 @@ export default async function EventDetailPage({
     event.latitude,
     event.longitude,
     event.street_address,
-    event.city,
+    event.cities?.name,
     event.state,
     event.zip_code
   );
@@ -219,7 +219,7 @@ export default async function EventDetailPage({
   const categoryName = event.categories?.name;
   const locationLabel =
     event.venue_name ||
-    [event.street_address, event.city, event.state].filter(Boolean).join(", ") ||
+    [event.street_address, event.cities?.name, event.state].filter(Boolean).join(", ") ||
     null;
 
   /* ── Mapbox static map URL (prefer coords) ── */
@@ -660,7 +660,7 @@ export default async function EventDetailPage({
                   {neighborhoodName && (
                     <p className="text-[11px] text-gray-mid mt-0.5">
                       {neighborhoodName}
-                      {event.city ? `, ${event.city}` : ""}
+                      {event.cities?.name ? `, ${event.cities.name}` : ""}
                       {event.state ? `, ${event.state}` : ""}
                     </p>
                   )}
