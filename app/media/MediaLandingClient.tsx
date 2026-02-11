@@ -5,7 +5,7 @@ import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import Image from "next/image";
 import { Play, ArrowRight, Headphones } from "lucide-react";
-import { extractYouTubeId } from "@/components/ui/YouTubeEmbed";
+import { extractYouTubeId } from "@/lib/media-utils";
 import { AdBlock } from "@/components/ui/AdBlock";
 
 /* ============================================================

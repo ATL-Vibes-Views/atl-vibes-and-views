@@ -8,7 +8,8 @@ import {
   getMediaItems,
   getMediaItemLinks,
 } from "@/lib/queries";
-import { YouTubeEmbed, extractYouTubeId } from "@/components/ui/YouTubeEmbed";
+import { YouTubeEmbed } from "@/components/ui/YouTubeEmbed";
+import { extractYouTubeId } from "@/lib/media-utils";
 import { InstagramFeed } from "@/components/ui/InstagramFeed";
 import {
   NewsletterWidget,

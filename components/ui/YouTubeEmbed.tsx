@@ -5,6 +5,8 @@ import Link from "next/link";
 import Image from "next/image";
 import { RotateCcw, ArrowLeft, ArrowRight, Play } from "lucide-react";
 
+export { extractYouTubeId } from "@/lib/media-utils";
+
 /* ============================================================
    YouTubeEmbed — Custom wrapper preventing competitor content
    Uses youtube-nocookie.com + rel=0 + custom end-screen overlay
@@ -23,22 +25,6 @@ interface YouTubeEmbedProps {
   nextItem?: NextItem;
   relatedItems?: NextItem[];
   className?: string;
-}
-
-/* Extract YouTube video ID from various URL formats */
-export function extractYouTubeId(url: string): string | null {
-  const patterns = [
-    /youtu\.be\/([^?&]+)/,
-    /youtube\.com\/embed\/([^?&]+)/,
-    /youtube\.com\/watch\?v=([^?&]+)/,
-    /youtube\.com\/shorts\/([^?&]+)/,
-    /youtube-nocookie\.com\/embed\/([^?&]+)/,
-  ];
-  for (const pattern of patterns) {
-    const match = url.match(pattern);
-    if (match) return match[1];
-  }
-  return null;
 }
 
 declare global {
