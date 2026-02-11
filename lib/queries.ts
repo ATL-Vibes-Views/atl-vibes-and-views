@@ -1093,3 +1093,30 @@ export async function getNewsletterPosts(
   }
   return data ?? [];
 }
+
+/** Batch-fetch the first blog_post featured_image_url for each newsletter (for archive cards) */
+export async function getNewsletterFeaturedImages(): Promise<
+  Map<string, string>
+> {
+  const { data, error } = await sb()
+    .from("newsletter_posts")
+    .select("newsletter_id, blog_post:post_id(featured_image_url)")
+    .order("position", { ascending: true })
+    .returns<
+      {
+        newsletter_id: string;
+        blog_post: { featured_image_url: string | null } | null;
+      }[]
+    >();
+  if (error) {
+    console.error("getNewsletterFeaturedImages error:", error.message);
+    return new Map();
+  }
+  const map = new Map<string, string>();
+  for (const row of data ?? []) {
+    if (!map.has(row.newsletter_id) && row.blog_post?.featured_image_url) {
+      map.set(row.newsletter_id, row.blog_post.featured_image_url);
+    }
+  }
+  return map;
+}

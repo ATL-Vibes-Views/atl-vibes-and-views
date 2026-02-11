@@ -1,27 +1,23 @@
 import type { Metadata } from "next";
-import Link from "next/link";
-import Image from "next/image";
 import { Suspense } from "react";
-import { Mail, ArrowRight } from "lucide-react";
-import { NewsletterBlock } from "@/components/ui/NewsletterBlock";
+import { Send } from "lucide-react";
+import { Breadcrumbs } from "@/components/ui/Breadcrumbs";
 import { NewsletterArchiveClient } from "@/components/newsletter/NewsletterArchiveClient";
-import {
-  Sidebar,
-  NewsletterWidget,
-  AdPlacement,
-  NeighborhoodsWidget,
-  SubmitCTA,
-} from "@/components/Sidebar";
 import {
   getNewsletters,
   getNewsletterTypes,
-  getNeighborhoodsByPopularity,
+  getNewsletterFeaturedImages,
 } from "@/lib/queries";
-import type { Newsletter, NewsletterType } from "@/lib/queries";
+import {
+  getNewsletterColor,
+  buildFilterTabs,
+} from "@/components/newsletter/NewsletterColorMap";
+import type { NewsletterCardData } from "@/components/newsletter/NewsletterCard";
 
 /* ============================================================
    NEWSLETTER ARCHIVE — /newsletters
-   Full archive with type filtering, search, pagination + sidebar
+   Two-zone layout: Latest Editions (grid + sidebar) →
+   Ad Divider → Past Editions / Cross-promo (full-width grid)
    ============================================================ */
 
 export const metadata: Metadata = {
@@ -39,86 +35,48 @@ export const metadata: Metadata = {
   },
 };
 
-/* --- Type color mapping --- */
-const TYPE_COLORS: Record<string, { bg: string; text: string; accent: string }> = {
-  "weekly-roundup": { bg: "bg-[#fee198]/30", text: "text-[#8a6914]", accent: "#e6c46d" },
-  "neighborhood-spotlight": { bg: "bg-[#c1121f]/10", text: "text-[#c1121f]", accent: "#c1121f" },
-  "business-features": { bg: "bg-[#2d6a4f]/10", text: "text-[#2d6a4f]", accent: "#2d6a4f" },
-  "events-guide": { bg: "bg-[#7b2cbf]/10", text: "text-[#7b2cbf]", accent: "#7b2cbf" },
-  "city-watch": { bg: "bg-[#1a1a1a]/10", text: "text-[#1a1a1a]", accent: "#1a1a1a" },
-  "special-edition": { bg: "bg-[#b89a5a]/15", text: "text-[#8a6914]", accent: "#b89a5a" },
-};
-
-function getTypeColor(slug: string) {
-  return TYPE_COLORS[slug] ?? { bg: "bg-gray-100", text: "text-gray-dark", accent: "#999" };
-}
-
-/* --- Helpers --- */
-
-function formatDate(dateStr: string): string {
-  return new Date(dateStr).toLocaleDateString("en-US", {
-    month: "short",
-    day: "numeric",
-    year: "numeric",
-  });
-}
-
-const PH_HERO = "https://placehold.co/1920x400/1a1a1a/e6c46d?text=Newsletters";
-
 /* --- Page Component --- */
 
 export default async function NewslettersPage({
   searchParams,
 }: {
-  searchParams: Promise<{
-    type?: string;
-    search?: string;
-    page?: string;
-  }>;
+  searchParams: Promise<{ type?: string }>;
 }) {
   const filters = await searchParams;
 
-  /* ── Fetch data ── */
-  const [allNewsletters, newsletterTypes, popularNeighborhoods] =
-    await Promise.all([
-      getNewsletters(),
-      getNewsletterTypes(),
-      getNeighborhoodsByPopularity({ limit: 6 }),
-    ]);
+  /* ── Fetch data in parallel ── */
+  const [allNewsletters, , featuredImageMap] = await Promise.all([
+    getNewsletters(),
+    getNewsletterTypes(),
+    getNewsletterFeaturedImages(),
+  ]);
 
-  /* ── Distinct type names from newsletters for filtering ── */
-  const distinctTypes = new Map<string, string>();
-  allNewsletters.forEach((nl) => {
-    if (nl.name) {
-      const slug = nl.name.toLowerCase().replace(/\s+/g, "-");
-      distinctTypes.set(slug, nl.name);
-    }
-  });
+  /* ── Build filter tabs from actual newsletter data ── */
+  const filterTabs = buildFilterTabs(allNewsletters);
 
-  /* ── Build type tabs from newsletter_types + fallback to distinct names ── */
-  const typeTabs: { slug: string; name: string; count: number }[] = [];
-  if (newsletterTypes.length > 0) {
-    for (const nt of newsletterTypes) {
-      const count = allNewsletters.filter((nl) => nl.name === nt.name).length;
-      typeTabs.push({ slug: nt.slug, name: nt.name, count });
-    }
-  } else {
-    for (const [slug, name] of distinctTypes) {
-      const count = allNewsletters.filter((nl) => nl.name === name).length;
-      typeTabs.push({ slug, name, count });
-    }
-  }
-
-  /* ── Map newsletters to client-friendly format ── */
-  const clientNewsletters = allNewsletters.map((nl) => ({
-    id: nl.id,
-    name: nl.name,
-    slug: nl.issue_slug,
-    issue_date: nl.issue_date,
-    subject_line: nl.subject_line,
-    preview_text: nl.preview_text,
-    type_slug: nl.name.toLowerCase().replace(/\s+/g, "-"),
+  /* ── Build sidebar types list ── */
+  const sidebarTypes = filterTabs.map((tab) => ({
+    name: tab.name,
+    color: tab.color,
   }));
+
+  /* ── Map newsletters to card data ── */
+  const cardData: NewsletterCardData[] = allNewsletters.map((nl) => {
+    const color = getNewsletterColor(nl.name);
+    return {
+      id: nl.id,
+      slug: nl.issue_slug,
+      name: nl.name,
+      issue_date: nl.issue_date,
+      subject_line: nl.subject_line,
+      preview_text: nl.preview_text,
+      featured_image_url: featuredImageMap.get(nl.id) ?? null,
+      type_slug: color.filterSlug,
+      border_color: color.borderColor,
+      label_color: color.labelColor,
+      label: color.label,
+    };
+  });
 
   /* ── JSON-LD ── */
   const jsonLd = {
@@ -141,143 +99,117 @@ export default async function NewslettersPage({
         dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
       />
 
-      {/* ========== DARK HERO ========== */}
-      <section className="relative w-full h-[180px] md:h-[220px] overflow-hidden">
-        <Image
-          src={PH_HERO}
-          alt="Newsletter Archive"
-          fill
-          unoptimized
-          priority
-          className="object-cover"
-        />
-        <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/40 to-black/20" />
-        <div className="absolute inset-0 flex items-end">
-          <div className="site-container pb-8 md:pb-10">
-            <span className="text-[#e6c46d] text-[11px] font-semibold uppercase tracking-[0.15em] mb-2 block">
+      {/* ========== DARK HERO — centered, watermark behind ========== */}
+      <section className="relative w-full h-[200px] md:h-[240px] overflow-hidden bg-[#1a1a1a]">
+        {/* Gold watermark */}
+        <div className="absolute inset-0 flex items-center justify-center pointer-events-none select-none">
+          <span className="font-display italic text-[80px] md:text-[120px] lg:text-[160px] text-[rgba(184,154,90,0.08)] leading-none whitespace-nowrap">
+            Newsletters
+          </span>
+        </div>
+        {/* Content */}
+        <div className="relative z-10 h-full flex items-center justify-center">
+          <div className="text-center px-6">
+            <span className="text-[#fee198] text-[11px] font-semibold uppercase tracking-[0.15em] mb-3 block">
               Newsletters
             </span>
-            <h1 className="font-display text-3xl md:text-4xl lg:text-5xl font-semibold text-white leading-[1.05]">
+            <h1 className="font-display text-[36px] md:text-4xl lg:text-[48px] font-semibold text-white leading-[1.05]">
               Newsletter Archive
             </h1>
-            <p className="text-white/60 text-sm mt-2 max-w-lg">
-              Every edition of our Atlanta newsletters — news, guides, spotlights, and more.
+            <p className="text-white/60 text-[15px] mt-3 max-w-md mx-auto">
+              Every edition of our Atlanta newsletters — news, guides,
+              spotlights, and more.
             </p>
           </div>
         </div>
       </section>
 
-      {/* ========== NEWSLETTER TYPE CARDS ========== */}
-      {typeTabs.length > 0 && (
-        <section className="site-container py-10 md:py-14">
-          <h2 className="font-display text-2xl md:text-3xl font-semibold text-black mb-8">
-            Our Newsletters
-          </h2>
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-            {typeTabs.map((tab) => {
-              const colors = getTypeColor(tab.slug);
-              const typeInfo = newsletterTypes.find((nt) => nt.slug === tab.slug);
-              return (
-                <Link
-                  key={tab.slug}
-                  href={`/newsletters?type=${tab.slug}`}
-                  className={`group block p-6 border border-gray-200 hover:border-gray-300 transition-colors ${colors.bg}`}
-                >
-                  <div className="flex items-center gap-3 mb-3">
-                    <div
-                      className="w-10 h-10 flex items-center justify-center"
-                      style={{ backgroundColor: colors.accent + "20" }}
-                    >
-                      <Mail size={18} style={{ color: colors.accent }} />
-                    </div>
-                    <div>
-                      <h3 className="font-display text-lg font-semibold text-black group-hover:text-[#c1121f] transition-colors">
-                        {tab.name}
-                      </h3>
-                      {typeInfo?.frequency && (
-                        <span className="text-[10px] font-semibold uppercase tracking-eyebrow text-gray-mid">
-                          {typeInfo.frequency}
-                          {typeInfo.send_day ? ` · ${typeInfo.send_day}s` : ""}
-                        </span>
-                      )}
-                    </div>
-                  </div>
-                  {typeInfo?.description && (
-                    <p className="text-sm text-gray-dark line-clamp-2 mb-3">
-                      {typeInfo.description}
-                    </p>
-                  )}
-                  <div className="flex items-center justify-between">
-                    <span className="text-xs text-gray-mid">
-                      {tab.count} edition{tab.count !== 1 ? "s" : ""}
-                    </span>
-                    <ArrowRight
-                      size={14}
-                      className="text-gray-400 group-hover:text-[#c1121f] transition-colors"
-                    />
-                  </div>
-                </Link>
-              );
-            })}
-          </div>
-        </section>
-      )}
+      {/* ========== BREADCRUMBS ========== */}
+      <div className="site-container pt-6 pb-2">
+        <Breadcrumbs
+          items={[
+            { label: "Home", href: "/" },
+            { label: "Newsletters" },
+          ]}
+        />
+      </div>
 
-      {/* ========== MAIN CONTENT — SIDEBAR + ARCHIVE ========== */}
-      <div className="site-container pb-16 md:pb-20">
-        <div className="grid grid-cols-1 lg:grid-cols-[1fr_340px] gap-12 lg:gap-16">
-          {/* --- Archive Column --- */}
-          <div className="min-w-0">
-            <Suspense
-              fallback={
-                <div className="py-12 text-center text-gray-mid">
-                  Loading newsletters...
-                </div>
-              }
+      {/* ========== SUBSCRIBE STRIP ========== */}
+      <div className="bg-[#f8f5f0]">
+        <div className="site-container py-5 flex flex-col sm:flex-row items-center justify-between gap-4">
+          <p className="text-sm text-gray-dark font-medium text-center sm:text-left">
+            Get Atlanta in your inbox — free, weekly delivery
+          </p>
+          <form
+            className="flex items-center bg-white rounded-full overflow-hidden shadow-sm border border-gray-200 w-full sm:w-auto"
+            onSubmit={(e) => e.preventDefault()}
+          >
+            <input
+              type="email"
+              placeholder="Enter your email"
+              className="flex-1 sm:w-[220px] px-5 py-3 text-sm outline-none bg-transparent placeholder:text-gray-mid"
+            />
+            <button
+              type="submit"
+              className="flex items-center gap-2 px-5 py-3 bg-[#fee198] text-[#1a1a1a] text-xs font-semibold uppercase tracking-eyebrow rounded-full mr-1 hover:bg-[#f5d87a] transition-colors whitespace-nowrap"
             >
-              <NewsletterArchiveClient
-                newsletters={clientNewsletters}
-                typeTabs={typeTabs}
-                currentFilters={{
-                  type: filters.type,
-                  search: filters.search,
-                  page: filters.page,
-                }}
-              />
-            </Suspense>
-          </div>
-
-          {/* --- Sidebar --- */}
-          <aside className="hidden lg:block">
-            <Sidebar>
-              <NewsletterWidget
-                title="Get the Newsletter"
-                description="Atlanta news, guides, and culture delivered to your inbox every week."
-              />
-              <AdPlacement slot="sidebar_top" />
-              <NeighborhoodsWidget
-                title="Popular Neighborhoods"
-                neighborhoods={popularNeighborhoods.map((n) => ({
-                  name: n.name,
-                  slug: n.slug,
-                }))}
-              />
-              <SubmitCTA
-                heading="Own a Business?"
-                description="Get your business in front of thousands of Atlantans."
-                buttonText="Get Listed"
-                href="/submit"
-              />
-            </Sidebar>
-          </aside>
+              <Send size={12} />
+              Subscribe
+            </button>
+          </form>
         </div>
       </div>
 
-      {/* ========== SUBSCRIBE CTA ========== */}
-      <NewsletterBlock
-        heading="Atlanta in Your Inbox"
-        description="Get the latest on Atlanta's neighborhoods, events, and culture delivered to your inbox. No spam. Unsubscribe anytime."
-      />
+      {/* ========== CLIENT ARCHIVE — Zones 1 + 2 ========== */}
+      <div className="pt-10 md:pt-14">
+        <Suspense
+          fallback={
+            <div className="site-container py-16 text-center text-gray-mid">
+              Loading newsletters...
+            </div>
+          }
+        >
+          <NewsletterArchiveClient
+            newsletters={cardData}
+            filterTabs={filterTabs}
+            sidebarTypes={sidebarTypes}
+            currentFilters={{ type: filters.type }}
+          />
+        </Suspense>
+      </div>
+
+      {/* ========== FOOTER SUBSCRIBE CTA ========== */}
+      <section className="bg-[#1a1a1a] py-16 md:py-20">
+        <div className="site-container text-center">
+          <span className="text-[#fee198] text-[11px] font-semibold uppercase tracking-[0.15em] mb-3 block">
+            Stay Connected
+          </span>
+          <h2 className="font-display text-2xl md:text-3xl font-semibold text-white mb-3">
+            Atlanta in Your Inbox
+          </h2>
+          <p className="text-white/60 text-sm max-w-md mx-auto mb-8">
+            Get the latest on Atlanta&rsquo;s neighborhoods, events, and culture
+            delivered to your inbox. No spam. Unsubscribe anytime.
+          </p>
+          <form
+            className="flex items-center max-w-md mx-auto bg-white rounded-full overflow-hidden shadow-sm"
+            onSubmit={(e) => e.preventDefault()}
+          >
+            <input
+              type="email"
+              placeholder="Enter your email"
+              className="flex-1 px-6 py-4 text-sm outline-none bg-transparent placeholder:text-gray-mid"
+            />
+            <button
+              type="submit"
+              className="flex items-center gap-2 px-6 py-3.5 bg-[#fee198] text-[#1a1a1a] text-xs font-semibold uppercase tracking-eyebrow rounded-full mr-1 hover:bg-[#f5d87a] transition-colors"
+            >
+              <Send size={14} />
+              Subscribe
+            </button>
+          </form>
+        </div>
+      </section>
 
       {/* BreadcrumbList schema */}
       <script

@@ -2,36 +2,29 @@
 
 import { useRouter, usePathname, useSearchParams } from "next/navigation";
 import { useCallback, useState, useTransition } from "react";
-import Link from "next/link";
-import { Search, X, Mail, ArrowRight } from "lucide-react";
+import { ArrowRight, Mail } from "lucide-react";
+import { NewsletterCard } from "./NewsletterCard";
+import { NewsletterSidebar } from "./NewsletterSidebar";
+import type { NewsletterCardData } from "./NewsletterCard";
+import type { NewsletterColorConfig } from "./NewsletterColorMap";
 
 /* ============================================================
    TYPES
    ============================================================ */
 
-interface ClientNewsletter {
-  id: string;
-  name: string;
-  slug: string;
-  issue_date: string;
-  subject_line: string | null;
-  preview_text: string | null;
-  type_slug: string;
-}
-
-interface TypeTab {
+interface FilterTab {
   slug: string;
   name: string;
   count: number;
+  color: NewsletterColorConfig;
 }
 
 interface NewsletterArchiveClientProps {
-  newsletters: ClientNewsletter[];
-  typeTabs: TypeTab[];
+  newsletters: NewsletterCardData[];
+  filterTabs: FilterTab[];
+  sidebarTypes: { name: string; color: NewsletterColorConfig }[];
   currentFilters: {
     type?: string;
-    search?: string;
-    page?: string;
   };
 }
 
@@ -39,32 +32,7 @@ interface NewsletterArchiveClientProps {
    CONSTANTS
    ============================================================ */
 
-const PER_PAGE = 12;
-
-const TYPE_COLORS: Record<string, string> = {
-  "weekly-roundup": "#e6c46d",
-  "neighborhood-spotlight": "#c1121f",
-  "business-features": "#2d6a4f",
-  "events-guide": "#7b2cbf",
-  "city-watch": "#1a1a1a",
-  "special-edition": "#b89a5a",
-};
-
-function getAccentColor(slug: string): string {
-  return TYPE_COLORS[slug] ?? "#999";
-}
-
-/* ============================================================
-   HELPERS
-   ============================================================ */
-
-function formatDate(dateStr: string): string {
-  return new Date(dateStr).toLocaleDateString("en-US", {
-    month: "short",
-    day: "numeric",
-    year: "numeric",
-  });
-}
+const ZONE_2_PAGE_SIZE = 9;
 
 /* ============================================================
    COMPONENT
@@ -72,70 +40,24 @@ function formatDate(dateStr: string): string {
 
 export function NewsletterArchiveClient({
   newsletters,
-  typeTabs,
+  filterTabs,
+  sidebarTypes,
   currentFilters,
 }: NewsletterArchiveClientProps) {
   const router = useRouter();
   const pathname = usePathname();
   const searchParams = useSearchParams();
   const [isPending, startTransition] = useTransition();
-  const [searchValue, setSearchValue] = useState(currentFilters.search ?? "");
+  const [zone2Visible, setZone2Visible] = useState(ZONE_2_PAGE_SIZE);
 
-  const currentPage = parseInt(currentFilters.page ?? "1", 10);
   const activeType = currentFilters.type ?? "";
 
-  /* ── Filter newsletters client-side ── */
-  let filtered = newsletters;
-
-  if (activeType) {
-    filtered = filtered.filter((nl) => nl.type_slug === activeType);
-  }
-
-  if (currentFilters.search) {
-    const term = currentFilters.search.toLowerCase();
-    filtered = filtered.filter(
-      (nl) =>
-        nl.subject_line?.toLowerCase().includes(term) ||
-        nl.preview_text?.toLowerCase().includes(term) ||
-        nl.name.toLowerCase().includes(term)
-    );
-  }
-
-  const totalPages = Math.max(1, Math.ceil(filtered.length / PER_PAGE));
-  const safePage = Math.min(currentPage, totalPages);
-  const startIdx = (safePage - 1) * PER_PAGE;
-  const pageItems = filtered.slice(startIdx, startIdx + PER_PAGE);
-
-  /* ── URL param helpers ── */
-  const pushFilters = useCallback(
-    (overrides: Record<string, string | undefined>) => {
-      const params = new URLSearchParams(searchParams.toString());
-
-      for (const [key, val] of Object.entries(overrides)) {
-        if (val && val.trim()) {
-          params.set(key, val.trim());
-        } else {
-          params.delete(key);
-        }
-      }
-
-      // Reset page when filters change (unless page is being explicitly set)
-      if (!("page" in overrides)) {
-        params.delete("page");
-      }
-
-      startTransition(() => {
-        router.push(`${pathname}?${params.toString()}`, { scroll: false });
-      });
-    },
-    [pathname, router, searchParams]
-  );
-
+  /* ── Switch filter type via URL ── */
   const switchType = useCallback(
-    (typeSlug: string) => {
-      setSearchValue("");
+    (slug: string) => {
+      setZone2Visible(ZONE_2_PAGE_SIZE);
       const params = new URLSearchParams();
-      if (typeSlug) params.set("type", typeSlug);
+      if (slug) params.set("type", slug);
       startTransition(() => {
         router.push(
           `${pathname}${params.toString() ? `?${params.toString()}` : ""}`,
@@ -146,196 +68,196 @@ export function NewsletterArchiveClient({
     [pathname, router]
   );
 
-  const goToPage = useCallback(
-    (page: number) => {
-      pushFilters({ page: page > 1 ? String(page) : undefined });
-      window.scrollTo({ top: 0, behavior: "smooth" });
-    },
-    [pushFilters]
-  );
+  /* ── Compute Zone 1 cards ── */
+  let zone1Cards: NewsletterCardData[];
+
+  if (!activeType) {
+    /* "All" — show 1 per type (most recent of each) */
+    const seenTypes = new Set<string>();
+    zone1Cards = [];
+    for (const nl of newsletters) {
+      if (!seenTypes.has(nl.type_slug)) {
+        seenTypes.add(nl.type_slug);
+        zone1Cards.push(nl);
+      }
+      if (zone1Cards.length >= 6) break;
+    }
+  } else {
+    /* Filtered — show 6 most recent of that type */
+    zone1Cards = newsletters
+      .filter((nl) => nl.type_slug === activeType)
+      .slice(0, 6);
+  }
+
+  /* ── Compute Zone 2 cards ── */
+  const filteredByType = activeType
+    ? newsletters.filter((nl) => nl.type_slug === activeType)
+    : newsletters;
+  const totalForType = filteredByType.length;
+
+  let zone2Header: string;
+  let zone2Cards: NewsletterCardData[];
+
+  if (!activeType) {
+    /* "All" active — Past Editions = everything beyond the 6 one-per-type */
+    const zone1Ids = new Set(zone1Cards.map((c) => c.id));
+    zone2Header = "Past Editions";
+    zone2Cards = newsletters.filter((nl) => !zone1Ids.has(nl.id));
+  } else if (totalForType > 6) {
+    /* >6 exist for this type — "Past Editions" (7+) */
+    zone2Header = "Past Editions";
+    zone2Cards = filteredByType.slice(6);
+  } else {
+    /* ≤6 exist — "You May Also Enjoy" from OTHER types */
+    zone2Header = "You May Also Enjoy";
+    zone2Cards = newsletters.filter((nl) => nl.type_slug !== activeType);
+  }
+
+  const zone2Visible_ = zone2Cards.slice(0, zone2Visible);
+  const hasMoreZone2 = zone2Visible < zone2Cards.length;
+
+  /* ── Filter count text ── */
+  const filterCountText = !activeType
+    ? `Showing ${zone1Cards.length} latest editions \u00b7 1 per type`
+    : `Showing ${zone1Cards.length} edition${zone1Cards.length !== 1 ? "s" : ""} \u00b7 ${filterTabs.find((t) => t.slug === activeType)?.name ?? activeType}`;
 
   return (
-    <div>
-      {/* ── Section header ── */}
-      <div className="flex items-center justify-between mb-6">
-        <h2 className="font-display text-2xl md:text-3xl font-semibold text-black">
-          All Editions
-        </h2>
-        {isPending && (
-          <div className="w-4 h-4 border-2 border-[#e6c46d] border-t-transparent rounded-full animate-spin" />
-        )}
-      </div>
+    <>
+      {/* ========== ZONE LABEL + FILTER TABS (full width) ========== */}
+      <section className="site-container">
+        {/* Zone 1 label */}
+        <div className="flex items-center justify-between mb-4">
+          <span className="text-[#c1121f] text-[11px] font-semibold uppercase tracking-[0.15em]">
+            Latest Editions
+          </span>
+          {isPending && (
+            <div className="w-4 h-4 border-2 border-[#e6c46d] border-t-transparent rounded-full animate-spin" />
+          )}
+        </div>
 
-      {/* ── Type filter tabs ── */}
-      <div className="flex flex-wrap items-center gap-2 mb-6">
-        <button
-          onClick={() => switchType("")}
-          className={`px-4 py-2 text-sm font-medium transition-colors ${
-            !activeType
-              ? "bg-[#1a1a1a] text-white"
-              : "bg-gray-100 text-gray-dark hover:bg-gray-200"
-          }`}
-        >
-          All ({newsletters.length})
-        </button>
-        {typeTabs.map((tab) => (
+        {/* Filter tabs */}
+        <div className="flex flex-wrap items-center gap-2 mb-3">
           <button
-            key={tab.slug}
-            onClick={() => switchType(tab.slug)}
-            className={`px-4 py-2 text-sm font-medium transition-colors ${
-              activeType === tab.slug
+            onClick={() => switchType("")}
+            className={`px-4 py-2 text-sm font-medium rounded-full transition-colors ${
+              !activeType
                 ? "bg-[#1a1a1a] text-white"
                 : "bg-gray-100 text-gray-dark hover:bg-gray-200"
             }`}
           >
-            {tab.name} ({tab.count})
+            All ({newsletters.length})
           </button>
-        ))}
-      </div>
-
-      {/* ── Search bar ── */}
-      <div className="relative w-full max-w-md mb-8">
-        <Search
-          size={16}
-          className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-mid pointer-events-none"
-        />
-        <input
-          type="text"
-          value={searchValue}
-          onChange={(e) => setSearchValue(e.target.value)}
-          onKeyDown={(e) => {
-            if (e.key === "Enter") pushFilters({ search: searchValue });
-          }}
-          placeholder="Search newsletters..."
-          className="w-full pl-11 pr-10 py-3 text-sm bg-white border-2 border-[#e6c46d] outline-none focus:border-[#d4a94e] focus:shadow-[0_0_0_3px_rgba(230,196,109,0.2)] transition-all placeholder:text-gray-mid"
-        />
-        {searchValue && (
-          <button
-            onClick={() => {
-              setSearchValue("");
-              pushFilters({ search: undefined });
-            }}
-            className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-mid hover:text-black"
-            aria-label="Clear search"
-          >
-            <X size={16} />
-          </button>
-        )}
-      </div>
-
-      {/* ── Results count ── */}
-      <div className="mb-6">
-        <span className="text-xs text-gray-mid">
-          {filtered.length} newsletter{filtered.length !== 1 ? "s" : ""}
-          {activeType
-            ? ` in ${typeTabs.find((t) => t.slug === activeType)?.name ?? activeType}`
-            : ""}
-          {currentFilters.search ? ` matching "${currentFilters.search}"` : ""}
-        </span>
-      </div>
-
-      {/* ── Newsletter grid ── */}
-      {pageItems.length > 0 ? (
-        <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-6">
-          {pageItems.map((nl) => {
-            const accent = getAccentColor(nl.type_slug);
-            return (
-              <Link
-                key={nl.id}
-                href={`/newsletters/${nl.slug}`}
-                className="group block border border-gray-200 p-6 hover:border-[#e6c46d] transition-colors"
-              >
-                {/* Type eyebrow */}
-                <div className="flex items-center gap-2 mb-2">
-                  <Mail size={12} style={{ color: accent }} />
-                  <span
-                    className="text-[10px] font-semibold uppercase tracking-eyebrow"
-                    style={{ color: accent }}
-                  >
-                    {nl.name}
-                  </span>
-                </div>
-
-                {/* Subject line */}
-                <h3 className="font-display text-lg font-semibold text-black leading-snug group-hover:text-[#c1121f] transition-colors line-clamp-2">
-                  {nl.subject_line || nl.name}
-                </h3>
-
-                {/* Date */}
-                <p className="text-xs text-gray-mid mt-2">
-                  {formatDate(nl.issue_date)}
-                </p>
-
-                {/* Preview text */}
-                {nl.preview_text && (
-                  <p className="text-sm text-gray-mid line-clamp-2 mt-2">
-                    {nl.preview_text}
-                  </p>
-                )}
-
-                {/* Arrow */}
-                <div className="flex justify-end mt-3">
-                  <ArrowRight
-                    size={14}
-                    className="text-gray-400 group-hover:text-[#c1121f] transition-colors"
-                  />
-                </div>
-              </Link>
-            );
-          })}
-        </div>
-      ) : (
-        <div className="text-center py-20">
-          <Mail size={48} className="text-gray-300 mx-auto mb-4" />
-          <p className="text-gray-mid text-lg mb-4">No newsletters found.</p>
-          {(activeType || currentFilters.search) && (
+          {filterTabs.map((tab) => (
             <button
-              onClick={() => switchType("")}
-              className="inline-flex items-center gap-2 px-6 py-2.5 border-2 border-black text-black text-xs font-semibold uppercase tracking-[0.1em] hover:bg-black hover:text-white transition-colors"
-            >
-              Clear Filters
-            </button>
-          )}
-        </div>
-      )}
-
-      {/* ── Pagination ── */}
-      {totalPages > 1 && (
-        <nav className="flex items-center justify-center gap-2 mt-12" aria-label="Pagination">
-          {/* Prev */}
-          <button
-            onClick={() => goToPage(safePage - 1)}
-            disabled={safePage <= 1}
-            className="px-4 py-2 text-sm font-medium border border-gray-200 disabled:opacity-30 disabled:cursor-not-allowed hover:bg-gray-50 transition-colors"
-          >
-            Previous
-          </button>
-
-          {/* Page numbers */}
-          {Array.from({ length: totalPages }, (_, i) => i + 1).map((p) => (
-            <button
-              key={p}
-              onClick={() => goToPage(p)}
-              className={`w-10 h-10 text-sm font-medium transition-colors ${
-                p === safePage
+              key={tab.slug}
+              onClick={() => switchType(tab.slug)}
+              className={`px-4 py-2 text-sm font-medium rounded-full transition-colors ${
+                activeType === tab.slug
                   ? "bg-[#1a1a1a] text-white"
-                  : "border border-gray-200 text-gray-dark hover:bg-gray-50"
+                  : "bg-gray-100 text-gray-dark hover:bg-gray-200"
               }`}
             >
-              {p}
+              {tab.name} ({tab.count})
             </button>
           ))}
+        </div>
 
-          {/* Next */}
-          <button
-            onClick={() => goToPage(safePage + 1)}
-            disabled={safePage >= totalPages}
-            className="px-4 py-2 text-sm font-medium border border-gray-200 disabled:opacity-30 disabled:cursor-not-allowed hover:bg-gray-50 transition-colors"
-          >
-            Next
-          </button>
-        </nav>
+        {/* Filter count */}
+        <p className="text-xs text-gray-mid mb-8">{filterCountText}</p>
+      </section>
+
+      {/* ========== ZONE 1 — LATEST EDITIONS + SIDEBAR ========== */}
+      <section className="site-container pb-12 md:pb-16">
+        <div className="grid grid-cols-1 lg:grid-cols-[1fr_320px] gap-10 lg:gap-12">
+          {/* Card grid */}
+          <div className="min-w-0">
+            {zone1Cards.length > 0 ? (
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
+                {zone1Cards.map((card) => (
+                  <NewsletterCard key={card.id} card={card} />
+                ))}
+              </div>
+            ) : (
+              <div className="text-center py-16">
+                <Mail size={48} className="text-gray-300 mx-auto mb-4" />
+                <p className="text-gray-mid text-lg mb-4">
+                  No newsletters found.
+                </p>
+                {activeType && (
+                  <button
+                    onClick={() => switchType("")}
+                    className="inline-flex items-center gap-2 px-6 py-2.5 border-2 border-black text-black text-xs font-semibold uppercase tracking-[0.1em] rounded-full hover:bg-black hover:text-white transition-colors"
+                  >
+                    Clear Filter
+                  </button>
+                )}
+              </div>
+            )}
+          </div>
+
+          {/* Sidebar */}
+          <NewsletterSidebar types={sidebarTypes} />
+        </div>
+      </section>
+
+      {/* ========== AD DIVIDER ========== */}
+      <div className="bg-[#f3f4f6] border-t border-b border-[#e5e7eb] py-6 md:py-8">
+        <div className="site-container flex justify-center">
+          {/* Desktop: 728×90 */}
+          <div className="hidden md:flex w-[728px] h-[90px] border border-dashed border-gray-300 bg-white items-center justify-center">
+            <div className="text-center">
+              <span className="text-xs text-gray-mid uppercase tracking-eyebrow">
+                Advertisement
+              </span>
+              <p className="text-[10px] text-gray-400 mt-0.5">
+                728 &times; 90
+              </p>
+            </div>
+          </div>
+          {/* Mobile: 320×250 */}
+          <div className="md:hidden w-[320px] h-[250px] border border-dashed border-gray-300 bg-white flex items-center justify-center">
+            <div className="text-center">
+              <span className="text-xs text-gray-mid uppercase tracking-eyebrow">
+                Advertisement
+              </span>
+              <p className="text-[10px] text-gray-400 mt-0.5">
+                320 &times; 250
+              </p>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* ========== ZONE 2 — PAST EDITIONS / CROSS-PROMO ========== */}
+      {zone2Cards.length > 0 && (
+        <section className="site-container py-12 md:py-16">
+          {/* Zone 2 label */}
+          <span className="text-[#c1121f] text-[11px] font-semibold uppercase tracking-[0.15em] block mb-6">
+            {zone2Header}
+          </span>
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+            {zone2Visible_.map((card) => (
+              <NewsletterCard key={card.id} card={card} />
+            ))}
+          </div>
+
+          {/* Load More */}
+          {hasMoreZone2 && (
+            <div className="flex justify-center mt-12">
+              <button
+                onClick={() =>
+                  setZone2Visible((c) => c + ZONE_2_PAGE_SIZE)
+                }
+                className="inline-flex items-center gap-2 px-8 py-3 border-2 border-black text-black text-xs font-semibold uppercase tracking-[0.1em] rounded-full hover:bg-black hover:text-white transition-colors"
+              >
+                Load More
+                <ArrowRight size={14} />
+              </button>
+            </div>
+          )}
+        </section>
       )}
-    </div>
+    </>
   );
 }
