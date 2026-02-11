@@ -37,8 +37,9 @@ async function getBusinessBySlug(slug: string): Promise<any> {
       neighborhoods ( id, name, slug, area_id,
         areas ( id, name, slug )
       ),
-      categories ( id, name, slug )
-    `
+      categories ( id, name, slug ),
+      cities ( name )
+`
     )
     .eq("slug", slug)
     .eq("status", "active")
@@ -361,7 +362,7 @@ export default async function ThingsToDoDetailPage({
       streetAddress: [biz.street_address, biz.street_address_2]
         .filter(Boolean)
         .join(", "),
-      addressLocality: biz.city,
+      addressLocality: biz.cities?.name,
       addressRegion: biz.state,
       postalCode: biz.zip_code,
       addressCountry: "US",
@@ -443,7 +444,7 @@ export default async function ThingsToDoDetailPage({
             <p>{biz.street_address}</p>
             {biz.street_address_2 && <p>{biz.street_address_2}</p>}
             <p>
-              {biz.city}, {biz.state} {biz.zip_code}
+              {biz.cities?.name}, {biz.state} {biz.zip_code}
             </p>
           </div>
         </div>
@@ -617,7 +618,7 @@ export default async function ThingsToDoDetailPage({
             </div>
           </div>
           <div className="px-4 py-3 bg-white text-sm text-[#333]">
-            {biz.street_address}, {biz.city}, {biz.state} {biz.zip_code}
+            {biz.street_address}, {biz.cities?.name}, {biz.state} {biz.zip_code}
           </div>
         </div>
 
@@ -909,7 +910,7 @@ export default async function ThingsToDoDetailPage({
                   </div>
                 </div>
                 <div className="px-4 py-3 bg-white text-sm text-[#333]">
-                  {biz.street_address}, {biz.city}, {biz.state} {biz.zip_code}
+                  {biz.street_address}, {biz.cities?.name}, {biz.state} {biz.zip_code}
                 </div>
               </div>
 
