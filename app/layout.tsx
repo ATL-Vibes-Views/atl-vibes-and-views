@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { Cormorant_Garamond, Inter } from "next/font/google";
+import Script from "next/script";
 import "./globals.css";
 import { Header } from "@/components/Header";
 import { Footer } from "@/components/Footer";
@@ -66,6 +67,13 @@ export default async function RootLayout({
         <Header exploreData={exploreData} />
         <main className="flex-1">{children}</main>
         <Footer />
+
+        {/* HubSpot Tracking */}
+        <Script
+          id="hs-script-loader"
+          src={`//js-na2.hs-scripts.com/${process.env.NEXT_PUBLIC_HUBSPOT_PORTAL_ID}.js`}
+          strategy="afterInteractive"
+        />
       </body>
     </html>
   );
