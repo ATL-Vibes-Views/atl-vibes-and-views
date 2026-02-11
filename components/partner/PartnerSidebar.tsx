@@ -1,91 +1,88 @@
 import Link from "next/link";
-import { ArrowRight } from "lucide-react";
 
 /* ============================================================
-   PartnerSidebar — Shared sidebar for /partner/* pages
-   Contains: partner nav links, stats widget, CTA button
+   PartnerSidebar — Redesigned sidebar for /partner/* microsite
+   Desktop: sticky 280px left column
+   Mobile: full-width, stacks above content
    ============================================================ */
 
-const PARTNER_NAV = [
-  { label: "Partner Home", href: "/partner" },
-  { label: "Editorial", href: "/partner/editorial" },
-  { label: "Events", href: "/partner/events" },
-  { label: "Marketing", href: "/partner/marketing" },
-  { label: "About", href: "/partner/about" },
-  { label: "Contact", href: "/partner/contact" },
+const SIDEBAR_NAV = [
+  { label: "Editorial Features", href: "/partner/editorial" },
+  { label: "Event Partnerships", href: "/partner/events" },
+  { label: "Marketing Services", href: "/partner/marketing" },
+  { label: "About AVV Media", href: "/partner/about" },
 ] as const;
 
 const STATS = [
-  { value: "120K+", label: "Monthly Reach" },
-  { value: "50+", label: "Brand Partners" },
-  { value: "200+", label: "Events Covered" },
+  { value: "608K+", label: "Monthly Reach" },
+  { value: "56K", label: "Followers" },
+  { value: "100+", label: "Businesses Covered" },
 ] as const;
 
-interface PartnerSidebarProps {
-  activePath?: string;
-}
-
-export function PartnerSidebar({ activePath }: PartnerSidebarProps) {
+export function PartnerSidebar() {
   return (
-    <div className="space-y-8">
-      {/* Navigation */}
-      <div className="border border-gray-100 p-5">
-        <h4 className="font-display text-card-sm font-semibold mb-4 text-[#c1121f]">
-          Partner With Us
-        </h4>
-        <ul className="space-y-1.5">
-          {PARTNER_NAV.map((item) => (
-            <li key={item.href}>
-              <Link
-                href={item.href}
-                className={`flex items-center justify-between text-sm py-1.5 transition-colors ${
-                  activePath === item.href
-                    ? "text-black font-semibold"
-                    : "text-gray-dark hover:text-black"
+    <aside className="w-full lg:w-[280px] shrink-0 bg-[#fafafa] border-b lg:border-b-0 lg:border-r border-[#e5e5e5] lg:sticky lg:top-[110px] lg:max-h-[calc(100vh-130px)] lg:overflow-y-auto">
+      <div className="p-6 lg:p-7 space-y-8">
+        {/* ── Section 1: Navigation ── */}
+        <div>
+          <p className="text-[11px] font-semibold uppercase tracking-[2px] text-[#999] mb-5">
+            Explore Partnerships
+          </p>
+          <ul className="space-y-0">
+            {SIDEBAR_NAV.map((item) => (
+              <li key={item.href}>
+                <Link
+                  href={item.href}
+                  className="flex items-center gap-2.5 text-[14px] text-[#1a1a1a] py-3 border-b border-[#eee] hover:text-[#c1121f] transition-colors"
+                >
+                  <span className="text-[#c1121f] text-xs">&#10022;</span>
+                  <span>{item.label}</span>
+                </Link>
+              </li>
+            ))}
+          </ul>
+        </div>
+
+        {/* ── Section 2: Stats Widget ── */}
+        <div className="bg-white border border-[#e5e5e5] p-5">
+          <p className="text-[11px] font-semibold uppercase tracking-[2px] text-[#999] mb-5">
+            By the Numbers
+          </p>
+          <div className="space-y-0">
+            {STATS.map((stat, i) => (
+              <div
+                key={stat.label}
+                className={`flex items-center justify-between py-3 ${
+                  i < STATS.length - 1 ? "border-b border-[#f0f0f0]" : ""
                 }`}
               >
-                <span>{item.label}</span>
-                <ArrowRight size={12} className="text-gray-mid" />
-              </Link>
-            </li>
-          ))}
-        </ul>
-      </div>
+                <span className="font-display text-2xl font-bold text-[#1a1a1a]">
+                  {stat.value}
+                </span>
+                <span className="text-[11px] uppercase tracking-[1px] text-[#999]">
+                  {stat.label}
+                </span>
+              </div>
+            ))}
+          </div>
+        </div>
 
-      {/* Stats */}
-      <div className="border border-gray-100 p-5">
-        <h4 className="font-display text-card-sm font-semibold mb-4">
-          By the Numbers
-        </h4>
-        <div className="space-y-4">
-          {STATS.map((stat) => (
-            <div key={stat.label}>
-              <span className="font-display text-2xl font-bold text-[#c1121f]">
-                {stat.value}
-              </span>
-              <p className="text-xs text-gray-mid uppercase tracking-eyebrow mt-0.5">
-                {stat.label}
-              </p>
-            </div>
-          ))}
+        {/* ── Section 3: Dark CTA Block ── */}
+        <div className="bg-[#1a1a1a] p-6">
+          <p className="font-display text-lg italic text-white mb-2">
+            Ready to partner?
+          </p>
+          <p className="text-[13px] text-[#aaa] mb-5">
+            Let&rsquo;s tell your Atlanta story together.
+          </p>
+          <Link
+            href="/partner/contact"
+            className="block w-full text-center bg-[#fee198] text-[#1a1a1a] text-[12px] font-bold uppercase tracking-[1px] px-5 py-3 rounded-full hover:bg-white transition-colors"
+          >
+            Talk to the Team
+          </Link>
         </div>
       </div>
-
-      {/* CTA */}
-      <div className="bg-[#1a1a1a] p-5 text-white">
-        <h4 className="font-display text-card-sm font-semibold text-white mb-2">
-          Ready to Partner?
-        </h4>
-        <p className="text-sm text-white/70 mb-4">
-          Let&rsquo;s create something impactful together.
-        </p>
-        <Link
-          href="/partner/contact"
-          className="block w-full text-center bg-[#fee198] text-[#1a1a1a] font-semibold text-sm uppercase tracking-wide px-6 py-3 hover:bg-[#f5d87a] transition-colors"
-        >
-          Get Started
-        </Link>
-      </div>
-    </div>
+    </aside>
   );
 }

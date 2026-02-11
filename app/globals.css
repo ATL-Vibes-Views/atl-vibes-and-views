@@ -295,6 +295,14 @@ hr {
   outline-offset: 2px;
 }
 
+/* --- Partner Microsite — Hide global header/footer --- */
+body:has([data-partner-layout]) > header {
+  display: none !important;
+}
+body:has([data-partner-layout]) > footer {
+  display: none !important;
+}
+
 /* --- Partner Page Animations --- */
 @keyframes scroll {
   0% {
