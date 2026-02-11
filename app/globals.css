@@ -294,3 +294,13 @@ hr {
   outline: 2px solid var(--gold-dark);
   outline-offset: 2px;
 }
+
+/* --- Partner Page Animations --- */
+@keyframes scroll {
+  0% {
+    transform: translateX(0);
+  }
+  100% {
+    transform: translateX(-50%);
+  }
+}
