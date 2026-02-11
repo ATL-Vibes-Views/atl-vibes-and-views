@@ -29,6 +29,8 @@ import type {
   Amenity,
   IdentityOption,
   NeighborhoodGrouped,
+  NewsletterSection,
+  NewsletterPost,
 } from "./types";
 
 function sb() {
@@ -952,6 +954,141 @@ export async function getNewsletterTypes(): Promise<NewsletterType[]> {
     .returns<NewsletterType[]>();
   if (error) {
     console.error("getNewsletterTypes error:", error.message);
+    return [];
+  }
+  return data ?? [];
+}
+
+/** Single newsletter by issue_slug */
+export async function getNewsletterBySlug(
+  issueSlug: string
+): Promise<Newsletter | null> {
+  const { data, error } = await sb()
+    .from("newsletters")
+    .select("*")
+    .eq("issue_slug", issueSlug)
+    .eq("status", "published")
+    .eq("is_public", true)
+    .single()
+    .returns<Newsletter>();
+  if (error && error.code !== "PGRST116") {
+    console.error("getNewsletterBySlug error:", error.message);
+    return null;
+  }
+  return data;
+}
+
+/** Newsletters filtered by type name, with optional search */
+export async function getNewslettersByType(opts?: {
+  typeName?: string;
+  search?: string;
+  limit?: number;
+}): Promise<Newsletter[]> {
+  try {
+    let q = sb()
+      .from("newsletters")
+      .select("*")
+      .eq("status", "published")
+      .eq("is_public", true)
+      .order("issue_date", { ascending: false });
+
+    if (opts?.typeName) q = q.eq("name", opts.typeName);
+    if (opts?.search)
+      q = q.or(
+        `subject_line.ilike.%${opts.search}%,preview_text.ilike.%${opts.search}%`
+      );
+    if (opts?.limit) q = q.limit(opts.limit);
+
+    const { data, error } = await q.returns<Newsletter[]>();
+    if (error) {
+      console.error("getNewslettersByType error:", error.message);
+      return [];
+    }
+    return data ?? [];
+  } catch {
+    return [];
+  }
+}
+
+/** Previous and next newsletters (by issue_date) for navigation */
+export async function getAdjacentNewsletters(
+  issueDate: string,
+  currentId: string
+): Promise<{ prev: Newsletter | null; next: Newsletter | null }> {
+  const [prevRes, nextRes] = await Promise.all([
+    sb()
+      .from("newsletters")
+      .select("*")
+      .eq("status", "published")
+      .eq("is_public", true)
+      .lt("issue_date", issueDate)
+      .order("issue_date", { ascending: false })
+      .limit(1)
+      .returns<Newsletter[]>(),
+    sb()
+      .from("newsletters")
+      .select("*")
+      .eq("status", "published")
+      .eq("is_public", true)
+      .gt("issue_date", issueDate)
+      .order("issue_date", { ascending: true })
+      .limit(1)
+      .returns<Newsletter[]>(),
+  ]);
+
+  return {
+    prev: prevRes.data?.[0] ?? null,
+    next: nextRes.data?.[0] ?? null,
+  };
+}
+
+/* ============================================================
+   NEWSLETTER SECTIONS & POSTS (structured content)
+   ============================================================ */
+
+/** Sections for a newsletter issue, ordered by sort_order */
+export async function getNewsletterSections(
+  newsletterId: string
+): Promise<NewsletterSection[]> {
+  const { data, error } = await sb()
+    .from("newsletter_sections")
+    .select("*")
+    .eq("newsletter_id", newsletterId)
+    .order("sort_order", { ascending: true })
+    .returns<NewsletterSection[]>();
+  if (error) {
+    console.error("getNewsletterSections error:", error.message);
+    return [];
+  }
+  return data ?? [];
+}
+
+/** Blog posts linked to a newsletter, joined with blog_posts, ordered by position */
+export interface NewsletterPostWithBlog extends NewsletterPost {
+  blog_post: {
+    id: string;
+    title: string;
+    slug: string;
+    excerpt: string | null;
+    featured_image_url: string | null;
+    published_at: string | null;
+    category_id: string | null;
+  } | null;
+}
+
+export async function getNewsletterPosts(
+  newsletterId: string
+): Promise<NewsletterPostWithBlog[]> {
+  const { data, error } = await sb()
+    .from("newsletter_posts")
+    .select(
+      "*, blog_post:post_id(id, title, slug, excerpt, featured_image_url, published_at, category_id)"
+    )
+    .eq("newsletter_id", newsletterId)
+    .order("position", { ascending: true })
+    .returns<NewsletterPostWithBlog[]>();
+  if (error) {
+    console.error("getNewsletterPosts error:", error.message);
     return [];
   }
   return data ?? [];

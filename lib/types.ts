@@ -421,6 +421,27 @@ export interface MediaItemLink {
   updated_at: string;
 }
 
+/* --- Newsletter structured content tables --- */
+
+export interface NewsletterSection {
+  id: string;
+  newsletter_id: string;
+  section_name: string;
+  section_blurb: string | null;
+  section_image_url: string | null;
+  sort_order: number;
+  created_at: string;
+}
+
+export interface NewsletterPost {
+  id: string;
+  newsletter_id: string;
+  post_id: string;
+  section_id: string | null;
+  position: number;
+  created_at: string;
+}
+
 /* --- Submission types --- */
 
 export interface Submission {
