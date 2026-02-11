@@ -13,6 +13,7 @@ import type {
   BusinessFormData,
   EventFormData,
   Category,
+  City,
   Amenity,
   IdentityOption,
   NeighborhoodGrouped,
@@ -23,6 +24,7 @@ interface SubmitClientProps {
   neighborhoods: NeighborhoodGrouped[];
   amenities: Amenity[];
   identityOptions: IdentityOption[];
+  cities: City[];
 }
 
 const EMPTY_BUSINESS: BusinessFormData = {
@@ -34,7 +36,7 @@ const EMPTY_BUSINESS: BusinessFormData = {
   price_range: "",
   street_address: "",
   street_address_2: "",
-  city: "Atlanta",
+  city_id: "",
   state: "GA",
   zip_code: "",
   neighborhood_id: "",
@@ -94,7 +96,7 @@ const EMPTY_EVENT: EventFormData = {
   venue_business_id: "",
   street_address: "",
   street_address_2: "",
-  city: "Atlanta",
+  city_id: "",
   state: "GA",
   zip_code: "",
   neighborhood_id: "",
@@ -117,6 +119,7 @@ export function SubmitClient({
   neighborhoods,
   amenities,
   identityOptions,
+  cities,
 }: SubmitClientProps) {
   const searchParams = useSearchParams();
   /* Determine initial step from URL params */
@@ -182,7 +185,7 @@ export function SubmitClient({
       if (!businessData.category_id) return "Category is required.";
       if (!businessData.street_address.trim())
         return "Street address is required.";
-      if (!businessData.city.trim()) return "City is required.";
+      if (!businessData.city_id) return "City is required.";
       if (!businessData.state.trim()) return "State is required.";
       if (!businessData.zip_code.trim() || businessData.zip_code.length < 5)
         return "A valid ZIP code is required.";
@@ -382,6 +385,7 @@ export function SubmitClient({
                   neighborhoods={neighborhoods}
                   amenities={amenities}
                   identityOptions={identityOptions}
+                  cities={cities}
                   tier={tier}
                 />
               ) : (
@@ -390,6 +394,7 @@ export function SubmitClient({
                   onChange={setEventData}
                   categories={filteredCategories}
                   neighborhoods={neighborhoods}
+                  cities={cities}
                 />
               )}
 
@@ -437,6 +442,7 @@ export function SubmitClient({
               neighborhoods={neighborhoods}
               amenities={amenities}
               identityOptions={identityOptions}
+              cities={cities}
               agreed={agreed}
               onAgreeChange={setAgreed}
               onEdit={handleEdit}

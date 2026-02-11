@@ -515,7 +515,7 @@ export interface BusinessFormData {
   price_range: string;
   street_address: string;
   street_address_2: string;
-  city: string;
+  city_id: string;
   state: string;
   zip_code: string;
   neighborhood_id: string;
@@ -558,7 +558,7 @@ export interface EventFormData {
   venue_business_id: string;
   street_address: string;
   street_address_2: string;
-  city: string;
+  city_id: string;
   state: string;
   zip_code: string;
   neighborhood_id: string;
