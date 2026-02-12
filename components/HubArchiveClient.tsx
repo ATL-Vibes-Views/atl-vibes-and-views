@@ -158,9 +158,6 @@ export function HubArchiveClient({
       })
     : neighborhoods;
 
-  /* Active tag (for tag pills) */
-  const activeTag = currentFilters.tag ?? "";
-
   /* ---------- Push filters to URL ---------- */
   const pushFilters = useCallback(
     (overrides: Record<string, string | undefined>) => {
@@ -351,6 +348,24 @@ export function HubArchiveClient({
             </select>
           )}
 
+          {/* Tags */}
+          {tags.length > 0 && (
+            <select
+              value={currentFilters.tag ?? ""}
+              onChange={(e) =>
+                pushFilters({ tag: e.target.value || undefined })
+              }
+              className="appearance-none bg-white border border-gray-200 rounded-full px-4 py-2 pr-8 text-[13px] text-gray-dark cursor-pointer"
+            >
+              <option value="">All Tags</option>
+              {tags.map((t) => (
+                <option key={t.id} value={t.slug}>
+                  {t.name}
+                </option>
+              ))}
+            </select>
+          )}
+
           {/* Clear */}
           {hasFilters && (
             <button
@@ -363,28 +378,6 @@ export function HubArchiveClient({
           )}
         </div>
 
-        {/* Tag pills */}
-        {tags.length > 0 && (
-          <div className="flex flex-wrap gap-2 mt-3">
-            {tags.map((t) => (
-              <button
-                key={t.id}
-                onClick={() =>
-                  pushFilters({
-                    tag: activeTag === t.slug ? undefined : t.slug,
-                  })
-                }
-                className={`px-3.5 py-1 text-[11px] font-semibold border rounded-full cursor-pointer transition-all ${
-                  activeTag === t.slug
-                    ? "bg-[#fee198] border-[#fee198] text-black"
-                    : "bg-white border-gray-200 text-gray-dark hover:border-[#e6c46d]"
-                }`}
-              >
-                {t.name}
-              </button>
-            ))}
-          </div>
-        )}
       </section>
 
       {/* ========== 4. FEATURED (Premium only) ========== */}
