@@ -38,11 +38,13 @@ export default async function BeyondATLLandingPage({
   const search = q?.trim() || undefined;
 
   /* ── Data fetch — single parallel batch ── */
+  const fetchStart = Date.now();
   const [cities, blogPosts, mediaItems] = await Promise.all([
     getCities({ excludePrimary: true }),
     getBlogPosts({ limit: 8 }),
     getMediaItems({ limit: 4 }).catch(() => []),
   ]);
+  console.log(`[/beyond-atl] All queries completed in ${Date.now() - fetchStart}ms`);
 
   /* ── Search: filter cities ── */
   const filteredCities = search
