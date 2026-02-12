@@ -28,12 +28,17 @@ const HUB_ITEMS = [
   { name: "Atlanta Guide", slug: "atlanta-guide", image: "https://placehold.co/200x120/1a1a1a/fee198?text=Guide" },
 ];
 
-/* === BEYOND ATL — cities dropdown === */
+/* === BEYOND ATL — cities dropdown (alphabetical, matches sort_order) === */
 const BEYOND_ATL_CITIES = [
-  { name: "Decatur", slug: "decatur" },
-  { name: "Marietta", slug: "marietta" },
   { name: "Alpharetta", slug: "alpharetta" },
+  { name: "Brookhaven", slug: "brookhaven" },
+  { name: "Chamblee", slug: "chamblee" },
+  { name: "Decatur", slug: "decatur" },
+  { name: "Doraville", slug: "doraville" },
+  { name: "Fayetteville", slug: "fayetteville" },
+  { name: "Marietta", slug: "marietta" },
   { name: "Sandy Springs", slug: "sandy-springs" },
+  { name: "Smyrna", slug: "smyrna" },
 ];
 
 const SOCIAL_LINKS = [
@@ -58,7 +63,6 @@ export function Header({ exploreData = [] }: HeaderProps) {
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [drawerVisible, setDrawerVisible] = useState(false);
   const [activeDropdown, setActiveDropdown] = useState<string | null>(null);
-  const [beyondSubmenuOpen, setBeyondSubmenuOpen] = useState(false);
   const [searchOpen, setSearchOpen] = useState(false);
   const [closeSpinning, setCloseSpinning] = useState(false);
   /* Desktop: which area is hovered in the Explore ATL flyout */
@@ -68,14 +72,13 @@ export function Header({ exploreData = [] }: HeaderProps) {
   const [mobileExploreAreaSlug, setMobileExploreAreaSlug] = useState<string | null>(null);
   const [mobileHubOpen, setMobileHubOpen] = useState(false);
   const [mobileBeyondOpen, setMobileBeyondOpen] = useState(false);
-  const [mobileCitiesOpen, setMobileCitiesOpen] = useState(false);
   const dropdownTimeout = useRef<NodeJS.Timeout | null>(null);
 
   /* Auto-select first area when Explore dropdown opens */
   const firstAreaSlug = exploreData[0]?.area_slug ?? null;
 
   useEffect(() => {
-    const handleClick = () => { setActiveDropdown(null); setBeyondSubmenuOpen(false); };
+    const handleClick = () => { setActiveDropdown(null); };
     if (activeDropdown) {
       document.addEventListener("click", handleClick);
       return () => document.removeEventListener("click", handleClick);
@@ -91,10 +94,9 @@ export function Header({ exploreData = [] }: HeaderProps) {
     if (dropdownTimeout.current) clearTimeout(dropdownTimeout.current);
     setActiveDropdown(name);
     if (name === "areas") setHoveredAreaSlug(firstAreaSlug);
-    if (name !== "beyond") setBeyondSubmenuOpen(false);
   };
   const handleDropdownLeave = () => {
-    dropdownTimeout.current = setTimeout(() => { setActiveDropdown(null); setBeyondSubmenuOpen(false); setHoveredAreaSlug(null); }, 200);
+    dropdownTimeout.current = setTimeout(() => { setActiveDropdown(null); setHoveredAreaSlug(null); }, 200);
   };
 
   const openDrawer = () => {
@@ -239,27 +241,15 @@ export function Header({ exploreData = [] }: HeaderProps) {
 
           {/* Beyond ATL */}
           <div className="relative" onMouseEnter={() => handleDropdownEnter("beyond")} onMouseLeave={handleDropdownLeave}>
-            <NavDropdownTrigger active={activeDropdown === "beyond"}>Beyond ATL</NavDropdownTrigger>
+            <NavDropdownTriggerLink href="/beyond-atl" active={activeDropdown === "beyond"}>Beyond ATL</NavDropdownTriggerLink>
             {activeDropdown === "beyond" && (
               <DropdownPanel>
-                <div
-                  className="relative"
-                  onMouseEnter={() => setBeyondSubmenuOpen(true)}
-                  onMouseLeave={() => setBeyondSubmenuOpen(false)}
-                >
-                  <button className="flex items-center justify-between w-full px-5 py-2.5 text-sm text-gray-dark hover:bg-gray-50 hover:text-black transition-colors">
-                    <span>Cities</span>
-                    <ChevronRight size={14} className="text-gray-400" />
-                  </button>
-                  {beyondSubmenuOpen && (
-                    <div className="absolute left-full top-0 w-48 bg-white border border-gray-100 shadow-lg py-2 z-50 -ml-px">
-                      {BEYOND_ATL_CITIES.map((city) => (
-                        <DropdownLink key={city.slug} href={`/beyond-atl/${city.slug}`}>{city.name}</DropdownLink>
-                      ))}
-                    </div>
-                  )}
+                {BEYOND_ATL_CITIES.map((city) => (
+                  <DropdownLink key={city.slug} href={`/beyond-atl/${city.slug}`}>{city.name}</DropdownLink>
+                ))}
+                <div className="border-t border-gray-100 mt-1 pt-1">
+                  <DropdownLink href="/beyond-atl" highlight>Explore All Cities →</DropdownLink>
                 </div>
-                <DropdownLink href="/beyond-atl/relocation">Relocation</DropdownLink>
               </DropdownPanel>
             )}
           </div>
@@ -398,7 +388,7 @@ export function Header({ exploreData = [] }: HeaderProps) {
                   )}
                 </div>
 
-                {/* Beyond ATL — expandable with cities sub */}
+                {/* Beyond ATL — expandable with flat city list */}
                 <div>
                   <button onClick={() => setMobileBeyondOpen(!mobileBeyondOpen)} className="flex items-center justify-between w-full py-3 text-white text-[15px] font-semibold hover:text-gold-light transition-colors">
                     <span>Beyond ATL</span>
@@ -406,18 +396,10 @@ export function Header({ exploreData = [] }: HeaderProps) {
                   </button>
                   {mobileBeyondOpen && (
                     <div className="pl-4 pb-2 space-y-0.5">
-                      <button onClick={() => setMobileCitiesOpen(!mobileCitiesOpen)} className="flex items-center justify-between w-full py-2 text-white/60 text-sm hover:text-gold-light transition-colors">
-                        <span>Cities</span>
-                        <ChevronDown size={14} className={`transition-transform duration-200 ${mobileCitiesOpen ? "rotate-180" : ""}`} />
-                      </button>
-                      {mobileCitiesOpen && (
-                        <div className="pl-4 pb-1 space-y-0.5">
-                          {BEYOND_ATL_CITIES.map((city) => (
-                            <Link key={city.slug} href={`/beyond-atl/${city.slug}`} onClick={closeDrawer} className="block py-1.5 text-white/50 text-sm hover:text-gold-light transition-colors">{city.name}</Link>
-                          ))}
-                        </div>
-                      )}
-                      <Link href="/beyond-atl/relocation" onClick={closeDrawer} className="block py-2 text-white/60 text-sm hover:text-gold-light transition-colors">Relocation</Link>
+                      {BEYOND_ATL_CITIES.map((city) => (
+                        <Link key={city.slug} href={`/beyond-atl/${city.slug}`} onClick={closeDrawer} className="block py-2 text-white/60 text-sm hover:text-gold-light transition-colors">{city.name}</Link>
+                      ))}
+                      <Link href="/beyond-atl" onClick={closeDrawer} className="block py-2 text-[#c1121f] text-sm font-semibold hover:text-gold-light transition-colors">Explore All Cities →</Link>
                     </div>
                   )}
                 </div>
@@ -479,13 +461,6 @@ function NavDropdownTriggerLink({ href, children, active }: { href: string; chil
   );
 }
 
-function NavDropdownTrigger({ children, active }: { children: React.ReactNode; active: boolean }) {
-  return (
-    <button className={`flex items-center gap-1 text-[13px] font-semibold uppercase tracking-eyebrow py-1 transition-colors ${active ? "text-red-brand" : "text-black hover:text-red-brand"}`}>
-      {children}<ChevronDown size={12} className={`transition-transform duration-200 ${active ? "rotate-180" : ""}`} />
-    </button>
-  );
-}
 
 function DropdownPanel({ children }: { children: React.ReactNode }) {
   return <div className="absolute top-full left-1/2 -translate-x-1/2 mt-2 w-56 bg-white border border-gray-100 shadow-lg py-2 z-50">{children}</div>;

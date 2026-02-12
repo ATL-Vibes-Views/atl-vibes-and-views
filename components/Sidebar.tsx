@@ -118,9 +118,15 @@ interface NeighborhoodLink {
 export function NeighborhoodsWidget({
   title = "Neighborhoods",
   neighborhoods,
+  linkPrefix = "/neighborhoods",
+  seeAllHref = "/neighborhoods",
+  seeAllLabel = "See All Neighborhoods →",
 }: {
   title?: string;
   neighborhoods: NeighborhoodLink[];
+  linkPrefix?: string;
+  seeAllHref?: string;
+  seeAllLabel?: string;
 }) {
   return (
     <SidebarWidget>
@@ -129,7 +135,7 @@ export function NeighborhoodsWidget({
         {neighborhoods.map((n) => (
           <li key={n.slug}>
             <Link
-              href={`/neighborhoods/${n.slug}`}
+              href={`${linkPrefix}/${n.slug}`}
               className="flex items-center justify-between text-sm text-gray-dark hover:text-black transition-colors py-1"
             >
               <span>{n.name}</span>
@@ -141,10 +147,10 @@ export function NeighborhoodsWidget({
         ))}
       </ul>
       <Link
-        href="/neighborhoods"
+        href={seeAllHref}
         className="inline-block mt-4 text-xs font-semibold uppercase tracking-eyebrow text-red-brand hover:text-black transition-colors"
       >
-        See All Neighborhoods →
+        {seeAllLabel}
       </Link>
     </SidebarWidget>
   );

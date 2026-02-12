@@ -237,6 +237,7 @@ export async function getBusinesses(opts?: {
   search?: string;
   categoryId?: string;
   neighborhoodIds?: string[];
+  cityId?: string;
   featured?: boolean;
   limit?: number;
   status?: string;
@@ -250,6 +251,7 @@ export async function getBusinesses(opts?: {
 
   if (opts?.featured) q = q.eq("is_featured", true);
   if (opts?.categoryId) q = q.eq("category_id", opts.categoryId);
+  if (opts?.cityId) q = q.eq("city_id", opts.cityId);
   if (opts?.neighborhoodIds?.length)
     q = q.in("neighborhood_id", opts.neighborhoodIds);
   if (opts?.search)
@@ -283,6 +285,7 @@ export async function getEvents(opts?: {
   search?: string;
   categoryId?: string;
   neighborhoodIds?: string[];
+  cityId?: string;
   featured?: boolean;
   upcoming?: boolean;
   limit?: number;
@@ -297,6 +300,7 @@ export async function getEvents(opts?: {
   if (opts?.featured) q = q.eq("is_featured", true);
   if (opts?.upcoming) q = q.gte("start_date", new Date().toISOString().split("T")[0]);
   if (opts?.categoryId) q = q.eq("category_id", opts.categoryId);
+  if (opts?.cityId) q = q.eq("city_id", opts.cityId);
   if (opts?.neighborhoodIds?.length)
     q = q.in("neighborhood_id", opts.neighborhoodIds);
   if (opts?.search)
@@ -384,6 +388,8 @@ export async function getCategoryBySlug(slug: string): Promise<Category | null> 
 
 export async function getCities(opts?: {
   primary?: boolean;
+  excludePrimary?: boolean;
+  excludeId?: string;
 }): Promise<City[]> {
   let q = sb()
     .from("cities")
@@ -392,10 +398,23 @@ export async function getCities(opts?: {
     .order("sort_order");
 
   if (opts?.primary) q = q.eq("is_primary", true);
+  if (opts?.excludePrimary) q = q.eq("is_primary", false);
+  if (opts?.excludeId) q = q.neq("id", opts.excludeId);
 
   const { data, error } = await q;
   if (error) throw error;
   return data ?? [];
+}
+
+export async function getCityBySlug(slug: string): Promise<City | null> {
+  const { data, error } = await sb()
+    .from("cities")
+    .select("*")
+    .eq("slug", slug)
+    .eq("is_active", true)
+    .single();
+  if (error && error.code !== "PGRST116") throw error;
+  return data;
 }
 
 /* ============================================================
