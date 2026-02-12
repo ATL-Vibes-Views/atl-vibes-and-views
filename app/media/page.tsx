@@ -1,5 +1,7 @@
 import { Suspense } from "react";
 import type { Metadata } from "next";
+import Link from "next/link";
+import { ArrowRight } from "lucide-react";
 import { NewsletterBlock } from "@/components/ui/NewsletterBlock";
 import { ShortsCarousel } from "@/components/ui/ShortsCarousel";
 import { InstagramFeed } from "@/components/ui/InstagramFeed";
@@ -77,6 +79,17 @@ export default async function MediaPage({
           activeTab={activeTab}
         />
       </Suspense>
+
+      {/* Browse Library CTA */}
+      <div className="site-container pb-8 flex justify-center">
+        <Link
+          href="/media/library"
+          className="inline-flex items-center gap-2 px-8 py-3 bg-[#fee198] text-[#1a1a1a] text-xs font-semibold uppercase tracking-[0.1em] rounded-full hover:bg-[#f5d87a] transition-colors"
+        >
+          Browse Library
+          <ArrowRight size={14} />
+        </Link>
+      </div>
 
       {/* Shorts carousel */}
       <ShortsCarousel shorts={shorts} />
