@@ -18,8 +18,9 @@ import {
   getContentIndexByToken,
   getMediaItems,
   getCategoryBySlug,
+  getBusinessCountsByNeighborhood,
+  getStoryCountsByNeighborhood,
 } from "@/lib/queries";
-import { createServerClient } from "@/lib/supabase";
 import type { Metadata } from "next";
 
 /* ============================================================
@@ -136,32 +137,10 @@ export default async function NeighborhoodsLandingPage({
   const heroImageUrl = ci?.hero_image_url || PH_HERO;
 
   /* ── Business + story counts per neighborhood ── */
-  const supabase = createServerClient();
-
-  const [{ data: bizCountRows }, { data: storyCountRows }] = await Promise.all([
-    supabase
-      .from("business_listings")
-      .select("neighborhood_id")
-      .eq("status", "active")
-      .not("neighborhood_id", "is", null)
-      .returns<{ neighborhood_id: string }[]>(),
-    supabase
-      .from("blog_posts")
-      .select("neighborhood_id")
-      .eq("status", "published")
-      .not("neighborhood_id", "is", null)
-      .returns<{ neighborhood_id: string }[]>(),
+  const [bizCounts, storyCounts] = await Promise.all([
+    getBusinessCountsByNeighborhood(),
+    getStoryCountsByNeighborhood(),
   ]);
-
-  const bizCounts: Record<string, number> = {};
-  for (const row of bizCountRows ?? []) {
-    bizCounts[row.neighborhood_id] = (bizCounts[row.neighborhood_id] ?? 0) + 1;
-  }
-
-  const storyCounts: Record<string, number> = {};
-  for (const row of storyCountRows ?? []) {
-    storyCounts[row.neighborhood_id] = (storyCounts[row.neighborhood_id] ?? 0) + 1;
-  }
 
   /* ── Area name map for card eyebrows ── */
   const areaNameMap: Record<string, string> = {};

@@ -1602,6 +1602,44 @@ export async function getRelatedBusinesses(opts: {
   });
 }
 
+/** Count active businesses grouped by neighborhood_id */
+export async function getBusinessCountsByNeighborhood(
+  neighborhoodIds?: string[]
+): Promise<Record<string, number>> {
+  let q = sb()
+    .from("business_listings")
+    .select("neighborhood_id")
+    .eq("status", "active")
+    .not("neighborhood_id", "is", null);
+
+  if (neighborhoodIds?.length) {
+    q = q.in("neighborhood_id", neighborhoodIds);
+  }
+
+  const { data } = await q.returns<{ neighborhood_id: string }[]>();
+  const counts: Record<string, number> = {};
+  for (const row of data ?? []) {
+    counts[row.neighborhood_id] = (counts[row.neighborhood_id] ?? 0) + 1;
+  }
+  return counts;
+}
+
+/** Count published blog posts grouped by neighborhood_id */
+export async function getStoryCountsByNeighborhood(): Promise<Record<string, number>> {
+  const { data } = await sb()
+    .from("blog_posts")
+    .select("neighborhood_id")
+    .eq("status", "published")
+    .not("neighborhood_id", "is", null)
+    .returns<{ neighborhood_id: string }[]>();
+
+  const counts: Record<string, number> = {};
+  for (const row of data ?? []) {
+    counts[row.neighborhood_id] = (counts[row.neighborhood_id] ?? 0) + 1;
+  }
+  return counts;
+}
+
 /** Blog posts linked to a business via post_businesses join table */
 export async function getLinkedBlogPosts(businessId: string, limit = 4): Promise<any[]> {
   const { data: links } = await sb()

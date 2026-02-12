@@ -24,8 +24,8 @@ import {
   getEvents,
   getCategoryBySlug,
   getMediaItems,
+  getBusinessCountsByNeighborhood,
 } from "@/lib/queries";
-import { createServerClient } from "@/lib/supabase";
 
 /* ============================================================
    HELPERS
@@ -145,24 +145,11 @@ export default async function AreaDetailPage({
   /* ── Full neighborhood cards with business counts ── */
   const allAreaNeighborhoods = await getNeighborhoods({ areaId: area.id, limit: 100 });
 
-  const supabase = createServerClient();
   const allAreaNIds = allAreaNeighborhoods.map((n) => n.id);
-  const { data: bizCountRows } = allAreaNIds.length > 0
-    ? await supabase
-        .from("business_listings")
-        .select("neighborhood_id")
-        .eq("status", "active")
-        .in("neighborhood_id", allAreaNIds)
-        .returns<{ neighborhood_id: string }[]>()
-    : { data: [] as { neighborhood_id: string }[] };
-
-  const neighborhoodBizCount = new Map<string, number>();
-  for (const row of bizCountRows ?? []) {
-    neighborhoodBizCount.set(
-      row.neighborhood_id,
-      (neighborhoodBizCount.get(row.neighborhood_id) ?? 0) + 1
-    );
-  }
+  const bizCounts = allAreaNIds.length > 0
+    ? await getBusinessCountsByNeighborhood(allAreaNIds)
+    : {};
+  const neighborhoodBizCount = new Map<string, number>(Object.entries(bizCounts));
 
   /* ── Stories fallback: if 0 area-specific, show city-wide (limit 3) ── */
   let posts = areaPosts;
