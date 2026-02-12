@@ -1,4 +1,4 @@
-# REAL SUPABASE DATABASE SCHEMA — Exported Feb 11, 2026
+# REAL SUPABASE DATABASE SCHEMA — Exported Feb 11, 2026 (v2 — COMPLETE)
 
 **THIS IS THE ONLY SOURCE OF TRUTH. Do NOT use lib/types.ts as schema reference.**
 
@@ -8,6 +8,86 @@
 
 ```csv
 table_name,column_name,data_type,is_nullable
+ad_campaigns,id,uuid,NO
+ad_campaigns,sponsor_id,uuid,NO
+ad_campaigns,name,text,NO
+ad_campaigns,start_date,date,NO
+ad_campaigns,end_date,date,NO
+ad_campaigns,budget,numeric,YES
+ad_campaigns,status,text,NO
+ad_campaigns,notes,text,YES
+ad_campaigns,created_at,timestamp with time zone,NO
+ad_campaigns,updated_at,timestamp with time zone,NO
+ad_creatives,id,uuid,NO
+ad_creatives,campaign_id,uuid,NO
+ad_creatives,creative_type,text,NO
+ad_creatives,headline,character varying,YES
+ad_creatives,body,character varying,YES
+ad_creatives,cta_text,character varying,YES
+ad_creatives,target_url,text,NO
+ad_creatives,image_url,text,YES
+ad_creatives,media_asset_id,uuid,YES
+ad_creatives,alt_text,text,YES
+ad_creatives,utm_campaign,text,YES
+ad_creatives,utm_source,text,YES
+ad_creatives,utm_medium,text,YES
+ad_creatives,is_active,boolean,NO
+ad_creatives,created_at,timestamp with time zone,NO
+ad_creatives,updated_at,timestamp with time zone,NO
+ad_flights,id,uuid,NO
+ad_flights,placement_id,uuid,NO
+ad_flights,campaign_id,uuid,NO
+ad_flights,creative_id,uuid,NO
+ad_flights,start_date,date,NO
+ad_flights,end_date,date,NO
+ad_flights,status,text,NO
+ad_flights,priority,integer,YES
+ad_flights,share_of_voice,integer,YES
+ad_flights,cap_impressions,integer,YES
+ad_flights,cap_clicks,integer,YES
+ad_flights,created_at,timestamp with time zone,NO
+ad_flights,updated_at,timestamp with time zone,NO
+ad_placements,id,uuid,NO
+ad_placements,name,text,NO
+ad_placements,channel,text,NO
+ad_placements,placement_key,text,NO
+ad_placements,page_type,text,YES
+ad_placements,dimensions,text,YES
+ad_placements,description,text,YES
+ad_placements,is_active,boolean,NO
+ad_placements,created_at,timestamp with time zone,NO
+amenities,id,uuid,NO
+amenities,name,text,NO
+amenities,slug,text,NO
+amenities,amenity_group,text,YES
+amenities,sort_order,integer,NO
+amenities,created_at,timestamp with time zone,NO
+areas,id,uuid,NO
+areas,name,text,NO
+areas,slug,text,NO
+areas,city_id,uuid,NO
+areas,description,text,YES
+areas,tagline,text,YES
+areas,hero_image_url,text,YES
+areas,map_center_lat,numeric,YES
+areas,map_center_lng,numeric,YES
+areas,is_active,boolean,NO
+areas,sort_order,integer,NO
+areas,created_at,timestamp with time zone,NO
+areas,updated_at,timestamp with time zone,NO
+authors,id,uuid,NO
+authors,name,text,NO
+authors,slug,text,NO
+authors,bio,text,YES
+authors,avatar_url,text,YES
+authors,email,text,YES
+authors,website,text,YES
+authors,instagram,text,YES
+authors,twitter,text,YES
+authors,role,text,YES
+authors,is_active,boolean,NO
+authors,created_at,timestamp with time zone,NO
+authors,updated_at,timestamp with time zone,NO
 blog_posts,id,uuid,NO
 blog_posts,title,text,NO
 blog_posts,slug,text,NO
