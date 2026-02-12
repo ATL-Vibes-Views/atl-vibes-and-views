@@ -1411,3 +1411,214 @@ export async function getHubBusinesses(opts: {
 
   return { featured, grid, gridCount: gridCount ?? 0, map };
 }
+
+/* ============================================================
+   BUSINESS DETAIL — shared queries for /places/[slug]
+   and /things-to-do/[slug]
+   ============================================================ */
+
+/** Single business with full joins (neighborhood → area, category, city) */
+export async function getBusinessDetailBySlug(slug: string): Promise<any | null> {
+  const { data, error } = await sb()
+    .from("business_listings")
+    .select(`
+      *,
+      neighborhoods (
+        id, name, slug, area_id,
+        areas ( id, name, slug )
+      ),
+      categories ( id, name, slug ),
+      cities ( name )
+    `)
+    .eq("slug", slug)
+    .eq("status", "active")
+    .single();
+
+  if (error || !data) return null;
+  return data;
+}
+
+/** All images for a business, ordered by sort_order */
+export async function getBusinessImages(businessId: string): Promise<any[]> {
+  const { data } = await sb()
+    .from("business_images")
+    .select("*")
+    .eq("business_id", businessId)
+    .order("sort_order", { ascending: true });
+  return data ?? [];
+}
+
+/** Operating hours for a business */
+export async function getBusinessHours(businessId: string): Promise<any[]> {
+  const { data } = await sb()
+    .from("business_hours")
+    .select("*")
+    .eq("business_id", businessId);
+  return data ?? [];
+}
+
+/** Amenities linked to a business (names pre-mapped) */
+export async function getBusinessAmenityLinks(businessId: string): Promise<{ id: string; name: string }[]> {
+  const { data } = await sb()
+    .from("business_amenities")
+    .select("*, amenities ( id, name )")
+    .eq("business_id", businessId);
+  return (data ?? []).map((r: any) => r.amenities).filter(Boolean);
+}
+
+/** Tags linked to a business (names pre-mapped) */
+export async function getBusinessTagLinks(businessId: string): Promise<{ id: string; name: string }[]> {
+  const { data } = await sb()
+    .from("business_tags")
+    .select("*, tags ( id, name )")
+    .eq("business_id", businessId);
+  return (data ?? []).map((r: any) => r.tags).filter(Boolean);
+}
+
+/** Identity options linked to a business (names pre-mapped) */
+export async function getBusinessIdentityLinks(businessId: string): Promise<{ id: string; name: string }[]> {
+  const { data } = await sb()
+    .from("business_identities")
+    .select("*, business_identity_options ( id, name )")
+    .eq("business_id", businessId);
+  return (data ?? []).map((r: any) => r.business_identity_options).filter(Boolean);
+}
+
+/** Published reviews for a business */
+export async function getApprovedReviews(businessId: string): Promise<any[]> {
+  const { data } = await sb()
+    .from("reviews")
+    .select("*")
+    .eq("business_id", businessId)
+    .eq("status", "approved")
+    .order("published_at", { ascending: false });
+  return data ?? [];
+}
+
+/** Bulk primary images for a list of business IDs */
+export async function getBusinessPrimaryImages(
+  businessIds: string[]
+): Promise<Record<string, string>> {
+  if (!businessIds.length) return {};
+  const { data } = await sb()
+    .from("business_images")
+    .select("business_id, image_url, is_primary, sort_order")
+    .in("business_id", businessIds)
+    .order("sort_order", { ascending: true });
+  if (!data) return {};
+  const map: Record<string, string> = {};
+  for (const row of data as any[]) {
+    if (!map[row.business_id] || row.is_primary) {
+      map[row.business_id] = row.image_url;
+    }
+  }
+  return map;
+}
+
+/**
+ * Related businesses for detail page scrollers.
+ * Strategy: same neighborhood → same category (or scoped categories) → newest.
+ */
+export async function getRelatedBusinesses(opts: {
+  currentId: string;
+  neighborhoodId: string | null;
+  categoryId: string | null;
+  scopeCategoryIds?: string[];
+  limit?: number;
+}): Promise<any[]> {
+  const limit = opts.limit ?? 8;
+  let results: any[] = [];
+  const SELECT = "*, neighborhoods ( name, slug ), categories ( name, slug )";
+
+  // 1. Same neighborhood first
+  if (opts.neighborhoodId) {
+    let q = sb()
+      .from("business_listings")
+      .select(SELECT)
+      .eq("status", "active")
+      .eq("neighborhood_id", opts.neighborhoodId)
+      .neq("id", opts.currentId)
+      .limit(limit);
+
+    if (opts.scopeCategoryIds?.length) {
+      q = q.in("category_id", opts.scopeCategoryIds);
+    }
+
+    const { data } = await q;
+    if (data) results = data;
+  }
+
+  // 2. Backfill: same category (or scoped categories)
+  if (results.length < limit) {
+    const existingIds = results.map((r: any) => r.id);
+    const idFilter = existingIds.length
+      ? `(${existingIds.join(",")})`
+      : "(__none__)";
+
+    let q = sb()
+      .from("business_listings")
+      .select(SELECT)
+      .eq("status", "active")
+      .neq("id", opts.currentId)
+      .not("id", "in", idFilter)
+      .order("created_at", { ascending: false })
+      .limit(limit - results.length);
+
+    if (opts.scopeCategoryIds?.length) {
+      q = q.in("category_id", opts.scopeCategoryIds);
+    } else if (opts.categoryId) {
+      q = q.eq("category_id", opts.categoryId);
+    }
+
+    const { data } = await q;
+    if (data) results = [...results, ...data];
+  }
+
+  // 3. Backfill: newest active (no category filter, only for places page)
+  if (results.length < limit && !opts.scopeCategoryIds?.length) {
+    const existingIds = results.map((r: any) => r.id);
+    const idFilter = existingIds.length
+      ? `(${existingIds.join(",")})`
+      : "(__none__)";
+
+    const { data } = await sb()
+      .from("business_listings")
+      .select(SELECT)
+      .eq("status", "active")
+      .neq("id", opts.currentId)
+      .not("id", "in", idFilter)
+      .order("created_at", { ascending: false })
+      .limit(limit - results.length);
+
+    if (data) results = [...results, ...data];
+  }
+
+  // Deduplicate
+  const seen = new Set<string>();
+  return results.filter((r: any) => {
+    if (seen.has(r.id)) return false;
+    seen.add(r.id);
+    return true;
+  });
+}
+
+/** Blog posts linked to a business via post_businesses join table */
+export async function getLinkedBlogPosts(businessId: string, limit = 4): Promise<any[]> {
+  const { data: links } = await sb()
+    .from("post_businesses")
+    .select("post_id")
+    .eq("business_id", businessId)
+    .returns<{ post_id: string }[]>();
+
+  if (!links?.length) return [];
+
+  const { data: posts } = await sb()
+    .from("blog_posts")
+    .select("id, title, slug, excerpt, featured_image_url, published_at, categories ( name, slug )")
+    .in("id", links.map((l) => l.post_id))
+    .eq("status", "published")
+    .order("published_at", { ascending: false })
+    .limit(limit);
+
+  return posts ?? [];
+}

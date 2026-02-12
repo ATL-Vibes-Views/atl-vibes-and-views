@@ -15,7 +15,18 @@ import {
   Tag,
   Shield,
 } from "lucide-react";
-import { createServerClient } from "@/lib/supabase";
+import {
+  getBusinessDetailBySlug,
+  getBusinessImages,
+  getBusinessHours,
+  getBusinessAmenityLinks,
+  getBusinessTagLinks,
+  getBusinessIdentityLinks,
+  getApprovedReviews,
+  getRelatedBusinesses,
+  getBusinessPrimaryImages,
+  getLinkedBlogPosts,
+} from "@/lib/queries";
 import {
   QuickInfoStrip,
   PhotoGallery,
@@ -23,162 +34,6 @@ import {
   StarRating,
   MorePlacesScroller,
 } from "./BusinessDetailClient";
-
-/* =============================================================
-   INLINE SUPABASE HELPERS
-   ============================================================= */
-function sb() {
-  return createServerClient();
-}
-
-async function getBusinessBySlug(slug: string): Promise<any> {
-  const { data, error } = await sb()
-    .from("business_listings")
-    .select(
-      `
-      *,
-      neighborhoods ( id, name, slug, area_id,
-        areas ( id, name, slug )
-      ),
-      categories ( id, name, slug ),
-      cities ( name )
-    `
-    )
-    .eq("slug", slug)
-    .eq("status", "active")
-    .single();
-
-  if (error || !data) return null;
-  return data;
-}
-
-async function getBusinessImages(businessId: string): Promise<any[]> {
-  const { data } = await sb()
-    .from("business_images")
-    .select("*")
-    .eq("business_id", businessId)
-    .order("sort_order", { ascending: true });
-  return data ?? [];
-}
-
-async function getBusinessHours(businessId: string): Promise<any[]> {
-  const { data } = await sb()
-    .from("business_hours")
-    .select("*")
-    .eq("business_id", businessId);
-  return data ?? [];
-}
-
-async function getBusinessAmenities(businessId: string): Promise<any[]> {
-  const { data } = await sb()
-    .from("business_amenities")
-    .select("*, amenities ( id, name )")
-    .eq("business_id", businessId);
-  return data ?? [];
-}
-
-async function getBusinessTags(businessId: string): Promise<any[]> {
-  const { data } = await sb()
-    .from("business_tags")
-    .select("*, tags ( id, name )")
-    .eq("business_id", businessId);
-  return data ?? [];
-}
-
-async function getBusinessIdentities(businessId: string): Promise<any[]> {
-  const { data } = await sb()
-    .from("business_identities")
-    .select("*, business_identity_options ( id, name )")
-    .eq("business_id", businessId);
-  return data ?? [];
-}
-
-async function getApprovedReviews(businessId: string): Promise<any[]> {
-  const { data } = await sb()
-    .from("reviews")
-    .select("*")
-    .eq("business_id", businessId)
-    .eq("status", "approved")
-    .order("published_at", { ascending: false });
-  return data ?? [];
-}
-
-async function getMorePlaces(
-  currentId: string,
-  neighborhoodId: string | null,
-  categoryId: string | null
-) {
-  /* Same neighborhood first */
-  let results: any[] = [];
-
-  if (neighborhoodId) {
-    const { data } = await sb()
-      .from("business_listings")
-      .select("*, neighborhoods ( name, slug ), categories ( name, slug )")
-      .eq("status", "active")
-      .eq("neighborhood_id", neighborhoodId)
-      .neq("id", currentId)
-      .limit(8);
-    if (data) results = data;
-  }
-
-  /* Backfill with same category */
-  if (results.length < 8 && categoryId) {
-    const existingIds = results.map((r: any) => r.id);
-    const { data } = await sb()
-      .from("business_listings")
-      .select("*, neighborhoods ( name, slug ), categories ( name, slug )")
-      .eq("status", "active")
-      .eq("category_id", categoryId)
-      .neq("id", currentId)
-      .not("id", "in", `(${existingIds.join(",")})`)
-      .limit(8 - results.length);
-    if (data) results = [...results, ...data];
-  }
-
-  /* Backfill with newest active */
-  if (results.length < 8) {
-    const existingIds = results.map((r: any) => r.id);
-    const { data } = await sb()
-      .from("business_listings")
-      .select("*, neighborhoods ( name, slug ), categories ( name, slug )")
-      .eq("status", "active")
-      .neq("id", currentId)
-      .not("id", "in", `(${existingIds.join(",")})`)
-      .order("created_at", { ascending: false })
-      .limit(8 - results.length);
-    if (data) results = [...results, ...data];
-  }
-
-  /* Deduplicate */
-  const seen = new Set<string>();
-  return results.filter((r: any) => {
-    if (seen.has(r.id)) return false;
-    seen.add(r.id);
-    return true;
-  });
-}
-
-/* Get primary image for a list of businesses (for More Places cards) */
-async function getPrimaryImagesForBusinesses(
-  businessIds: string[]
-): Promise<Record<string, string>> {
-  if (!businessIds.length) return {};
-  const { data } = await sb()
-    .from("business_images")
-    .select("business_id, image_url, is_primary, sort_order")
-    .in("business_id", businessIds)
-    .order("sort_order", { ascending: true });
-  if (!data) return {};
-
-  const map: Record<string, string> = {};
-  for (const row of data as any[]) {
-    if (!map[row.business_id] || row.is_primary) {
-      map[row.business_id] = row.image_url;
-    }
-  }
-  return map;
-}
 
 /* =============================================================
    HELPERS
@@ -249,7 +104,7 @@ export async function generateMetadata({
   params: Promise<{ slug: string }>;
 }): Promise<Metadata> {
   const { slug } = await params;
-  const biz = await getBusinessBySlug(slug);
+  const biz = await getBusinessDetailBySlug(slug);
   if (!biz) return { title: "Business Not Found" };
   const neighborhood = biz.neighborhoods;
   const area = neighborhood?.areas;
@@ -278,7 +133,7 @@ export default async function BusinessDetailPage({
   params: Promise<{ slug: string }>;
 }) {
   const { slug } = await params;
-  const biz = await getBusinessBySlug(slug);
+  const biz = await getBusinessDetailBySlug(slug);
   if (!biz) notFound();
 
   const neighborhood = biz.neighborhoods;
@@ -286,23 +141,15 @@ export default async function BusinessDetailPage({
   const category = biz.categories;
 
   /* ── Parallel data fetches ── */
-  const [images, hours, amenityRows, tagRows, identityRows, reviews] =
+  const [images, hours, amenities, tags, identities, reviews] =
     await Promise.all([
       getBusinessImages(biz.id),
       getBusinessHours(biz.id),
-      getBusinessAmenities(biz.id),
-      getBusinessTags(biz.id),
-      getBusinessIdentities(biz.id),
+      getBusinessAmenityLinks(biz.id),
+      getBusinessTagLinks(biz.id),
+      getBusinessIdentityLinks(biz.id),
       getApprovedReviews(biz.id),
     ]);
-
-  const amenities = amenityRows
-    .map((r: any) => r.amenities)
-    .filter(Boolean);
-  const tags = tagRows.map((r: any) => r.tags).filter(Boolean);
-  const identities = identityRows
-    .map((r: any) => r.business_identity_options)
-    .filter(Boolean);
 
   /* ── Sort hours ── */
   const sortedHours = [...hours].sort(
@@ -326,32 +173,15 @@ export default async function BusinessDetailPage({
     "/images/default-hero.png";
 
   /* ── In the News: blog posts linked via post_businesses ── */
-  const { data: linkedPostRows } = await sb()
-    .from("post_businesses")
-    .select("post_id")
-    .eq("business_id", biz.id)
-    .returns<{ post_id: string }[]>();
-
-  let inTheNewsPosts: any[] = [];
-  if (linkedPostRows && linkedPostRows.length > 0) {
-    const postIds = linkedPostRows.map((r) => r.post_id);
-    const { data: posts } = await sb()
-      .from("blog_posts")
-      .select("id, title, slug, excerpt, featured_image_url, published_at, categories ( name, slug )")
-      .in("id", postIds)
-      .eq("status", "published")
-      .order("published_at", { ascending: false })
-      .limit(4);
-    inTheNewsPosts = posts ?? [];
-  }
+  const inTheNewsPosts = await getLinkedBlogPosts(biz.id);
 
   /* ── More places ── */
-  const morePlaces = await getMorePlaces(
-    biz.id,
-    biz.neighborhood_id,
-    biz.category_id
-  );
-  const morePlacesImageMap = await getPrimaryImagesForBusinesses(
+  const morePlaces = await getRelatedBusinesses({
+    currentId: biz.id,
+    neighborhoodId: biz.neighborhood_id,
+    categoryId: biz.category_id,
+  });
+  const morePlacesImageMap = await getBusinessPrimaryImages(
     morePlaces.map((p: any) => p.id)
   );
 
@@ -1109,7 +939,7 @@ export default async function BusinessDetailPage({
                     </Link>
                   ))}
                 </div>
-                {linkedPostRows && linkedPostRows.length > 4 && (
+                {inTheNewsPosts.length >= 4 && (
                   <div className="mt-4">
                     <Link
                       href={`/stories?search=${encodeURIComponent(biz.business_name)}`}
