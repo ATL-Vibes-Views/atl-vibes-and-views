@@ -51,6 +51,7 @@ export default async function AreasLandingPage({
   const search = q?.trim() || undefined;
 
   /* ── Data fetch — single parallel batch ── */
+  const fetchStart = Date.now();
   const [ci, areas, blogPosts, mediaItems] = await Promise.all([
     getContentIndexByToken("page-areas", {
       targetType: "area",
@@ -60,6 +61,7 @@ export default async function AreasLandingPage({
     getBlogPosts({ limit: 8 }),
     getMediaItems({ limit: 4 }).catch(() => []),
   ]);
+  console.log(`[/areas] All queries completed in ${Date.now() - fetchStart}ms`);
 
   /* ── Hero fields from content_index (fallback to defaults) ── */
   const heroTitle = ci?.page_title || DEFAULT_TITLE;
