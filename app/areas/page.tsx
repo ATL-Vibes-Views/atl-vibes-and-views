@@ -1,23 +1,20 @@
 import Link from "next/link";
 import Image from "next/image";
-import { ArrowRight, MapPin, Play, ChevronRight } from "lucide-react";
+import { ArrowRight, Play, ChevronRight } from "lucide-react";
 import { SearchBar } from "@/components/SearchBar";
 import { NewsletterForm } from "@/components/NewsletterForm";
 import {
   Sidebar,
   NewsletterWidget,
   AdPlacement,
-  NeighborhoodsWidget,
   SubmitCTA,
   SubmitEventCTA,
 } from "@/components/Sidebar";
 import {
   getAreas,
-  getNeighborhoods,
   getBlogPosts,
   getContentIndexByToken,
   getMediaItems,
-  getNeighborhoodsByPopularity,
 } from "@/lib/queries";
 import type { Metadata } from "next";
 
@@ -84,12 +81,10 @@ export default async function AreasLandingPage({
   /* ── Data fetch ── */
   const ci = await getContentIndexByToken("page-areas", { targetType: "area", activeUrl: "/areas" }).catch(() => null);
 
-  const [areas, allNeighborhoods, blogPosts, popularNeighborhoods] =
+  const [areas, blogPosts] =
     await Promise.all([
       getAreas(),
-      getNeighborhoods({ limit: 261 }),
       getBlogPosts({ limit: 8 }),
-      getNeighborhoodsByPopularity({ limit: 8 }).catch(() => []),
     ]);
 
   /* ── Media: prefer area-linked videos, fallback to sitewide ── */
@@ -109,29 +104,12 @@ export default async function AreasLandingPage({
   const heroVideoUrl = ci?.hero_video_url || null;
   const heroImageUrl = ci?.hero_image_url || PH_HERO;
 
-  /* ── Search: filter areas + neighborhoods ── */
+  /* ── Search: filter areas ── */
   const filteredAreas = search
     ? areas.filter((a) => a.name.toLowerCase().includes(search.toLowerCase()))
     : areas;
 
-  const filteredNeighborhoods = search
-    ? allNeighborhoods.filter((n) =>
-        n.name.toLowerCase().includes(search.toLowerCase())
-      )
-    : [];
-
-  const hasSearchResults =
-    !search || filteredAreas.length > 0 || filteredNeighborhoods.length > 0;
-
-  /* ── Sidebar neighborhoods (ranked by story count → biz count → alpha) ── */
-  /* getNeighborhoodsByPopularity handles ranking; alphabetical fallback if it fails */
-  const sidebarNeighborhoods =
-    popularNeighborhoods.length > 0
-      ? popularNeighborhoods.map((n) => ({ name: n.name, slug: n.slug }))
-      : allNeighborhoods
-          .sort((a, b) => a.name.localeCompare(b.name))
-          .slice(0, 8)
-          .map((n) => ({ name: n.name, slug: n.slug }));
+  const hasSearchResults = !search || filteredAreas.length > 0;
 
   /* ── Masonry feed: mix blogs + videos ── */
   /* Rule: 1 video per 4 cards, max 2 videos in first 8 */
@@ -266,29 +244,6 @@ export default async function AreasLandingPage({
                   </div>
                 </div>
               )}
-              {filteredNeighborhoods.length > 0 && (
-                <div>
-                  <h3 className="text-xs font-semibold uppercase tracking-eyebrow text-[#c1121f] mb-3">
-                    Neighborhoods
-                  </h3>
-                  <div className="flex flex-wrap gap-2">
-                    {filteredNeighborhoods.slice(0, 12).map((n) => (
-                      <Link
-                        key={n.id}
-                        href={`/neighborhoods/${n.slug}`}
-                        className="px-4 py-1.5 border border-gray-200 text-xs text-black rounded-full hover:border-[#e6c46d] hover:bg-gold-light/30 transition-colors"
-                      >
-                        {n.name}
-                      </Link>
-                    ))}
-                    {filteredNeighborhoods.length > 12 && (
-                      <span className="px-4 py-1.5 text-xs text-gray-mid">
-                        +{filteredNeighborhoods.length - 12} more
-                      </span>
-                    )}
-                  </div>
-                </div>
-              )}
             </div>
           ) : (
             <p className="text-gray-mid text-sm text-center">
@@ -346,13 +301,21 @@ export default async function AreasLandingPage({
                   Area listings coming soon.
                 </p>
               )}
-              {/* Transition CTA to neighborhoods */}
-              <div className="flex justify-center mt-8 pt-6 border-t border-gray-100">
+              {/* Mapbox Map Placeholder — Developer will replace with interactive map */}
+              <div className="mt-10 bg-[#f5f5f5] border border-dashed border-gray-300 aspect-[16/7] flex items-center justify-center text-center">
+                <div>
+                  <p className="text-sm text-gray-400 uppercase tracking-widest mb-2">Interactive Map</p>
+                  <p className="text-xs text-gray-300">Mapbox integration — developer task</p>
+                </div>
+              </div>
+
+              {/* Explore all neighborhoods CTA */}
+              <div className="mt-6 text-center">
                 <Link
                   href="/neighborhoods"
-                  className="flex items-center gap-2 text-sm font-semibold text-black hover:text-[#c1121f] transition-colors"
+                  className="inline-block px-6 py-3 bg-[#fee198] text-[#1a1a1a] font-semibold text-sm rounded-full hover:opacity-90 transition-opacity"
                 >
-                  Explore Atlanta Neighborhoods <ArrowRight size={15} />
+                  Explore All 261 Neighborhoods →
                 </Link>
               </div>
             </section>
@@ -482,10 +445,6 @@ export default async function AreasLandingPage({
             <Sidebar>
               <NewsletterWidget />
               <AdPlacement slot="sidebar_top" />
-              <NeighborhoodsWidget
-                title="Featured Neighborhoods"
-                neighborhoods={sidebarNeighborhoods}
-              />
               <SubmitCTA />
               <SubmitEventCTA />
             </Sidebar>
