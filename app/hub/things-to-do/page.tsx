@@ -7,8 +7,9 @@ import {
   getNeighborhoods,
   getNeighborhoodIdsForArea,
   getNeighborhoodsByPopularity,
+  getHubFilterData,
+  getHubBusinesses,
 } from "@/lib/queries";
-import { createServerClient } from "@/lib/supabase";
 import {
   SubmitCTA,
   SidebarWidget,
@@ -63,249 +64,41 @@ export default async function ThingsToDoHubPage({
   const sp = await searchParams;
 
   /* ---------- Static filter data ---------- */
-  const [areas, allNeighborhoods] = await Promise.all([
+  const [areas, allNeighborhoods, filterData] = await Promise.all([
     getAreas(),
     getNeighborhoods(),
+    getHubFilterData({ categoryMode: { type: "appliesTo", value: "things_to_do" } }),
   ]);
 
-  /* Categories that apply to things_to_do */
-  type LookupRow = { id: string; name: string; slug: string };
-
-  const supabase = createServerClient();
-  const { data: categories } = await supabase
-    .from("categories")
-    .select("id, name, slug")
-    .contains("applies_to", ["things_to_do"])
-    .eq("is_active", true)
-    .order("name")
-    .returns<LookupRow[]>();
-
   /* Collect category IDs for hard-filtering all business_listings queries */
-  const thingsToDoCategIds = (categories ?? []).map((c) => c.id);
-
-  /* Tags for tag pills */
-  const { data: tags } = await supabase
-    .from("tags")
-    .select("id, name, slug")
-    .eq("is_active", true)
-    .order("name")
-    .returns<LookupRow[]>();
-
-  /* Amenities for filter dropdown */
-  const { data: amenities } = await supabase
-    .from("amenities")
-    .select("id, name, slug")
-    .eq("is_active", true)
-    .order("name")
-    .returns<LookupRow[]>();
-
-  /* Identity options for filter dropdown */
-  const { data: identityOptions } = await supabase
-    .from("business_identity_options")
-    .select("id, name, slug")
-    .eq("is_active", true)
-    .order("name")
-    .returns<LookupRow[]>();
+  const ttdCategIds = filterData.categories.map((c) => c.id);
 
   /* ---------- Resolve area → neighborhood IDs ---------- */
-  let neighborhoodFilter: string[] | undefined;
+  let neighborhoodIds: string[] | undefined;
   if (sp.neighborhood) {
     const nh = allNeighborhoods.find((n) => n.slug === sp.neighborhood);
-    if (nh) neighborhoodFilter = [nh.id];
+    if (nh) neighborhoodIds = [nh.id];
   } else if (sp.area) {
     const area = areas.find((a) => a.slug === sp.area);
     if (area) {
-      neighborhoodFilter = await getNeighborhoodIdsForArea(area.id);
+      neighborhoodIds = await getNeighborhoodIdsForArea(area.id);
     }
   }
 
-  /* ---------- Featured (Premium tier, things_to_do categories only) ---------- */
-  let featuredQuery = supabase
-    .from("business_listings")
-    .select(
-      "id, business_name, slug, tagline, street_address, city, price_range, tier, logo, latitude, longitude, neighborhood_id, category_id, created_at, neighborhoods(name, slug), categories(name, slug)"
-    )
-    .eq("status", "active")
-    .eq("tier", "Premium")
-    .order("created_at", { ascending: false })
-    .limit(6);
-
-  /* Hard filter: only things_to_do categories */
-  if (thingsToDoCategIds.length) {
-    featuredQuery = featuredQuery.in("category_id", thingsToDoCategIds);
-  } else {
-    featuredQuery = featuredQuery.in("category_id", ["__none__"]);
-  }
-
-  if (neighborhoodFilter?.length) {
-    featuredQuery = featuredQuery.in("neighborhood_id", neighborhoodFilter);
-  }
-  if (sp.category) {
-    const cat = (categories ?? []).find((c: any) => c.slug === sp.category);
-    if (cat) featuredQuery = featuredQuery.eq("category_id", cat.id);
-  }
-
-  const { data: rawFeatured } = await featuredQuery;
-  const featuredIds = (rawFeatured ?? []).map((b: any) => b.id);
-
-  /* Fetch primary images for featured */
-  let featuredImages: Record<string, string> = {};
-  if (featuredIds.length) {
-    const { data: imgData } = await supabase
-      .from("business_images")
-      .select("business_id, image_url")
-      .in("business_id", featuredIds)
-      .eq("is_primary", true);
-    if (imgData) {
-      featuredImages = Object.fromEntries(
-        imgData.map((i: any) => [i.business_id, i.image_url])
-      );
-    }
-  }
-
-  const featuredBusinesses = (rawFeatured ?? []).map((b: any) => ({
-    ...b,
-    primary_image_url: featuredImages[b.id] || b.logo || null,
-  }));
-
-  /* ---------- Grid (active, things_to_do categories, dedup featured) ---------- */
-  let gridQuery = supabase
-    .from("business_listings")
-    .select(
-      "id, business_name, slug, tagline, street_address, city, price_range, tier, logo, latitude, longitude, neighborhood_id, category_id, created_at, neighborhoods(name, slug), categories(name, slug)",
-      { count: "exact" }
-    )
-    .eq("status", "active")
-    .order("created_at", { ascending: false });
-
-  /* Hard filter: only things_to_do categories */
-  if (thingsToDoCategIds.length) {
-    gridQuery = gridQuery.in("category_id", thingsToDoCategIds);
-  } else {
-    gridQuery = gridQuery.in("category_id", ["__none__"]);
-  }
-
-  /* Exclude featured IDs from first page */
-  if (featuredIds.length) {
-    gridQuery = gridQuery.not("id", "in", `(${featuredIds.join(",")})`);
-  }
-
-  /* Apply filters */
-  if (neighborhoodFilter?.length) {
-    gridQuery = gridQuery.in("neighborhood_id", neighborhoodFilter);
-  }
-  if (sp.category) {
-    const cat = (categories ?? []).find((c: any) => c.slug === sp.category);
-    if (cat) gridQuery = gridQuery.eq("category_id", cat.id);
-  }
-  if (sp.tier) {
-    gridQuery = gridQuery.eq("tier", sp.tier);
-  }
-  if (sp.q) {
-    gridQuery = gridQuery.or(
-      `business_name.ilike.%${sp.q}%,tagline.ilike.%${sp.q}%,description.ilike.%${sp.q}%,street_address.ilike.%${sp.q}%,city.ilike.%${sp.q}%`
-    );
-  }
-
-  /* Tag filter via join table */
-  if (sp.tag) {
-    const { data: taggedIds } = await supabase
-      .from("business_tags")
-      .select("business_id, tags!inner(slug)")
-      .eq("tags.slug", sp.tag);
-    if (taggedIds?.length) {
-      gridQuery = gridQuery.in(
-        "id",
-        taggedIds.map((t: any) => t.business_id)
-      );
-    } else {
-      gridQuery = gridQuery.in("id", ["__none__"]);
-    }
-  }
-
-  /* Amenity filter via join table */
-  if (sp.amenity) {
-    const { data: amenityIds } = await supabase
-      .from("business_amenities")
-      .select("business_id, amenities!inner(slug)")
-      .eq("amenities.slug", sp.amenity);
-    if (amenityIds?.length) {
-      gridQuery = gridQuery.in(
-        "id",
-        amenityIds.map((a: any) => a.business_id)
-      );
-    } else {
-      gridQuery = gridQuery.in("id", ["__none__"]);
-    }
-  }
-
-  /* Identity filter via join table */
-  if (sp.identity) {
-    const { data: identityIds } = await supabase
-      .from("business_identities")
-      .select("business_id, business_identity_options!inner(slug)")
-      .eq("business_identity_options.slug", sp.identity);
-    if (identityIds?.length) {
-      gridQuery = gridQuery.in(
-        "id",
-        identityIds.map((i: any) => i.business_id)
-      );
-    } else {
-      gridQuery = gridQuery.in("id", ["__none__"]);
-    }
-  }
-
-  gridQuery = gridQuery
-    .order("created_at", { ascending: false })
-    .limit(12);
-
-  const { data: rawGrid, count: gridCount } = await gridQuery;
-  const gridIds = (rawGrid ?? []).map((b: any) => b.id);
-
-  /* Fetch primary images for grid */
-  let gridImages: Record<string, string> = {};
-  if (gridIds.length) {
-    const { data: imgData } = await supabase
-      .from("business_images")
-      .select("business_id, image_url")
-      .in("business_id", gridIds)
-      .eq("is_primary", true);
-    if (imgData) {
-      gridImages = Object.fromEntries(
-        imgData.map((i: any) => [i.business_id, i.image_url])
-      );
-    }
-  }
-
-  const gridBusinesses = (rawGrid ?? []).map((b: any) => ({
-    ...b,
-    primary_image_url: gridImages[b.id] || b.logo || null,
-  }));
-
-  /* ---------- Map businesses (things_to_do categories only) ---------- */
-  let mapQuery = supabase
-    .from("business_listings")
-    .select("id, business_name, slug, latitude, longitude, tier")
-    .eq("status", "active")
-    .not("latitude", "is", null)
-    .not("longitude", "is", null);
-
-  if (thingsToDoCategIds.length) {
-    mapQuery = mapQuery.in("category_id", thingsToDoCategIds);
-  } else {
-    mapQuery = mapQuery.in("category_id", ["__none__"]);
-  }
-
-  const { data: mapData } = await mapQuery;
-
-  const mapBusinesses = (mapData ?? []).map((b: any) => ({
-    id: b.id,
-    business_name: b.business_name,
-    slug: b.slug,
-    latitude: b.latitude,
-    longitude: b.longitude,
-    tier: b.tier,
-  }));
+  /* ---------- Businesses (featured, grid, map) ---------- */
+  const businessData = await getHubBusinesses({
+    categoryIds: ttdCategIds,
+    filters: {
+      q: sp.q,
+      category: sp.category,
+      tier: sp.tier,
+      tag: sp.tag,
+      amenity: sp.amenity,
+      identity: sp.identity,
+    },
+    neighborhoodIds,
+    categories: filterData.categories,
+  });
 
   /* ---------- Sidebar neighborhoods ---------- */
   const topNeighborhoods = await getNeighborhoodsByPopularity({ limit: 8 });
@@ -361,30 +154,14 @@ export default async function ThingsToDoHubPage({
           slug: n.slug,
           area_id: n.area_id,
         }))}
-        categories={(categories ?? []).map((c: any) => ({
-          id: c.id,
-          name: c.name,
-          slug: c.slug,
-        }))}
-        tags={(tags ?? []).map((t: any) => ({
-          id: t.id,
-          name: t.name,
-          slug: t.slug,
-        }))}
-        amenities={(amenities ?? []).map((a: any) => ({
-          id: a.id,
-          name: a.name,
-          slug: a.slug,
-        }))}
-        identityOptions={(identityOptions ?? []).map((i: any) => ({
-          id: i.id,
-          name: i.name,
-          slug: i.slug,
-        }))}
-        featuredBusinesses={featuredBusinesses}
-        mapBusinesses={mapBusinesses}
-        gridBusinesses={gridBusinesses}
-        totalGridCount={gridCount ?? 0}
+        categories={filterData.categories}
+        tags={filterData.tags}
+        amenities={filterData.amenities}
+        identityOptions={filterData.identityOptions}
+        featuredBusinesses={businessData.featured}
+        mapBusinesses={businessData.map}
+        gridBusinesses={businessData.grid}
+        totalGridCount={businessData.gridCount}
         currentFilters={currentFilters}
       >
         {/* Sidebar (server-rendered, passed via children) */}

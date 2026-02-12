@@ -1096,3 +1096,318 @@ export async function getNewsletterFeaturedImages(): Promise<
   }
   return map;
 }
+
+/* ============================================================
+   HUB ARCHIVE — shared filter & business queries
+   Used by /hub/businesses, /hub/eats-and-drinks, /hub/things-to-do
+   ============================================================ */
+
+type HubLookupRow = { id: string; name: string; slug: string };
+
+export interface HubFilterData {
+  categories: HubLookupRow[];
+  tags: HubLookupRow[];
+  amenities: HubLookupRow[];
+  identityOptions: HubLookupRow[];
+}
+
+/**
+ * Fetch filter-dropdown data (categories, tags, amenities, identity options)
+ * for a hub archive page.
+ */
+export async function getHubFilterData(opts: {
+  categoryMode:
+    | { type: "appliesTo"; value: string }
+    | { type: "slugList"; slugs: string[] };
+}): Promise<HubFilterData> {
+  const supabase = sb();
+
+  let catQuery = supabase
+    .from("categories")
+    .select("id, name, slug")
+    .eq("is_active", true)
+    .order("name");
+
+  if (opts.categoryMode.type === "appliesTo") {
+    catQuery = catQuery.contains("applies_to", [opts.categoryMode.value]);
+  } else {
+    catQuery = catQuery.in("slug", opts.categoryMode.slugs);
+  }
+
+  const [catRes, tagRes, amenityRes, identityRes] = await Promise.all([
+    catQuery.returns<HubLookupRow[]>(),
+    supabase
+      .from("tags")
+      .select("id, name, slug")
+      .eq("is_active", true)
+      .order("name")
+      .returns<HubLookupRow[]>(),
+    supabase
+      .from("amenities")
+      .select("id, name, slug")
+      .order("name")
+      .returns<HubLookupRow[]>(),
+    supabase
+      .from("business_identity_options")
+      .select("id, name, slug")
+      .order("name")
+      .returns<HubLookupRow[]>(),
+  ]);
+
+  return {
+    categories: catRes.data ?? [],
+    tags: tagRes.data ?? [],
+    amenities: amenityRes.data ?? [],
+    identityOptions: identityRes.data ?? [],
+  };
+}
+
+export interface HubBusinessResult {
+  id: string;
+  business_name: string;
+  slug: string;
+  tagline?: string;
+  street_address?: string;
+  city?: string;
+  price_range?: string;
+  tier?: string;
+  logo?: string;
+  latitude?: number;
+  longitude?: number;
+  neighborhood_id?: string;
+  category_id?: string;
+  created_at?: string;
+  primary_image_url?: string;
+  neighborhoods?: { name: string; slug: string } | null;
+  categories?: { name: string; slug: string } | null;
+}
+
+export interface HubMapBusiness {
+  id: string;
+  business_name: string;
+  slug: string;
+  latitude: number;
+  longitude: number;
+  tier?: string;
+}
+
+export interface HubBusinessData {
+  featured: HubBusinessResult[];
+  grid: HubBusinessResult[];
+  gridCount: number;
+  map: HubMapBusiness[];
+}
+
+/**
+ * Fetch featured, grid, and map businesses for a hub archive page.
+ *
+ * @param categoryIds — undefined = no category restriction (businesses page);
+ *   non-empty array = restrict to these IDs; empty array = force no results.
+ */
+export async function getHubBusinesses(opts: {
+  categoryIds?: string[];
+  filters: {
+    q?: string;
+    category?: string;
+    tier?: string;
+    tag?: string;
+    amenity?: string;
+    identity?: string;
+  };
+  neighborhoodIds?: string[];
+  categories: { id: string; slug: string }[];
+  featuredLimit?: number;
+  gridLimit?: number;
+}): Promise<HubBusinessData> {
+  const supabase = sb();
+  const SELECT_COLS =
+    "id, business_name, slug, tagline, street_address, city_id, price_range, tier, logo, latitude, longitude, neighborhood_id, category_id, created_at, neighborhoods(name, slug), categories(name, slug), cities(name)";
+  const featuredLimit = opts.featuredLimit ?? 6;
+  const gridLimit = opts.gridLimit ?? 12;
+
+  /* ---------- Featured (Premium tier) ---------- */
+  let featuredQuery = supabase
+    .from("business_listings")
+    .select(SELECT_COLS)
+    .eq("status", "active")
+    .eq("tier", "Premium")
+    .order("created_at", { ascending: false })
+    .limit(featuredLimit);
+
+  if (opts.categoryIds !== undefined) {
+    if (opts.categoryIds.length > 0) {
+      featuredQuery = featuredQuery.in("category_id", opts.categoryIds);
+    } else {
+      featuredQuery = featuredQuery.in("category_id", ["__none__"]);
+    }
+  }
+  if (opts.neighborhoodIds?.length) {
+    featuredQuery = featuredQuery.in("neighborhood_id", opts.neighborhoodIds);
+  }
+  if (opts.filters.category) {
+    const cat = opts.categories.find((c) => c.slug === opts.filters.category);
+    if (cat) featuredQuery = featuredQuery.eq("category_id", cat.id);
+  }
+
+  const { data: rawFeatured } = await featuredQuery;
+  const featuredIds = (rawFeatured ?? []).map((b: any) => b.id);
+
+  /* Fetch primary images for featured */
+  let featuredImages: Record<string, string> = {};
+  if (featuredIds.length) {
+    const { data: imgData } = await supabase
+      .from("business_images")
+      .select("business_id, image_url")
+      .in("business_id", featuredIds)
+      .eq("is_primary", true);
+    if (imgData) {
+      featuredImages = Object.fromEntries(
+        imgData.map((i: any) => [i.business_id, i.image_url])
+      );
+    }
+  }
+
+  const featured: HubBusinessResult[] = (rawFeatured ?? []).map((b: any) => ({
+    ...b,
+    city: b.cities?.name ?? null,
+    primary_image_url: featuredImages[b.id] || b.logo || null,
+  }));
+
+  /* ---------- Grid (active, dedup featured) ---------- */
+  let gridQuery = supabase
+    .from("business_listings")
+    .select(SELECT_COLS, { count: "exact" })
+    .eq("status", "active")
+    .order("created_at", { ascending: false });
+
+  if (opts.categoryIds !== undefined) {
+    if (opts.categoryIds.length > 0) {
+      gridQuery = gridQuery.in("category_id", opts.categoryIds);
+    } else {
+      gridQuery = gridQuery.in("category_id", ["__none__"]);
+    }
+  }
+  if (featuredIds.length) {
+    gridQuery = gridQuery.not("id", "in", `(${featuredIds.join(",")})`);
+  }
+  if (opts.neighborhoodIds?.length) {
+    gridQuery = gridQuery.in("neighborhood_id", opts.neighborhoodIds);
+  }
+  if (opts.filters.category) {
+    const cat = opts.categories.find((c) => c.slug === opts.filters.category);
+    if (cat) gridQuery = gridQuery.eq("category_id", cat.id);
+  }
+  if (opts.filters.tier) {
+    gridQuery = gridQuery.eq("tier", opts.filters.tier);
+  }
+  if (opts.filters.q) {
+    gridQuery = gridQuery.or(
+      `business_name.ilike.%${opts.filters.q}%,tagline.ilike.%${opts.filters.q}%,description.ilike.%${opts.filters.q}%,street_address.ilike.%${opts.filters.q}%`
+    );
+  }
+
+  /* Tag filter via join table */
+  if (opts.filters.tag) {
+    const { data: taggedIds } = await supabase
+      .from("business_tags")
+      .select("business_id, tags!inner(slug)")
+      .eq("tags.slug", opts.filters.tag);
+    if (taggedIds?.length) {
+      gridQuery = gridQuery.in(
+        "id",
+        taggedIds.map((t: any) => t.business_id)
+      );
+    } else {
+      gridQuery = gridQuery.in("id", ["__none__"]);
+    }
+  }
+
+  /* Amenity filter via join table */
+  if (opts.filters.amenity) {
+    const { data: amenityIds } = await supabase
+      .from("business_amenities")
+      .select("business_id, amenities!inner(slug)")
+      .eq("amenities.slug", opts.filters.amenity);
+    if (amenityIds?.length) {
+      gridQuery = gridQuery.in(
+        "id",
+        amenityIds.map((a: any) => a.business_id)
+      );
+    } else {
+      gridQuery = gridQuery.in("id", ["__none__"]);
+    }
+  }
+
+  /* Identity filter via join table */
+  if (opts.filters.identity) {
+    const { data: identityIds } = await supabase
+      .from("business_identities")
+      .select("business_id, business_identity_options!inner(slug)")
+      .eq("business_identity_options.slug", opts.filters.identity);
+    if (identityIds?.length) {
+      gridQuery = gridQuery.in(
+        "id",
+        identityIds.map((i: any) => i.business_id)
+      );
+    } else {
+      gridQuery = gridQuery.in("id", ["__none__"]);
+    }
+  }
+
+  gridQuery = gridQuery
+    .order("created_at", { ascending: false })
+    .limit(gridLimit);
+
+  const { data: rawGrid, count: gridCount } = await gridQuery;
+  const gridIds = (rawGrid ?? []).map((b: any) => b.id);
+
+  /* Fetch primary images for grid */
+  let gridImages: Record<string, string> = {};
+  if (gridIds.length) {
+    const { data: imgData } = await supabase
+      .from("business_images")
+      .select("business_id, image_url")
+      .in("business_id", gridIds)
+      .eq("is_primary", true);
+    if (imgData) {
+      gridImages = Object.fromEntries(
+        imgData.map((i: any) => [i.business_id, i.image_url])
+      );
+    }
+  }
+
+  const grid: HubBusinessResult[] = (rawGrid ?? []).map((b: any) => ({
+    ...b,
+    city: b.cities?.name ?? null,
+    primary_image_url: gridImages[b.id] || b.logo || null,
+  }));
+
+  /* ---------- Map businesses ---------- */
+  let mapQuery = supabase
+    .from("business_listings")
+    .select("id, business_name, slug, latitude, longitude, tier")
+    .eq("status", "active")
+    .not("latitude", "is", null)
+    .not("longitude", "is", null);
+
+  if (opts.categoryIds !== undefined) {
+    if (opts.categoryIds.length > 0) {
+      mapQuery = mapQuery.in("category_id", opts.categoryIds);
+    } else {
+      mapQuery = mapQuery.in("category_id", ["__none__"]);
+    }
+  }
+
+  const { data: mapData } = await mapQuery;
+
+  const map: HubMapBusiness[] = (mapData ?? []).map((b: any) => ({
+    id: b.id,
+    business_name: b.business_name,
+    slug: b.slug,
+    latitude: b.latitude,
+    longitude: b.longitude,
+    tier: b.tier,
+  }));
+
+  return { featured, grid, gridCount: gridCount ?? 0, map };
+}
