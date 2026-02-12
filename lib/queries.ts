@@ -29,6 +29,8 @@ import type {
   Amenity,
   IdentityOption,
   NeighborhoodGrouped,
+  Newsletter,
+  NewsletterType,
   NewsletterSection,
   NewsletterPost,
 } from "./types";
@@ -408,7 +410,9 @@ export async function getStories(opts?: {
   let q = sb()
     .from("stories")
     .select("*")
-    .eq("status", opts?.status ?? "published")
+    // Stories status values: new → queued → reviewed → used
+    // "used" = story was turned into a published blog post
+    .eq("status", opts?.status ?? "used")
     .order("published_at", { ascending: false });
 
   if (opts?.search) q = q.ilike("headline", `%${opts.search}%`);
@@ -889,23 +893,6 @@ export async function getMediaItemLinks(mediaItemId: string): Promise<MediaItemL
    NEWSLETTERS
    ============================================================ */
 
-export interface Newsletter {
-  id: string;
-  name: string;
-  slug: string;
-  issue_date: string;
-  issue_slug: string;
-  subject_line: string | null;
-  preview_text: string | null;
-  editor_intro: string | null;
-  html_body: string | null;
-  status: string;
-  is_public: boolean | null;
-  send_count: number | null;
-  created_at: string;
-  updated_at: string;
-}
-
 export async function getNewsletters(opts?: {
   limit?: number;
 }): Promise<Newsletter[]> {
@@ -933,17 +920,6 @@ export async function getNewsletters(opts?: {
 /* ============================================================
    NEWSLETTER TYPES (standalone series catalog)
    ============================================================ */
-
-export interface NewsletterType {
-  id: string;
-  name: string;
-  slug: string;
-  frequency: string;
-  send_day: string | null;
-  description: string | null;
-  is_active: boolean;
-  created_at: string;
-}
 
 export async function getNewsletterTypes(): Promise<NewsletterType[]> {
   const { data, error } = await sb()

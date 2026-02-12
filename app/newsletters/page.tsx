@@ -1,9 +1,5 @@
 import type { Metadata } from "next";
 import { Suspense } from "react";
-<<<<<<< Updated upstream
-=======
-import { NewsletterForm } from "@/components/NewsletterForm";
->>>>>>> Stashed changes
 import { Breadcrumbs } from "@/components/ui/Breadcrumbs";
 import { NewsletterForm } from "@/components/NewsletterForm";
 import { NewsletterArchiveClient } from "@/components/newsletter/NewsletterArchiveClient";
@@ -73,7 +69,7 @@ export default async function NewslettersPage({
       name: nl.name,
       issue_date: nl.issue_date,
       subject_line: nl.subject_line,
-      preview_text: nl.preview_text,
+      preview_text: nl.preview_text ?? null,
       featured_image_url: featuredImageMap.get(nl.id) ?? null,
       type_slug: color.filterSlug,
       border_color: color.borderColor,
