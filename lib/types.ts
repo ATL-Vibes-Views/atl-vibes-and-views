@@ -19,6 +19,17 @@ export type Database = {
       featured_slots: { Row: FeaturedSlot; Insert: Partial<FeaturedSlot>; Update: Partial<FeaturedSlot> };
       content_index: { Row: ContentIndex; Insert: Partial<ContentIndex>; Update: Partial<ContentIndex> };
       reviews: { Row: Review; Insert: Partial<Review>; Update: Partial<Review> };
+      amenities: { Row: Amenity; Insert: Partial<Amenity>; Update: Partial<Amenity> };
+      business_amenities: { Row: BusinessAmenity; Insert: Partial<BusinessAmenity>; Update: Partial<BusinessAmenity> };
+      business_contacts: { Row: BusinessContact; Insert: Partial<BusinessContact>; Update: Partial<BusinessContact> };
+      business_hours: { Row: BusinessHours; Insert: Partial<BusinessHours>; Update: Partial<BusinessHours> };
+      business_identities: { Row: BusinessIdentity; Insert: Partial<BusinessIdentity>; Update: Partial<BusinessIdentity> };
+      business_identity_options: { Row: IdentityOption; Insert: Partial<IdentityOption>; Update: Partial<IdentityOption> };
+      business_images: { Row: BusinessImage; Insert: Partial<BusinessImage>; Update: Partial<BusinessImage> };
+      business_tags: { Row: BusinessTag; Insert: Partial<BusinessTag>; Update: Partial<BusinessTag> };
+      post_businesses: { Row: PostBusiness; Insert: Partial<PostBusiness>; Update: Partial<PostBusiness> };
+      subscriptions: { Row: Subscription; Insert: Partial<Subscription>; Update: Partial<Subscription> };
+      users: { Row: User; Insert: Partial<User>; Update: Partial<User> };
     };
   };
 };
