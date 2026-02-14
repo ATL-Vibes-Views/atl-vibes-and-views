@@ -108,9 +108,9 @@ export default async function AdminDashboardPage() {
 
   // Workflow steps — publishing pipeline
   const workflowSteps: { label: string; status: "done" | "current" | "future" }[] = [
-    { label: "Stories Ingested", status: newStories > 0 ? "done" : "current" },
-    { label: "Drafts Written", status: draftPosts > 0 ? "done" : "future" },
-    { label: "Under Review", status: "current" },
+    { label: "Pipeline", status: "done" },
+    { label: "Content Inbox", status: newStories > 0 ? "done" : "current" },
+    { label: "Publishing Queue", status: scheduledPosts > 0 ? "current" : "future" },
     { label: "Published", status: "future" },
   ];
 

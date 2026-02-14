@@ -1,30 +1,31 @@
 import { Metadata } from "next";
 import {
   LayoutDashboard,
-  FileText,
-  BookOpen,
-  Video,
-  Image,
-  Mail,
-  Globe,
-  CalendarDays,
-  Search,
-  Building2,
-  Calendar,
   Inbox,
-  Star,
-  Eye,
-  FolderTree,
-  Hash,
-  Handshake,
+  Rocket,
+  FileText,
+  Film,
+  Share2,
+  Video,
+  RefreshCw,
+  CalendarDays,
+  Store,
+  PartyPopper,
+  Building2,
+  Map,
+  MapPin,
+  FolderOpen,
+  Tag,
+  DollarSign,
   Megaphone,
-  CreditCard,
+  Mail,
+  Star,
   Users,
-  MessageSquare,
-  Bookmark,
-  Award,
-  ArrowRightLeft,
-  Landmark,
+  ClipboardList,
+  BarChart3,
+  Globe,
+  Zap,
+  ArrowUpDown,
   Settings,
 } from "lucide-react";
 import { PortalSidebar } from "@/components/portal/PortalSidebar";
@@ -43,77 +44,88 @@ export default async function AdminLayout({
 }) {
   const supabase = createServerClient();
 
-  // Fetch count badges in parallel
+  // Fetch count badges in parallel — 11 badges total
   const counts = (await Promise.all([
-    supabase.from("blog_posts").select("*", { count: "exact", head: true }).eq("status", "draft"),
     supabase.from("stories").select("*", { count: "exact", head: true }).eq("status", "new"),
+    supabase.from("blog_posts").select("*", { count: "exact", head: true }).eq("status", "scheduled"),
+    supabase.from("blog_posts").select("*", { count: "exact", head: true }).eq("status", "draft"),
     supabase.from("scripts").select("*", { count: "exact", head: true }).eq("status", "draft"),
-    supabase.from("newsletters").select("*", { count: "exact", head: true }).eq("status", "draft"),
-    supabase.from("submissions").select("*", { count: "exact", head: true }).eq("status", "pending"),
+    supabase.from("scripts").select("*", { count: "exact", head: true }).eq("status", "approved"),
+    supabase.from("media_items").select("*", { count: "exact", head: true }),
+    supabase.from("stories").select("*", { count: "exact", head: true }).eq("status", "in_progress"),
+    supabase.from("business_listings").select("*", { count: "exact", head: true }),
+    supabase.from("events").select("*", { count: "exact", head: true }),
     supabase.from("reviews").select("*", { count: "exact", head: true }).eq("status", "pending"),
+    supabase.from("submissions").select("*", { count: "exact", head: true }).eq("status", "pending"),
   ])) as unknown as { count: number | null }[];
 
-  const draftPosts = counts[0].count ?? 0;
-  const newStories = counts[1].count ?? 0;
-  const draftScripts = counts[2].count ?? 0;
-  const draftNewsletters = counts[3].count ?? 0;
-  const pendingSubmissions = counts[4].count ?? 0;
-  const pendingReviews = counts[5].count ?? 0;
+  const contentInbox = counts[0].count ?? 0;
+  const publishingQueue = counts[1].count ?? 0;
+  const draftPosts = counts[2].count ?? 0;
+  const draftScripts = counts[3].count ?? 0;
+  const socialQueue = counts[4].count ?? 0;
+  const mediaCount = counts[5].count ?? 0;
+  const pipelineCount = counts[6].count ?? 0;
+  const businessCount = counts[7].count ?? 0;
+  const eventCount = counts[8].count ?? 0;
+  const pendingReviews = counts[9].count ?? 0;
+  const pendingSubmissions = counts[10].count ?? 0;
 
   const navGroups = [
     {
       label: "Content",
       items: [
         { label: "Dashboard", path: "/admin", icon: <LayoutDashboard size={16} /> },
-        { label: "Blog Posts", path: "/admin/blog", icon: <FileText size={16} />, ...(draftPosts > 0 ? { count: draftPosts } : {}) },
-        { label: "Stories", path: "/admin/stories", icon: <BookOpen size={16} />, ...(newStories > 0 ? { count: newStories } : {}) },
-        { label: "Scripts", path: "/admin/scripts", icon: <Video size={16} />, ...(draftScripts > 0 ? { count: draftScripts } : {}) },
-        { label: "Media", path: "/admin/media", icon: <Image size={16} /> },
-        { label: "Newsletters", path: "/admin/newsletters", icon: <Mail size={16} />, ...(draftNewsletters > 0 ? { count: draftNewsletters } : {}) },
-        { label: "Published", path: "/admin/published", icon: <Globe size={16} /> },
-        { label: "Calendar", path: "/admin/calendar", icon: <CalendarDays size={16} /> },
-        { label: "SEO Ideas", path: "/admin/seo", icon: <Search size={16} /> },
+        { label: "Content Inbox", path: "/admin/inbox", icon: <Inbox size={16} />, ...(contentInbox > 0 ? { count: contentInbox } : {}) },
+        { label: "Publishing Queue", path: "/admin/publishing", icon: <Rocket size={16} />, ...(publishingQueue > 0 ? { count: publishingQueue } : {}) },
+        { label: "Blog Posts", path: "/admin/posts", icon: <FileText size={16} />, ...(draftPosts > 0 ? { count: draftPosts } : {}) },
+        { label: "Scripts", path: "/admin/scripts", icon: <Film size={16} />, ...(draftScripts > 0 ? { count: draftScripts } : {}) },
+        { label: "Social Queue", path: "/admin/social", icon: <Share2 size={16} />, ...(socialQueue > 0 ? { count: socialQueue } : {}) },
+        { label: "Media", path: "/admin/media", icon: <Video size={16} />, ...(mediaCount > 0 ? { count: mediaCount } : {}) },
+        { label: "Pipeline", path: "/admin/pipeline", icon: <RefreshCw size={16} />, ...(pipelineCount > 0 ? { count: pipelineCount } : {}) },
+        { label: "Content Calendar", path: "/admin/calendar", icon: <CalendarDays size={16} /> },
       ],
     },
     {
       label: "Directory",
       items: [
-        { label: "Businesses", path: "/admin/businesses", icon: <Building2 size={16} /> },
-        { label: "Events", path: "/admin/events", icon: <Calendar size={16} /> },
-        { label: "Submissions", path: "/admin/submissions", icon: <Inbox size={16} />, ...(pendingSubmissions > 0 ? { count: pendingSubmissions } : {}) },
-        { label: "Reviews", path: "/admin/reviews", icon: <Star size={16} />, ...(pendingReviews > 0 ? { count: pendingReviews } : {}) },
-        { label: "Watchlist", path: "/admin/watchlist", icon: <Eye size={16} /> },
+        { label: "Businesses", path: "/admin/businesses", icon: <Store size={16} />, ...(businessCount > 0 ? { count: businessCount } : {}) },
+        { label: "Events", path: "/admin/events", icon: <PartyPopper size={16} />, ...(eventCount > 0 ? { count: eventCount } : {}) },
+        { label: "Neighborhoods", path: "/admin/neighborhoods", icon: <Building2 size={16} /> },
+        { label: "Areas", path: "/admin/areas", icon: <Map size={16} /> },
+        { label: "Beyond ATL", path: "/admin/beyond-atl", icon: <MapPin size={16} /> },
       ],
     },
     {
       label: "Taxonomy",
       items: [
-        { label: "Categories", path: "/admin/categories", icon: <FolderTree size={16} /> },
-        { label: "Tags", path: "/admin/tags", icon: <Hash size={16} /> },
+        { label: "Categories", path: "/admin/categories", icon: <FolderOpen size={16} /> },
+        { label: "Tags", path: "/admin/tags", icon: <Tag size={16} /> },
       ],
     },
     {
       label: "Revenue",
       items: [
-        { label: "Sponsors", path: "/admin/sponsors", icon: <Handshake size={16} /> },
-        { label: "Ad Campaigns", path: "/admin/ads", icon: <Megaphone size={16} /> },
-        { label: "Subscriptions", path: "/admin/subscriptions", icon: <CreditCard size={16} /> },
+        { label: "Sponsors", path: "/admin/sponsors", icon: <DollarSign size={16} /> },
+        { label: "Ad Slots", path: "/admin/ads", icon: <Megaphone size={16} /> },
+        { label: "Newsletter", path: "/admin/newsletter", icon: <Mail size={16} /> },
       ],
     },
     {
       label: "Community",
       items: [
+        { label: "Reviews", path: "/admin/reviews", icon: <Star size={16} />, ...(pendingReviews > 0 ? { count: pendingReviews } : {}) },
         { label: "Users", path: "/admin/users", icon: <Users size={16} /> },
-        { label: "Comments", path: "/admin/comments", icon: <MessageSquare size={16} /> },
-        { label: "Saved Items", path: "/admin/saved", icon: <Bookmark size={16} /> },
+        { label: "Submissions", path: "/admin/submissions", icon: <ClipboardList size={16} />, ...(pendingSubmissions > 0 ? { count: pendingSubmissions } : {}) },
       ],
     },
     {
       label: "System",
       items: [
-        { label: "Featured Slots", path: "/admin/featured", icon: <Award size={16} /> },
-        { label: "Redirects", path: "/admin/redirects", icon: <ArrowRightLeft size={16} /> },
-        { label: "Organizations", path: "/admin/organizations", icon: <Landmark size={16} /> },
+        { label: "Analytics", path: "/admin/analytics", icon: <BarChart3 size={16} /> },
+        { label: "Maps", path: "/admin/maps", icon: <Globe size={16} /> },
+        { label: "Automation", path: "/admin/automation", icon: <Zap size={16} /> },
+        { label: "Import/Export", path: "/admin/import-export", icon: <ArrowUpDown size={16} /> },
         { label: "Settings", path: "/admin/settings", icon: <Settings size={16} /> },
       ],
     },
