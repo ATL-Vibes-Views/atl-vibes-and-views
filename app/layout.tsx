@@ -2,9 +2,6 @@ import type { Metadata } from "next";
 import { Cormorant_Garamond, Inter } from "next/font/google";
 import Script from "next/script";
 import "./globals.css";
-import { Header } from "@/components/Header";
-import { Footer } from "@/components/Footer";
-import { getNeighborhoodsGrouped } from "@/lib/queries";
 
 /* --- Font Loading --- */
 const cormorant = Cormorant_Garamond({
@@ -51,22 +48,18 @@ export const metadata: Metadata = {
 };
 
 /* --- Root Layout --- */
-export default async function RootLayout({
+export default function RootLayout({
   children,
 }: {
   children: React.ReactNode;
 }) {
-  const exploreData = await getNeighborhoodsGrouped();
-
   return (
     <html
       lang="en"
       className={`${cormorant.variable} ${inter.variable} ${codecProVariable}`}
     >
       <body className="font-body text-black bg-white min-h-screen flex flex-col">
-        <Header exploreData={exploreData} />
-        <main className="flex-1">{children}</main>
-        <Footer />
+        {children}
 
         {/* HubSpot Tracking */}
         <Script
