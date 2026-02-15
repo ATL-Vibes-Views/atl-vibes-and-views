@@ -2,6 +2,14 @@ import { createServerClient } from "@/lib/supabase";
 import { getMockBusinessOwner } from "@/lib/mock-auth";
 import { getBusinessState } from "@/components/dashboard/TierBadge";
 import { SponsorshipClient } from "@/components/dashboard/SponsorshipClient";
+// TODO: REMOVE BEFORE LAUNCH — test override import
+import {
+  getStateOverride,
+  MOCK_SPONSOR_FULL,
+  MOCK_DELIVERABLES_FULL,
+  MOCK_FULFILLMENTS,
+  MOCK_FLIGHTS,
+} from "@/lib/dashboard-test-overrides";
 
 export async function generateMetadata() {
   return {
@@ -13,10 +21,18 @@ export async function generateMetadata() {
 
 export const dynamic = "force-dynamic";
 
-export default async function SponsorshipPage() {
+export default async function SponsorshipPage({
+  searchParams,
+}: {
+  searchParams: Promise<Record<string, string | string[] | undefined>>;
+}) {
   const owner = getMockBusinessOwner();
   const businessId = owner.business_id!;
   const supabase = createServerClient();
+
+  // TODO: REMOVE BEFORE LAUNCH — testing state override
+  const resolvedParams = await searchParams;
+  const stateOverride = getStateOverride(resolvedParams);
 
   const { data: business } = (await supabase
     .from("business_listings")
@@ -181,16 +197,24 @@ export default async function SponsorshipPage() {
       [];
   }
 
-  const state = getBusinessState(business, sponsor);
+  const realState = getBusinessState(business, sponsor);
+  // TODO: REMOVE BEFORE LAUNCH — apply test override
+  const state = stateOverride ?? realState;
+
+  // TODO: REMOVE BEFORE LAUNCH — inject mock sponsor data when testing sponsor state
+  const sponsorProps = state === "sponsor" && !sponsor ? MOCK_SPONSOR_FULL : sponsor;
+  const deliverableProps = state === "sponsor" && !deliverables ? MOCK_DELIVERABLES_FULL : deliverables;
+  const fulfillmentProps = state === "sponsor" && !fulfillments ? MOCK_FULFILLMENTS : fulfillments;
+  const flightProps = state === "sponsor" && !flights ? MOCK_FLIGHTS : flights;
 
   return (
     <SponsorshipClient
       state={state}
-      sponsor={sponsor}
+      sponsor={sponsorProps}
       packages={packages}
-      deliverables={deliverables}
-      fulfillments={fulfillments}
-      flights={flights}
+      deliverables={deliverableProps}
+      fulfillments={fulfillmentProps}
+      flights={flightProps}
     />
   );
 }
