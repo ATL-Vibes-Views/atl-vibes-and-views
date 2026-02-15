@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import Image from "next/image";
 import Link from "next/link";
+import { Facebook, Twitter, Youtube, Instagram } from "lucide-react";
 import { PartnerContactForm } from "@/components/partner/PartnerContactForm";
 
 export const metadata: Metadata = {
@@ -12,27 +13,18 @@ export const metadata: Metadata = {
 /* ============================================================
    Social links data
    ============================================================ */
+const TikTokIcon = ({ size = 16, ...props }: { size?: number; [key: string]: any }) => (
+  <svg width={size} height={size} viewBox="0 0 24 24" fill="currentColor" {...props}>
+    <path d="M19.59 6.69a4.83 4.83 0 01-3.77-4.25V2h-3.45v13.67a2.89 2.89 0 01-2.88 2.5 2.89 2.89 0 01-2.89-2.89 2.89 2.89 0 012.89-2.89c.28 0 .54.04.79.1V9.01a6.27 6.27 0 00-.79-.05 6.34 6.34 0 00-6.34 6.34 6.34 6.34 0 006.34 6.34 6.34 6.34 0 006.34-6.34V8.75a8.18 8.18 0 004.76 1.52V6.84a4.84 4.84 0 01-1-.15z" />
+  </svg>
+);
+
 const SOCIALS = [
-  {
-    label: "Instagram",
-    href: "https://instagram.com/atlvibesandviews",
-    icon: "https://244168309.fs1.hubspotusercontent-na2.net/hubfs/244168309/3-Feb-02-2026-02-20-07-5320-AM.png",
-  },
-  {
-    label: "TikTok",
-    href: "https://tiktok.com/@atlvibesandviews",
-    icon: "https://244168309.fs1.hubspotusercontent-na2.net/hubfs/244168309/4-Feb-02-2026-02-20-07-5174-AM.png",
-  },
-  {
-    label: "YouTube",
-    href: "https://www.youtube.com/@livinginAtlanta-MellandaReese",
-    icon: "https://244168309.fs1.hubspotusercontent-na2.net/hubfs/244168309/2-Feb-02-2026-02-20-07-5587-AM.png",
-  },
-  {
-    label: "Facebook",
-    href: "https://facebook.com/atlvibesandviews",
-    icon: "https://244168309.fs1.hubspotusercontent-na2.net/hubfs/244168309/5-Feb-02-2026-02-20-07-4558-AM.png",
-  },
+  { icon: Facebook, label: "Facebook", href: "https://facebook.com/atlvibesandviews" },
+  { icon: Twitter, label: "X", href: "https://x.com/atlvibes_views" },
+  { icon: Youtube, label: "YouTube", href: "https://www.youtube.com/@livinginAtlanta-MellandaReese" },
+  { icon: Instagram, label: "Instagram", href: "https://instagram.com/atlvibesandviews" },
+  { icon: TikTokIcon, label: "TikTok", href: "https://tiktok.com/@atlvibesandviews" },
 ];
 
 export default function PartnerContactPage() {
@@ -134,22 +126,16 @@ export default function PartnerContactPage() {
                   Stay in the loop with what we&rsquo;re up to across Atlanta.
                 </p>
                 <div className="flex gap-4">
-                  {SOCIALS.map((s) => (
+                  {SOCIALS.map(({ icon: Icon, label, href }) => (
                     <a
-                      key={s.label}
-                      href={s.href}
+                      key={label}
+                      href={href}
                       target="_blank"
                       rel="noopener noreferrer"
-                      aria-label={s.label}
-                      className="opacity-70 hover:opacity-100 transition-opacity"
+                      aria-label={label}
+                      className="text-[#676767] hover:text-[#c1121f] transition-colors"
                     >
-                      <Image
-                        src={s.icon}
-                        alt={s.label}
-                        width={24}
-                        height={24}
-                        unoptimized
-                      />
+                      <Icon size={20} />
                     </a>
                   ))}
                 </div>
