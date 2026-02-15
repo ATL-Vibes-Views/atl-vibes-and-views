@@ -79,21 +79,20 @@ export default async function SponsorDetailPage({
     );
   }
 
-  // Fetch sponsor deliverables — join on business_id (sponsor_deliverables.sponsor_id = sponsor.business_id)
-  const sponsorData = sponsor as SponsorData;
-  const deliverableJoinId = sponsorData.business_id ?? id;
-  const { data: deliverables } = await supabase
+  // Fetch sponsor deliverables
+  const { data: deliverables, error: delErr } = await supabase
     .from("sponsor_deliverables")
-    .select("id, deliverable_type, label, quantity_promised, quantity_delivered, status, due_date, completed_at, notes")
-    .eq("sponsor_id", deliverableJoinId)
-    .order("due_date", { ascending: true });
+    .select("*")
+    .eq("sponsor_id", id);
+  console.log("[SponsorDetail] deliverables for", id, "→", deliverables?.length ?? 0, "rows", delErr ? `ERROR: ${JSON.stringify(delErr)}` : "");
 
-  // Fetch fulfillment log — correct table name is sponsor_fulfillment_log, same join
-  const { data: fulfillmentLog } = await supabase
+  // Fetch fulfillment log
+  const { data: fulfillmentLog, error: flErr } = await supabase
     .from("sponsor_fulfillment_log")
-    .select("id, deliverable_id, action, content_url, notes, logged_at, logged_by")
-    .eq("sponsor_id", deliverableJoinId)
-    .order("logged_at", { ascending: false });
+    .select("*")
+    .eq("sponsor_id", id)
+    .order("delivered_at", { ascending: false });
+  console.log("[SponsorDetail] fulfillmentLog for", id, "→", fulfillmentLog?.length ?? 0, "rows", flErr ? `ERROR: ${JSON.stringify(flErr)}` : "");
 
   return (
     <SponsorDetailClient
