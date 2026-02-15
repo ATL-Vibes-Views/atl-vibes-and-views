@@ -67,25 +67,22 @@ export default function PartnerAboutPage() {
           className="object-cover"
         />
         <div className="absolute inset-0 bg-black/60" />
-        <div className="relative z-10 px-5 max-w-[900px] mx-auto">
+        <div className="relative z-10 px-5 max-w-[700px] mx-auto">
           <p className="font-body text-sm font-semibold uppercase tracking-[3px] text-[#fee198] mb-5">
-            Connecting Businesses &amp; Atlantans
+            Who We Are
           </p>
-          <h1 className="font-display text-[32px] md:text-[44px] lg:text-[52px] font-bold leading-[1.1] text-white mb-6">
-            Where Creative Meets <em>Community</em>
+          <h1 className="font-display text-[32px] md:text-[44px] lg:text-[56px] font-normal italic leading-[1.15] text-white mb-6">
+            Atlanta&rsquo;s Story, Told Right
           </h1>
-          <p className="text-lg md:text-[20px] leading-[1.7] text-white/85 max-w-[800px] mx-auto mb-10">
-            ATL Vibes &amp; Views started with a simple mission: help Atlanta
-            businesses get seen and give the community a trusted source for
-            what&rsquo;s happening in the city. We&rsquo;re a media company that
-            tells stories, builds audiences, and helps brands become part of
-            Atlanta&rsquo;s conversation.
+          <p className="text-base md:text-lg leading-[1.7] text-white/80 max-w-[600px] mx-auto mb-10">
+            ATL Vibes &amp; Views is an independent media platform rooted in the
+            culture, business, and community of Atlanta.
           </p>
           <Link
-            href="/partner/contact"
+            href="#founder"
             className="inline-block bg-[#fee198] text-[#1a1a1a] font-semibold text-[15px] px-9 py-4 tracking-[0.5px] rounded-full hover:bg-white transition-all"
           >
-            Partner With Us
+            Meet the Team
           </Link>
         </div>
       </section>
@@ -231,7 +228,7 @@ export default function PartnerAboutPage() {
           </section>
 
           {/* ========== FOUNDER ========== */}
-          <section className="bg-white">
+          <section id="founder" className="bg-white">
             <div className="grid grid-cols-1 md:grid-cols-2 min-h-[600px] md:max-h-[700px]">
               {/* Image */}
               <div className="relative h-[400px] md:h-auto bg-[#1a1a1a] overflow-hidden">

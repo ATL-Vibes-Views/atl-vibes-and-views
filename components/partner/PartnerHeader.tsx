@@ -40,9 +40,7 @@ export function PartnerHeader() {
         >
           &larr; Back to ATL Vibes &amp; Views
         </Link>
-        <span className="text-[#666] text-[11px] font-semibold uppercase tracking-[1px] hidden sm:block">
-          Partner With Us
-        </span>
+
       </div>
 
       {/* ── Main header row ── */}

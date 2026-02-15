@@ -38,8 +38,8 @@ const SOCIALS = [
 export default function PartnerContactPage() {
   return (
     <>
-      {/* ========== HERO — shorter for contact ========== */}
-      <section className="relative h-[40vh] md:h-[50vh] flex items-center justify-center text-center overflow-hidden">
+      {/* ========== HERO — full height to match other partner pages ========== */}
+      <section className="relative h-[70vh] md:h-[80vh] lg:h-[85vh] flex items-center justify-center text-center overflow-hidden">
         <Image
           src="https://images.unsplash.com/photo-1455390582262-044cdead277a?w=1600"
           alt="Contact ATL Vibes & Views"
@@ -48,19 +48,29 @@ export default function PartnerContactPage() {
           className="object-cover"
           priority
         />
-        <div className="absolute inset-0 bg-black/50" />
-        <div className="relative z-10 px-5">
-          <p className="font-body text-sm font-semibold uppercase tracking-[3px] text-[#fee198] mb-4">
+        <div className="absolute inset-0 bg-black/60" />
+        <div className="relative z-10 px-5 max-w-[700px]">
+          <p className="font-body text-sm font-semibold uppercase tracking-[3px] text-[#fee198] mb-5">
             Get in Touch
           </p>
-          <h1 className="font-display text-[32px] md:text-[44px] lg:text-[52px] font-bold text-white">
-            Contact Us
+          <h1 className="font-display text-[32px] md:text-[44px] lg:text-[56px] font-normal italic text-white leading-[1.15] mb-6">
+            Let&rsquo;s Connect
           </h1>
+          <p className="text-base md:text-lg text-white/80 font-light leading-relaxed mb-10 max-w-[540px] mx-auto">
+            Ready to tell your story, plan a partnership, or just curious about
+            what we do? We&rsquo;d love to hear from you.
+          </p>
+          <a
+            href="#contact-form"
+            className="inline-block bg-[#fee198] text-[#1a1a1a] font-semibold text-base px-10 py-4 rounded-full hover:bg-white transition-all"
+          >
+            Send a Message
+          </a>
         </div>
       </section>
 
       {/* ========== CONTACT SECTION — NO sidebar ========== */}
-      <section className="py-16 md:py-20 bg-white">
+      <section id="contact-form" className="py-16 md:py-20 bg-white">
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-16 lg:gap-20 max-w-[1100px] mx-auto px-5">
           {/* --- Form Column --- */}
           <div>
