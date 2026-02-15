@@ -31,7 +31,7 @@ export default function PartnerContactPage() {
   return (
     <>
       {/* ========== HERO — full height to match other partner pages ========== */}
-      <section className="relative h-[70vh] md:h-[80vh] lg:h-[85vh] flex items-center justify-center text-center overflow-hidden">
+      <section className="relative h-[45vh] sm:h-[55vh] md:h-[80vh] min-h-[340px] max-h-[640px] flex items-center justify-center text-center overflow-hidden">
         <Image
           src="https://images.unsplash.com/photo-1455390582262-044cdead277a?w=1600"
           alt="Contact ATL Vibes & Views"
