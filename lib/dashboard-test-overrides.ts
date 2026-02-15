@@ -1,7 +1,7 @@
 // TODO: REMOVE BEFORE LAUNCH — entire file is for testing only
 import type { BusinessState } from "@/components/dashboard/TierBadge";
 
-const VALID_STATES: BusinessState[] = ["free", "standard", "founding", "sponsor"];
+const VALID_STATES: BusinessState[] = ["free", "standard", "premium", "founding", "sponsor"];
 
 /**
  * Parse the ?state= query param and return a valid BusinessState override,

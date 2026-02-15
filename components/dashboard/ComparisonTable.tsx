@@ -39,7 +39,7 @@ const COLUMNS = [
 function getHighlightedColumn(state: BusinessState): "free" | "standard" | "premium" {
   if (state === "free") return "free";
   if (state === "standard") return "standard";
-  return "premium"; // founding or sponsor
+  return "premium"; // premium, founding, or sponsor
 }
 
 export function ComparisonTable({ state }: ComparisonTableProps) {

@@ -39,6 +39,21 @@ const PARTNER_BENEFITS = [
   },
 ];
 
+interface DeliverableItem {
+  type?: string;
+  label?: string;
+  quantity_per_month?: number;
+  channel?: string;
+}
+
+function formatDeliverable(item: DeliverableItem): string {
+  const label = item.label ?? item.type ?? "";
+  if (item.quantity_per_month && item.quantity_per_month > 1) {
+    return `${item.quantity_per_month} ${label}`;
+  }
+  return label;
+}
+
 function isFeaturePackage(slug: string): boolean {
   return slug === "the-feature";
 }
@@ -115,7 +130,7 @@ export function SponsorUpsell({ state, packages }: SponsorUpsellProps) {
           {packages.map((pkg) => {
             const isFeatured = isFeaturePackage(pkg.slug);
             const deliverablesList = Array.isArray(pkg.deliverables)
-              ? (pkg.deliverables as string[])
+              ? (pkg.deliverables as DeliverableItem[])
               : [];
 
             return (
@@ -144,7 +159,7 @@ export function SponsorUpsell({ state, packages }: SponsorUpsellProps) {
                         key={i}
                         className="text-[12px] text-[#6b7280] before:content-['•'] before:mr-1.5"
                       >
-                        {String(item)}
+                        {formatDeliverable(item)}
                       </li>
                     ))}
                   </ul>

@@ -5,41 +5,19 @@ import { Star } from "lucide-react";
 import type { BusinessState } from "./TierBadge";
 import { ComparisonTable } from "./ComparisonTable";
 
-interface TierChange {
-  id: string;
-  from_tier: string;
-  to_tier: string;
-  change_type: string;
-  reason: string | null;
-  created_at: string;
-}
-
 interface PlanBillingClientProps {
   state: BusinessState;
-  tierChanges: TierChange[] | null;
-}
-
-function formatDate(dateStr: string): string {
-  return new Date(dateStr).toLocaleDateString("en-US", {
-    month: "short",
-    day: "numeric",
-    year: "numeric",
-  });
-}
-
-function changeDescription(change: TierChange): string {
-  const type = change.change_type.replace(/_/g, " ");
-  return type.charAt(0).toUpperCase() + type.slice(1);
 }
 
 export function PlanBillingClient({
   state,
-  tierChanges,
 }: PlanBillingClientProps) {
   const isFounding = state === "founding";
   const isSponsor = state === "sponsor";
+  const isPremium = state === ("premium" as BusinessState);
   const showButtons = state === "free" || state === "standard";
-  const showHistory = state === "standard" || state === "sponsor";
+  const showHistory = state === "standard" || isPremium || isSponsor;
+  const showDowngradeCancel = state === "standard" || isPremium;
 
   return (
     <div>
@@ -119,59 +97,37 @@ export function PlanBillingClient({
             Billing History
           </h3>
           <div className="bg-white border border-[#e5e5e5]">
-            {!tierChanges || tierChanges.length === 0 ? (
-              <div className="px-5 py-8 text-center text-[13px] text-[#6b7280]">
-                No billing history
-              </div>
-            ) : (
-              tierChanges.map((change, i) => (
-                <div
-                  key={change.id}
-                  className={`flex items-center justify-between px-5 py-3 ${
-                    i < tierChanges.length - 1
-                      ? "border-b border-[#f5f5f5]"
-                      : ""
-                  }`}
-                >
-                  <div>
-                    <span className="text-[13px] text-[#1a1a1a]">
-                      {formatDate(change.created_at)}
-                    </span>
-                    <span className="text-[13px] text-[#6b7280] ml-3">
-                      {changeDescription(change)}
-                    </span>
-                  </div>
-                  <span className="text-[13px] font-bold text-[#1a1a1a]">
-                    {change.from_tier} &rarr; {change.to_tier}
-                  </span>
-                </div>
-              ))
-            )}
+            <div className="px-5 py-8 text-center text-[13px] text-[#6b7280]">
+              No billing history yet. Payment history will appear here once
+              billing is connected.
+            </div>
           </div>
 
-          {/* Downgrade / Cancel links */}
-          <div className="flex gap-4 mt-4">
-            <button
-              type="button"
-              onClick={() => {
-                // TODO: Wire to Stripe portal
-                console.log("Downgrade plan clicked");
-              }}
-              className="text-[13px] font-semibold text-[#c1121f] hover:underline"
-            >
-              Downgrade Plan
-            </button>
-            <button
-              type="button"
-              onClick={() => {
-                // TODO: Wire to Stripe portal
-                console.log("Cancel plan clicked");
-              }}
-              className="text-[13px] font-semibold text-[#c1121f] hover:underline"
-            >
-              Cancel Plan
-            </button>
-          </div>
+          {/* Downgrade / Cancel links — Standard and Premium only */}
+          {showDowngradeCancel && (
+            <div className="flex gap-4 mt-4">
+              <button
+                type="button"
+                onClick={() => {
+                  // TODO: Wire to Stripe portal
+                  console.log("Downgrade plan clicked");
+                }}
+                className="text-[13px] font-semibold text-[#c1121f] hover:underline"
+              >
+                Downgrade Plan
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  // TODO: Wire to Stripe portal
+                  console.log("Cancel plan clicked");
+                }}
+                className="text-[13px] font-semibold text-[#c1121f] hover:underline"
+              >
+                Cancel Plan
+              </button>
+            </div>
+          )}
         </div>
       )}
     </div>

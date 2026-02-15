@@ -3,10 +3,7 @@ import { getMockBusinessOwner } from "@/lib/mock-auth";
 import { getBusinessState } from "@/components/dashboard/TierBadge";
 import { PlanBillingClient } from "@/components/dashboard/PlanBillingClient";
 // TODO: REMOVE BEFORE LAUNCH — test override import
-import {
-  getStateOverride,
-  MOCK_SPONSOR_BILLING_TIER_CHANGES,
-} from "@/lib/dashboard-test-overrides";
+import { getStateOverride } from "@/lib/dashboard-test-overrides";
 
 export async function generateMetadata() {
   return {
@@ -63,51 +60,13 @@ export default async function BillingPage({
     } | null;
   };
 
-  const { data: subscription } = (await supabase
-    .from("subscriptions")
-    .select("*")
-    .eq("business_id", businessId)
-    .maybeSingle()) as {
-    data: {
-      id: string;
-      plan: string;
-      price_monthly: number | null;
-      status: string;
-      current_period_start: string | null;
-      current_period_end: string | null;
-    } | null;
-  };
-
-  const { data: tierChanges } = (await supabase
-    .from("tier_changes")
-    .select("*")
-    .eq("business_id", businessId)
-    .order("created_at", { ascending: false })
-    .limit(10)) as {
-    data: {
-      id: string;
-      from_tier: string;
-      to_tier: string;
-      change_type: string;
-      reason: string | null;
-      created_at: string;
-    }[] | null;
-  };
-
   const realState = getBusinessState(business, sponsor);
   // TODO: REMOVE BEFORE LAUNCH — apply test override
   const state = stateOverride ?? realState;
 
-  // TODO: REMOVE BEFORE LAUNCH — inject mock tier changes for sponsor/standard test
-  const tierChangeProps =
-    (state === "sponsor" || state === "standard") && (!tierChanges || tierChanges.length === 0)
-      ? MOCK_SPONSOR_BILLING_TIER_CHANGES
-      : tierChanges;
-
   return (
     <PlanBillingClient
       state={state}
-      tierChanges={tierChangeProps}
     />
   );
 }
