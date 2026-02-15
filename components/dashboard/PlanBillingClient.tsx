@@ -130,6 +130,25 @@ export function PlanBillingClient({
           )}
         </div>
       )}
+
+      {/* Founding Member Partnership CTA */}
+      {isFounding && (
+        <div className="bg-[#f5f5f5] text-center px-8 py-10 mt-8">
+          <h3 className="font-display text-[20px] font-bold text-[#1a1a1a]">
+            Want even more visibility?
+          </h3>
+          <p className="text-[13px] text-[#6b7280] mt-2 max-w-[440px] mx-auto">
+            Take your brand further with dedicated content, ad placements, and
+            newsletter features through a partnership with ATL Vibes &amp; Views.
+          </p>
+          <Link
+            href="/partners"
+            className="inline-flex items-center justify-center rounded-full bg-[#fee198] px-6 py-2.5 text-[13px] font-semibold text-[#1a1a1a] hover:opacity-90 transition-opacity mt-5"
+          >
+            Explore Partnerships &rarr;
+          </Link>
+        </div>
+      )}
     </div>
   );
 }
