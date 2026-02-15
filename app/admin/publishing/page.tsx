@@ -8,15 +8,17 @@ export const metadata: Metadata = {
   robots: { index: false, follow: false },
 };
 
+export const dynamic = 'force-dynamic';
+
 export default async function PublishingPage() {
   const supabase = createServerClient();
   const today = new Date().toISOString().split("T")[0];
 
-  // Blog posts in publishing pipeline (approved, scheduled, published)
+  // Blog posts in draft — the publishing queue is where drafts get media + published
   const { data: posts, error: postsErr } = (await supabase
     .from("blog_posts")
     .select("*, categories(name), neighborhoods(name)")
-    .in("status", ["approved", "scheduled", "published"])
+    .eq("status", "draft")
     .order("created_at", { ascending: false })) as {
     data: {
       id: string;
