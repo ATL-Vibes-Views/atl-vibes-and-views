@@ -13,8 +13,11 @@ interface PostRow {
   slug: string;
   status: string;
   type: string | null;
+  content_type: string | null;
   category_id: string | null;
   neighborhood_id: string | null;
+  word_count: number | null;
+  featured_image_url: string | null;
   published_at: string | null;
   created_at: string;
   categories: { name: string } | null;
@@ -28,11 +31,12 @@ interface PostsClientProps {
 
 const ITEMS_PER_PAGE = 25;
 
-const statusBadgeMap: Record<string, "green" | "gray" | "blue" | "purple"> = {
+const statusBadgeMap: Record<string, "green" | "gray" | "blue" | "yellow" | "red"> = {
   published: "green",
-  draft: "gray",
-  scheduled: "blue",
-  archived: "purple",
+  approved: "blue",
+  scheduled: "yellow",
+  archived: "gray",
+  rejected: "red",
 };
 
 export function PostsClient({ posts, categories }: PostsClientProps) {
@@ -109,6 +113,13 @@ export function PostsClient({ posts, categories }: PostsClientProps) {
       ),
     },
     {
+      key: "word_count",
+      header: "Words",
+      render: (item: PostRow) => (
+        <span className="text-[13px]">{item.word_count ?? "—"}</span>
+      ),
+    },
+    {
       key: "published_at",
       header: "Published",
       render: (item: PostRow) => (
@@ -121,17 +132,7 @@ export function PostsClient({ posts, categories }: PostsClientProps) {
 
   return (
     <>
-      <PortalTopbar
-        title="Blog Posts"
-        actions={
-          <button
-            onClick={() => console.log("Create post")}
-            className="inline-flex items-center px-6 py-2.5 rounded-full text-sm font-semibold bg-[#fee198] text-[#1a1a1a] hover:bg-[#e6c46d] transition-colors"
-          >
-            + Create Post
-          </button>
-        }
-      />
+      <PortalTopbar title="Blog Posts" />
       <div className="p-8 max-[899px]:pt-16 space-y-4">
         <FilterBar
           filters={[
@@ -141,8 +142,9 @@ export function PostsClient({ posts, categories }: PostsClientProps) {
               value: statusFilter,
               options: [
                 { value: "published", label: "Published" },
-                { value: "draft", label: "Draft" },
+                { value: "approved", label: "Approved" },
                 { value: "scheduled", label: "Scheduled" },
+                { value: "archived", label: "Archived" },
               ],
             },
             {
@@ -152,6 +154,9 @@ export function PostsClient({ posts, categories }: PostsClientProps) {
               options: [
                 { value: "news", label: "News" },
                 { value: "guide", label: "Guide" },
+                { value: "feature", label: "Feature" },
+                { value: "review", label: "Review" },
+                { value: "listicle", label: "Listicle" },
               ],
             },
             {

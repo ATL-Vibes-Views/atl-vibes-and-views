@@ -4,7 +4,7 @@ import { MediaClient } from "./MediaClient";
 
 export const metadata: Metadata = {
   title: "Media | Admin CMS | ATL Vibes & Views",
-  description: "Manage media items for ATL Vibes & Views.",
+  description: "Manage media items — videos, images, and audio.",
   robots: { index: false, follow: false },
 };
 
@@ -13,7 +13,7 @@ export default async function MediaPage() {
 
   const { data: media, error: mediaErr } = (await supabase
     .from("media_items")
-    .select("*")
+    .select("*, neighborhoods(name)")
     .order("created_at", { ascending: false })) as {
     data: {
       id: string;
@@ -24,9 +24,11 @@ export default async function MediaPage() {
       embed_url: string | null;
       thumbnail_url: string | null;
       status: string;
-      published_at: string | null;
       is_featured: boolean;
+      neighborhood_id: string | null;
+      published_at: string | null;
       created_at: string;
+      neighborhoods: { name: string } | null;
     }[] | null;
     error: unknown;
   };

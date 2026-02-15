@@ -4,16 +4,18 @@ import { PostsClient } from "./PostsClient";
 
 export const metadata: Metadata = {
   title: "Blog Posts | Admin CMS | ATL Vibes & Views",
-  description: "Manage blog posts for ATL Vibes & Views.",
+  description: "Manage published and scheduled blog posts.",
   robots: { index: false, follow: false },
 };
 
 export default async function PostsPage() {
   const supabase = createServerClient();
 
+  // Exclude drafts — they enter via the publishing queue
   const { data: posts, error: postsErr } = (await supabase
     .from("blog_posts")
     .select("*, categories(name), neighborhoods(name)")
+    .neq("status", "draft")
     .order("created_at", { ascending: false })) as {
     data: {
       id: string;
@@ -21,8 +23,11 @@ export default async function PostsPage() {
       slug: string;
       status: string;
       type: string | null;
+      content_type: string | null;
       category_id: string | null;
       neighborhood_id: string | null;
+      word_count: number | null;
+      featured_image_url: string | null;
       published_at: string | null;
       created_at: string;
       categories: { name: string } | null;

@@ -2,13 +2,12 @@ import { Metadata } from "next";
 import {
   FileText,
   Building2,
-  Calendar,
   Star,
   BookOpen,
   Users,
   Mail,
   Handshake,
-  Inbox,
+  ClipboardList,
   Clock,
   Send,
 } from "lucide-react";
@@ -63,7 +62,7 @@ export default async function AdminDashboardPage() {
 
   if (pendingSubmissions > 0) {
     alerts.push({
-      icon: <Inbox size={14} className="text-[#c1121f]" />,
+      icon: <ClipboardList size={14} className="text-[#c1121f]" />,
       iconBg: "bg-[#fee2e2]",
       text: <><strong>{pendingSubmissions}</strong> submission{pendingSubmissions !== 1 ? "s" : ""} awaiting review</>,
       timestamp: "Now",
@@ -109,7 +108,6 @@ export default async function AdminDashboardPage() {
   // Workflow steps — publishing pipeline
   const workflowSteps: { label: string; status: "done" | "current" | "future" }[] = [
     { label: "Pipeline", status: "done" },
-    { label: "Content Inbox", status: newStories > 0 ? "done" : "current" },
     { label: "Publishing Queue", status: scheduledPosts > 0 ? "current" : "future" },
     { label: "Published", status: "future" },
   ];

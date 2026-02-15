@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useMemo } from "react";
+import Link from "next/link";
 import { PortalTopbar } from "@/components/portal/PortalTopbar";
 import { StatusBadge } from "@/components/portal/StatusBadge";
 import { FilterBar } from "@/components/portal/FilterBar";
@@ -16,9 +17,11 @@ interface MediaRow {
   embed_url: string | null;
   thumbnail_url: string | null;
   status: string;
-  published_at: string | null;
   is_featured: boolean;
+  neighborhood_id: string | null;
+  published_at: string | null;
   created_at: string;
+  neighborhoods: { name: string } | null;
 }
 
 interface MediaClientProps {
@@ -100,12 +103,26 @@ export function MediaClient({ media }: MediaClientProps) {
       ),
     },
     {
+      key: "neighborhood",
+      header: "Neighborhood",
+      render: (item: MediaRow) => (
+        <span className="text-[13px]">{item.neighborhoods?.name ?? "—"}</span>
+      ),
+    },
+    {
       key: "status",
       header: "Status",
       render: (item: MediaRow) => (
         <StatusBadge variant={statusBadgeMap[item.status] ?? "gray"}>
           {item.status}
         </StatusBadge>
+      ),
+    },
+    {
+      key: "is_featured",
+      header: "Featured",
+      render: (item: MediaRow) => (
+        <span className="text-[13px]">{item.is_featured ? "Yes" : "—"}</span>
       ),
     },
     {
@@ -124,12 +141,12 @@ export function MediaClient({ media }: MediaClientProps) {
       <PortalTopbar
         title="Media"
         actions={
-          <button
-            onClick={() => console.log("Add media")}
+          <Link
+            href="/admin/media/new"
             className="inline-flex items-center px-6 py-2.5 rounded-full text-sm font-semibold bg-[#fee198] text-[#1a1a1a] hover:bg-[#e6c46d] transition-colors"
           >
             + Add Media
-          </button>
+          </Link>
         }
       />
       <div className="p-8 max-[899px]:pt-16 space-y-4">

@@ -16,6 +16,7 @@ interface StoryRow {
   source_name: string | null;
   status: string;
   score: number | null;
+  tier: number | null;
   category_id: string | null;
   created_at: string;
   categories: { name: string } | null;
@@ -36,9 +37,16 @@ const statusBadgeMap: Record<string, "yellow" | "blue" | "gray" | "green" | "red
   expired: "red",
 };
 
+const tierBadgeMap: Record<number, "green" | "blue" | "gold"> = {
+  1: "green",
+  2: "blue",
+  3: "gold",
+};
+
 export function PipelineClient({ stories, categories }: PipelineClientProps) {
   const [statusFilter, setStatusFilter] = useState("");
   const [categoryFilter, setCategoryFilter] = useState("");
+  const [tierFilter, setTierFilter] = useState("");
   const [page, setPage] = useState(1);
 
   // Stats
@@ -52,8 +60,9 @@ export function PipelineClient({ stories, categories }: PipelineClientProps) {
     let items = stories;
     if (statusFilter) items = items.filter((s) => s.status === statusFilter);
     if (categoryFilter) items = items.filter((s) => s.category_id === categoryFilter);
+    if (tierFilter) items = items.filter((s) => s.tier === Number(tierFilter));
     return items;
-  }, [stories, statusFilter, categoryFilter]);
+  }, [stories, statusFilter, categoryFilter, tierFilter]);
 
   const totalPages = Math.max(1, Math.ceil(filtered.length / ITEMS_PER_PAGE));
   const paginated = filtered.slice((page - 1) * ITEMS_PER_PAGE, page * ITEMS_PER_PAGE);
@@ -61,6 +70,7 @@ export function PipelineClient({ stories, categories }: PipelineClientProps) {
   const handleFilterChange = (key: string, value: string) => {
     if (key === "status") setStatusFilter(value);
     if (key === "category") setCategoryFilter(value);
+    if (key === "tier") setTierFilter(value);
     setPage(1);
   };
 
@@ -68,7 +78,7 @@ export function PipelineClient({ stories, categories }: PipelineClientProps) {
     {
       key: "headline",
       header: "Headline",
-      width: "35%",
+      width: "30%",
       render: (item: StoryRow) => (
         <span className="font-display text-[14px] font-semibold text-black">
           {item.headline}
@@ -82,6 +92,19 @@ export function PipelineClient({ stories, categories }: PipelineClientProps) {
         <StatusBadge variant={statusBadgeMap[item.status] ?? "gray"}>
           {item.status}
         </StatusBadge>
+      ),
+    },
+    {
+      key: "tier",
+      header: "Tier",
+      render: (item: StoryRow) => (
+        item.tier !== null ? (
+          <StatusBadge variant={tierBadgeMap[item.tier] ?? "gray"}>
+            Tier {item.tier}
+          </StatusBadge>
+        ) : (
+          <span className="text-[13px] text-[#6b7280]">—</span>
+        )
       ),
     },
     {
@@ -162,7 +185,6 @@ export function PipelineClient({ stories, categories }: PipelineClientProps) {
 
   const workflowSteps = [
     { label: "Pipeline", status: "current" as const },
-    { label: "Content Inbox", status: "future" as const },
     { label: "Publishing Queue", status: "future" as const },
     { label: "Published", status: "future" as const },
   ];
@@ -173,7 +195,7 @@ export function PipelineClient({ stories, categories }: PipelineClientProps) {
         title="Pipeline — Story Bank"
         actions={
           <span className="text-[12px] text-[#6b7280]">
-            Scored stories from RSS intake · Activate to send to Content Inbox
+            Scored stories from RSS intake · Activate to send to publishing
           </span>
         }
       />
@@ -199,6 +221,16 @@ export function PipelineClient({ stories, categories }: PipelineClientProps) {
                 { value: "banked", label: "Banked" },
                 { value: "used", label: "Used" },
                 { value: "expired", label: "Expired" },
+              ],
+            },
+            {
+              key: "tier",
+              label: "All Tiers",
+              value: tierFilter,
+              options: [
+                { value: "1", label: "Tier 1 — Blog + Video" },
+                { value: "2", label: "Tier 2 — Blog Only" },
+                { value: "3", label: "Tier 3 — Social Only" },
               ],
             },
             {

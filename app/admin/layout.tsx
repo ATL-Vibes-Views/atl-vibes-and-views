@@ -1,7 +1,6 @@
 import { Metadata } from "next";
 import {
   LayoutDashboard,
-  Inbox,
   Rocket,
   FileText,
   Film,
@@ -46,11 +45,11 @@ export default async function AdminLayout({
 
   // Fetch count badges in parallel — 11 badges total
   const counts = (await Promise.all([
-    supabase.from("stories").select("*", { count: "exact", head: true }).eq("status", "new"),
     supabase.from("blog_posts").select("*", { count: "exact", head: true }).eq("status", "scheduled"),
     supabase.from("blog_posts").select("*", { count: "exact", head: true }).eq("status", "draft"),
-    supabase.from("scripts").select("*", { count: "exact", head: true }).eq("status", "draft"),
-    supabase.from("scripts").select("*", { count: "exact", head: true }).eq("status", "approved"),
+    supabase.from("scripts").select("*", { count: "exact", head: true }).eq("status", "draft").eq("platform", "reel"),
+    supabase.from("scripts").select("*", { count: "exact", head: true }).eq("status", "approved").eq("platform", "reel"),
+    supabase.from("stories").select("*", { count: "exact", head: true }).eq("tier", 3).eq("status", "scored"),
     supabase.from("media_items").select("*", { count: "exact", head: true }),
     supabase.from("stories").select("*", { count: "exact", head: true }).eq("status", "in_progress"),
     supabase.from("business_listings").select("*", { count: "exact", head: true }),
@@ -59,11 +58,12 @@ export default async function AdminLayout({
     supabase.from("submissions").select("*", { count: "exact", head: true }).eq("status", "pending"),
   ])) as unknown as { count: number | null }[];
 
-  const contentInbox = counts[0].count ?? 0;
-  const publishingQueue = counts[1].count ?? 0;
-  const draftPosts = counts[2].count ?? 0;
-  const draftScripts = counts[3].count ?? 0;
-  const socialQueue = counts[4].count ?? 0;
+  const publishingQueue = counts[0].count ?? 0;
+  const draftPosts = counts[1].count ?? 0;
+  const draftScripts = counts[2].count ?? 0;
+  const approvedScripts = counts[3].count ?? 0;
+  const tier3Stories = counts[4].count ?? 0;
+  const socialQueue = approvedScripts + tier3Stories;
   const mediaCount = counts[5].count ?? 0;
   const pipelineCount = counts[6].count ?? 0;
   const businessCount = counts[7].count ?? 0;
@@ -76,7 +76,6 @@ export default async function AdminLayout({
       label: "Content",
       items: [
         { label: "Dashboard", path: "/admin", icon: <LayoutDashboard size={16} /> },
-        { label: "Content Inbox", path: "/admin/inbox", icon: <Inbox size={16} />, ...(contentInbox > 0 ? { count: contentInbox } : {}) },
         { label: "Publishing Queue", path: "/admin/publishing", icon: <Rocket size={16} />, ...(publishingQueue > 0 ? { count: publishingQueue } : {}) },
         { label: "Blog Posts", path: "/admin/posts", icon: <FileText size={16} />, ...(draftPosts > 0 ? { count: draftPosts } : {}) },
         { label: "Scripts", path: "/admin/scripts", icon: <Film size={16} />, ...(draftScripts > 0 ? { count: draftScripts } : {}) },

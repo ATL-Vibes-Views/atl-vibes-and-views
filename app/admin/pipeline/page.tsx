@@ -21,6 +21,7 @@ export default async function PipelinePage() {
       source_name: string | null;
       status: string;
       score: number | null;
+      tier: number | null;
       category_id: string | null;
       created_at: string;
       categories: { name: string } | null;
