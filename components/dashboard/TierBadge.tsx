@@ -1,4 +1,4 @@
-export type BusinessState = "free" | "standard" | "founding" | "sponsor";
+export type BusinessState = "free" | "standard" | "premium" | "founding" | "sponsor";
 
 interface TierBadgeProps {
   state: BusinessState;
@@ -12,6 +12,10 @@ const badgeConfig: Record<BusinessState, { text: string; classes: string }> = {
   standard: {
     text: "Standard",
     classes: "bg-[#dbeafe] text-[#2563eb]",
+  },
+  premium: {
+    text: "Premium",
+    classes: "bg-[#fef3c7] text-[#92400e]",
   },
   founding: {
     text: "Founding Member",
@@ -40,6 +44,7 @@ export function getBusinessState(
 ): BusinessState {
   if (sponsor && sponsor.is_active) return "sponsor";
   if (business?.is_founding_member) return "founding";
+  if (business?.tier === "Premium") return "premium";
   if (business?.tier === "Standard") return "standard";
   return "free";
 }

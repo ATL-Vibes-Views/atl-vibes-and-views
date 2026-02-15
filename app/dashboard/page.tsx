@@ -2,6 +2,12 @@ import { createServerClient } from "@/lib/supabase";
 import { getMockBusinessOwner } from "@/lib/mock-auth";
 import { getBusinessState } from "@/components/dashboard/TierBadge";
 import { OverviewClient } from "@/components/dashboard/OverviewClient";
+// TODO: REMOVE BEFORE LAUNCH — test override import
+import {
+  getStateOverride,
+  MOCK_SPONSOR_OVERVIEW,
+  MOCK_DELIVERABLES_OVERVIEW,
+} from "@/lib/dashboard-test-overrides";
 
 export async function generateMetadata() {
   return {
@@ -13,10 +19,18 @@ export async function generateMetadata() {
 
 export const dynamic = "force-dynamic";
 
-export default async function OverviewPage() {
+export default async function OverviewPage({
+  searchParams,
+}: {
+  searchParams: Promise<Record<string, string | string[] | undefined>>;
+}) {
   const owner = getMockBusinessOwner();
   const businessId = owner.business_id!;
   const supabase = createServerClient();
+
+  // TODO: REMOVE BEFORE LAUNCH — testing state override
+  const resolvedParams = await searchParams;
+  const stateOverride = getStateOverride(resolvedParams);
 
   // Business listing
   const { data: business } = (await supabase
@@ -97,7 +111,22 @@ export default async function OverviewPage() {
     count: number | null;
   };
 
-  const state = getBusinessState(business, sponsor);
+  const realState = getBusinessState(business, sponsor);
+  // TODO: REMOVE BEFORE LAUNCH — apply test override
+  const state = stateOverride ?? realState;
+
+  // TODO: REMOVE BEFORE LAUNCH — inject mock sponsor data when testing sponsor state
+  const sponsorProps =
+    state === "sponsor" && !sponsor
+      ? MOCK_SPONSOR_OVERVIEW
+      : sponsor
+        ? { campaign_name: sponsor.campaign_name, sponsor_packages: sponsor.sponsor_packages }
+        : null;
+
+  const deliverableProps =
+    state === "sponsor" && !deliverables
+      ? MOCK_DELIVERABLES_OVERVIEW
+      : deliverables;
 
   return (
     <OverviewClient
@@ -107,15 +136,8 @@ export default async function OverviewPage() {
       reviewCount={reviewCount}
       storyCount={storyCount ?? 0}
       eventCount={eventCount ?? 0}
-      sponsor={
-        sponsor
-          ? {
-              campaign_name: sponsor.campaign_name,
-              sponsor_packages: sponsor.sponsor_packages,
-            }
-          : null
-      }
-      deliverables={deliverables}
+      sponsor={sponsorProps}
+      deliverables={deliverableProps}
     />
   );
 }
