@@ -5,7 +5,7 @@ import { Fragment, useCallback, useState, useTransition } from "react";
 import Image from "next/image";
 import { Search, X, ChevronDown, ArrowRight, FileText } from "lucide-react";
 import { RelatedStoryCard } from "@/components/ui/RelatedStoryCard";
-import { AdBlock } from "@/components/ui/AdBlock";
+import { AdPlacementClient } from "@/components/ads/AdPlacementClient";
 
 /* ============================================================
    TYPES
@@ -386,7 +386,7 @@ export function StoriesArchiveClient({
                   {/* Inline ad banner after every 8th card */}
                   {(index + 1) % 8 === 0 && (
                     <div className="col-span-full my-4">
-                      <AdBlock variant="inline" />
+                      <AdPlacementClient placementKey="STORIES_INLINE_01" variant="inline" />
                     </div>
                   )}
                 </Fragment>

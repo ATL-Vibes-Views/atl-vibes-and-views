@@ -1,6 +1,7 @@
 import Link from "next/link";
 import Image from "next/image";
 import { ArrowRight, ChevronRight, Play } from "lucide-react";
+import ServerAdPlacement from "@/components/ads/AdPlacement";
 import { NewsletterForm } from "@/components/NewsletterForm";
 import { NeighborhoodsDiscover } from "@/components/NeighborhoodsDiscover";
 import {
@@ -357,19 +358,7 @@ export default async function NeighborhoodsLandingPage({
 
       {/* ========== 4. HORIZONTAL AD (full-width) ========== */}
       <div className="site-container pb-12 md:pb-16">
-        <Link
-          href="/hub/businesses"
-          className="block bg-gray-100 flex items-center justify-center py-12 border border-dashed border-gray-300 hover:border-[#e6c46d] hover:bg-gray-50 transition-colors group"
-        >
-          <div className="text-center">
-            <span className="text-xs text-gray-mid uppercase tracking-eyebrow group-hover:text-black transition-colors">
-              Advertise Here
-            </span>
-            <p className="text-sm text-gray-400 mt-1">
-              Reach thousands of Atlanta locals
-            </p>
-          </div>
-        </Link>
+        <ServerAdPlacement placementKey="NEIGHBORHOODS_LANDING_INLINE_01" variant="inline" />
       </div>
 
       {/* ========== 5. VIDEO SCROLLER — FULL-WIDTH BLACK PAGE BREAK ========== */}
@@ -686,19 +675,7 @@ export default async function NeighborhoodsLandingPage({
                   </Link>
                 </SidebarWidget>
               ) : (
-                <Link
-                  href="/partner"
-                  className="block bg-gray-100 border border-dashed border-gray-300 hover:border-[#e6c46d] hover:bg-gray-50 transition-colors group min-h-[600px] flex items-center justify-center"
-                >
-                  <div className="text-center px-6">
-                    <span className="text-xs text-gray-mid uppercase tracking-eyebrow group-hover:text-black transition-colors">
-                      Advertise Here
-                    </span>
-                    <p className="text-sm text-gray-400 mt-1">
-                      Reach thousands of Atlanta locals
-                    </p>
-                  </div>
-                </Link>
+                <ServerAdPlacement placementKey="NEIGHBORHOODS_LANDING_SIDEBAR_01" variant="sidebar" />
               )}
             </Sidebar>
           </aside>

@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { Breadcrumbs } from "@/components/ui/Breadcrumbs";
 import { HeroSection } from "@/components/ui/HeroSection";
-import { AdBlock } from "@/components/ui/AdBlock";
+import AdPlacement from "@/components/ads/AdPlacement";
 import {
   getAreas,
   getNeighborhoods,
@@ -197,7 +197,7 @@ export default async function BusinessHubPage({
             </div>
 
             {/* Ad Slot */}
-            <AdBlock variant="sidebar" />
+            <AdPlacement placementKey="BUSINESSES_SIDEBAR_01" variant="sidebar" />
           </div>
         </aside>
       </HubArchiveClient>

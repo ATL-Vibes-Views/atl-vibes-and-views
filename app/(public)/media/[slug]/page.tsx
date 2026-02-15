@@ -13,10 +13,10 @@ import { extractYouTubeId } from "@/lib/media-utils";
 import { InstagramFeed } from "@/components/ui/InstagramFeed";
 import {
   NewsletterWidget,
-  AdPlacement,
   NeighborhoodsWidget,
   SubmitCTA,
 } from "@/components/Sidebar";
+import ServerAdPlacement from "@/components/ads/AdPlacement";
 
 /* ============================================================
    /media/[slug] — Media Detail Page
@@ -358,7 +358,7 @@ export default async function MediaDetailPage({
         {/* ── SIDEBAR ── */}
         <aside className="space-y-8" role="complementary">
           <NewsletterWidget />
-          <AdPlacement slot="sidebar_top" />
+          <ServerAdPlacement placementKey="MEDIA_DETAIL_SIDEBAR_01" variant="sidebar" />
           <NeighborhoodsWidget
             neighborhoods={[
               { name: "Virginia-Highland", slug: "virginia-highland" },

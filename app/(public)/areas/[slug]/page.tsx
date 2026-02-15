@@ -6,12 +6,11 @@ import { EventCard } from "@/components/ui/EventCard";
 import { Breadcrumbs } from "@/components/ui/Breadcrumbs";
 import { SectionHeader } from "@/components/ui/SectionHeader";
 import { HeroSection } from "@/components/ui/HeroSection";
-import { AdBlock } from "@/components/ui/AdBlock";
 import { SearchBar } from "@/components/SearchBar";
+import ServerAdPlacement from "@/components/ads/AdPlacement";
 import {
   Sidebar,
   NewsletterWidget,
-  AdPlacement,
   NeighborhoodsWidget,
   SubmitCTA,
 } from "@/components/Sidebar";
@@ -429,7 +428,7 @@ export default async function AreaDetailPage({
 
             {/* ===== AD SPACE — horizontal (matches homepage) ===== */}
             <section>
-              <AdBlock variant="inline" />
+              <ServerAdPlacement placementKey="AREA_INLINE_01" variant="inline" areaId={area.id} />
             </section>
 
             {/* ===== EATS & DRINKS ===== */}
@@ -537,7 +536,7 @@ export default async function AreaDetailPage({
                 title={`${area.name} Updates`}
                 description={`Get the latest stories, events, and business openings from ${area.name}.`}
               />
-              <AdPlacement slot="sidebar_top" />
+              <ServerAdPlacement placementKey="AREA_SIDEBAR_01" variant="sidebar" areaId={area.id} />
               <NeighborhoodsWidget
                 title={`Neighborhoods in ${area.name}`}
                 neighborhoods={sidebarNeighborhoodLinks}

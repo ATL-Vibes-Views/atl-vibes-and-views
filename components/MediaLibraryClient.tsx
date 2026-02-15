@@ -5,7 +5,7 @@ import Link from "next/link";
 import Image from "next/image";
 import { Search, X, Play, Headphones, ArrowRight, Film } from "lucide-react";
 import { extractYouTubeId } from "@/lib/media-utils";
-import { AdBlock } from "@/components/ui/AdBlock";
+import { AdPlacementClient } from "@/components/ads/AdPlacementClient";
 
 /* ============================================================
    TYPES
@@ -235,7 +235,7 @@ export function MediaLibraryClient({ items, shorts }: MediaLibraryClientProps) {
       {/* ========== HORIZONTAL AD ========== */}
       {activeTab !== "shorts" && (
         <div className="site-container pb-8">
-          <AdBlock variant="inline" />
+          <AdPlacementClient placementKey="MEDIA_LIBRARY_INLINE_01" variant="inline" />
         </div>
       )}
 

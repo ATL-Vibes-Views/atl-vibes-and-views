@@ -229,6 +229,8 @@ export default async function CityDetailPage({
       submitHeading={`Own a Business in ${city.name}?`}
       newsletterTitle={`${city.name} Updates`}
       newsletterDescription={`Get the latest stories, events, and business openings from ${city.name}.`}
+      adInlineKey="CITY_INLINE_01"
+      adSidebarKey="CITY_SIDEBAR_01"
     />
   );
 }

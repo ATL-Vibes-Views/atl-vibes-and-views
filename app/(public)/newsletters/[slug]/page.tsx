@@ -9,10 +9,10 @@ import { NewsletterBlock } from "@/components/ui/NewsletterBlock";
 import {
   Sidebar,
   NewsletterWidget,
-  AdPlacement,
   NeighborhoodsWidget,
   SubmitCTA,
 } from "@/components/Sidebar";
+import ServerAdPlacement from "@/components/ads/AdPlacement";
 import {
   getNewsletterBySlug,
   getAdjacentNewsletters,
@@ -396,7 +396,7 @@ export default async function NewsletterDetailPage({
                 title="Get the Newsletter"
                 description={`Subscribe to ${newsletter.name} and get Atlanta updates in your inbox.`}
               />
-              <AdPlacement slot="sidebar_top" />
+              <ServerAdPlacement placementKey="NEWSLETTER_DETAIL_SIDEBAR_01" variant="sidebar" />
               <NeighborhoodsWidget
                 title="Popular Neighborhoods"
                 neighborhoods={popularNeighborhoods.map((n) => ({

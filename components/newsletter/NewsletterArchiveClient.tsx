@@ -3,6 +3,7 @@
 import { useRouter, usePathname, useSearchParams } from "next/navigation";
 import { useCallback, useState, useTransition } from "react";
 import { ArrowRight, Mail } from "lucide-react";
+import { AdPlacementClient } from "@/components/ads/AdPlacementClient";
 import { NewsletterCard } from "./NewsletterCard";
 import { NewsletterSidebar } from "./NewsletterSidebar";
 import type { NewsletterCardData } from "./NewsletterCard";
@@ -203,28 +204,7 @@ export function NewsletterArchiveClient({
       {/* ========== AD DIVIDER ========== */}
       <div className="bg-[#f3f4f6] border-t border-b border-[#e5e7eb] py-6 md:py-8">
         <div className="site-container flex justify-center">
-          {/* Desktop: 728×90 */}
-          <div className="hidden md:flex w-[728px] h-[90px] border border-dashed border-gray-300 bg-white items-center justify-center">
-            <div className="text-center">
-              <span className="text-xs text-gray-mid uppercase tracking-eyebrow">
-                Advertisement
-              </span>
-              <p className="text-[10px] text-gray-400 mt-0.5">
-                728 &times; 90
-              </p>
-            </div>
-          </div>
-          {/* Mobile: 320×250 */}
-          <div className="md:hidden w-[320px] h-[250px] border border-dashed border-gray-300 bg-white flex items-center justify-center">
-            <div className="text-center">
-              <span className="text-xs text-gray-mid uppercase tracking-eyebrow">
-                Advertisement
-              </span>
-              <p className="text-[10px] text-gray-400 mt-0.5">
-                320 &times; 250
-              </p>
-            </div>
-          </div>
+          <AdPlacementClient placementKey="NEWSLETTER_INLINE_01" variant="inline" />
         </div>
       </div>
 

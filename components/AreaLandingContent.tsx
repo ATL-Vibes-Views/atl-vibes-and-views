@@ -6,11 +6,11 @@ import { NewsletterForm } from "@/components/NewsletterForm";
 import {
   Sidebar,
   NewsletterWidget,
-  AdPlacement,
   SubmitCTA,
   NeighborhoodsWidget,
   TopEventsWidget,
 } from "@/components/Sidebar";
+import ServerAdPlacement from "@/components/ads/AdPlacement";
 import type {
   MediaItem,
   BlogPostWithAuthor,
@@ -250,7 +250,7 @@ export function AreaLandingContent({
                 neighborhoods={topNeighborhoods}
               />
               <NewsletterWidget />
-              <AdPlacement slot="sidebar_top" />
+              <ServerAdPlacement placementKey="AREAS_LANDING_SIDEBAR_01" variant="sidebar" />
             </Sidebar>
           </div>
         </div>
@@ -364,7 +364,7 @@ export function AreaLandingContent({
               {upcomingEvents.length > 0 && (
                 <TopEventsWidget events={upcomingEvents} />
               )}
-              <AdPlacement slot="sidebar_mid" />
+              <ServerAdPlacement placementKey="AREAS_LANDING_SIDEBAR_02" variant="sidebar" />
             </Sidebar>
           </div>
         </div>

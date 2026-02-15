@@ -5,14 +5,13 @@ import { EventCard } from "@/components/ui/EventCard";
 import { Breadcrumbs } from "@/components/ui/Breadcrumbs";
 import { SectionHeader } from "@/components/ui/SectionHeader";
 import { HeroSection } from "@/components/ui/HeroSection";
-import { AdBlock } from "@/components/ui/AdBlock";
 import { SearchBar } from "@/components/SearchBar";
+import ServerAdPlacement from "@/components/ads/AdPlacement";
 import {
   Sidebar,
   SidebarWidget,
   WidgetTitle,
   NewsletterWidget,
-  AdPlacement,
   NeighborhoodsWidget,
   SubmitCTA,
   SubmitEventCTA,
@@ -102,6 +101,12 @@ export interface LocationDetailProps {
   submitHeading: string;
   newsletterTitle: string;
   newsletterDescription: string;
+
+  /* Ad placement keys */
+  adInlineKey?: string;
+  adSidebarKey?: string;
+  adNeighborhoodId?: string;
+  adAreaId?: string;
 }
 
 export function LocationDetailContent(props: LocationDetailProps) {
@@ -140,6 +145,10 @@ export function LocationDetailContent(props: LocationDetailProps) {
     submitHeading,
     newsletterTitle,
     newsletterDescription,
+    adInlineKey = "NEIGHBORHOOD_INLINE_01",
+    adSidebarKey = "NEIGHBORHOOD_SIDEBAR_01",
+    adNeighborhoodId,
+    adAreaId,
   } = props;
 
   return (
@@ -312,12 +321,12 @@ export function LocationDetailContent(props: LocationDetailProps) {
 
             {/* ===== MOBILE: Ad slot between stories and eats ===== */}
             <div className="lg:hidden">
-              <AdBlock variant="inline" />
+              <ServerAdPlacement placementKey={adInlineKey} variant="inline" neighborhoodId={adNeighborhoodId} areaId={adAreaId} />
             </div>
 
             {/* ===== 5. HORIZONTAL AD ===== */}
             <section>
-              <AdBlock variant="inline" />
+              <ServerAdPlacement placementKey={adInlineKey} variant="inline" neighborhoodId={adNeighborhoodId} areaId={adAreaId} />
             </section>
 
             {/* ===== NO RESULTS (search mode) ===== */}
@@ -341,7 +350,7 @@ export function LocationDetailContent(props: LocationDetailProps) {
                 title={newsletterTitle}
                 description={newsletterDescription}
               />
-              <AdPlacement slot="sidebar_top" />
+              <ServerAdPlacement placementKey={adSidebarKey} variant="sidebar" neighborhoodId={adNeighborhoodId} areaId={adAreaId} />
               <NeighborhoodsWidget
                 title={nearbyTitle}
                 neighborhoods={nearbyItems}

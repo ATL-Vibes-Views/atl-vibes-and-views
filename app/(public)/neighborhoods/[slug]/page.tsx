@@ -299,6 +299,10 @@ export default async function NeighborhoodDetailPage({
       submitHeading={`Own a Business in ${neighborhood.name}?`}
       newsletterTitle={`${neighborhood.name} Updates`}
       newsletterDescription={`Get the latest stories, events, and business openings from ${neighborhood.name}.`}
+      adInlineKey="NEIGHBORHOOD_INLINE_01"
+      adSidebarKey="NEIGHBORHOOD_SIDEBAR_01"
+      adNeighborhoodId={neighborhood.id}
+      adAreaId={area?.id}
     />
   );
 }

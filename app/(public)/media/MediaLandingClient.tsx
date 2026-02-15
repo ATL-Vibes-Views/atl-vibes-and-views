@@ -6,7 +6,7 @@ import Link from "next/link";
 import Image from "next/image";
 import { Play, ArrowRight, Headphones } from "lucide-react";
 import { extractYouTubeId } from "@/lib/media-utils";
-import { AdBlock } from "@/components/ui/AdBlock";
+import { AdPlacementClient } from "@/components/ads/AdPlacementClient";
 
 /* ============================================================
    MediaLandingClient — Tabs, featured hero, media grid
@@ -182,7 +182,7 @@ export function MediaLandingClient({ items, activeTab }: MediaLandingClientProps
                   <MediaCard item={item} />
                   {(index + 1) % 8 === 0 && (
                     <div className="col-span-full my-4">
-                      <AdBlock variant="inline" />
+                      <AdPlacementClient placementKey="MEDIA_LANDING_INLINE_01" variant="inline" />
                     </div>
                   )}
                 </Fragment>

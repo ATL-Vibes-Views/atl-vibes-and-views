@@ -15,7 +15,7 @@ import {
 import { BusinessCard } from "@/components/ui/BusinessCard";
 import { SectionHeader } from "@/components/ui/SectionHeader";
 import { NewsletterBlock } from "@/components/ui/NewsletterBlock";
-import { AdBlock } from "@/components/ui/AdBlock";
+import { AdPlacementClient } from "@/components/ads/AdPlacementClient";
 import { NewsletterWidget, SubmitCTA } from "@/components/Sidebar";
 
 /* ============================================================
@@ -500,7 +500,7 @@ export function HubArchiveClient({
                       )}
                       {index === 11 && (
                         <div className="col-span-full lg:hidden my-4">
-                          <AdBlock variant="inline" />
+                          <AdPlacementClient placementKey="HUB_INLINE_01" variant="inline" />
                         </div>
                       )}
                     </Fragment>
@@ -561,7 +561,7 @@ export function HubArchiveClient({
       </section>
 
       {/* ========== 8. HORIZONTAL AD ========== */}
-      <AdBlock variant="horizontal" />
+      <AdPlacementClient placementKey="HUB_HORIZONTAL_01" variant="horizontal" />
 
       {/* ========== 9. NEWSLETTER (FINAL) ========== */}
       <NewsletterBlock

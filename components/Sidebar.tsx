@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { Facebook, Twitter, Youtube, Instagram, CalendarPlus } from "lucide-react";
 import { NewsletterForm } from "./NewsletterForm";
+import ServerAdPlacement from "@/components/ads/AdPlacement";
 
 /* ============================================================
    SIDEBAR — Modular Widget System
@@ -20,7 +21,7 @@ function DefaultSidebarContent() {
   return (
     <>
       <NewsletterWidget />
-      <AdPlacement slot="sidebar_top" />
+      <ServerAdPlacement placementKey="GLOBAL_SIDEBAR_01" variant="sidebar" />
       <NeighborhoodsWidget
         neighborhoods={[
           { name: "Virginia-Highland", slug: "virginia-highland" },

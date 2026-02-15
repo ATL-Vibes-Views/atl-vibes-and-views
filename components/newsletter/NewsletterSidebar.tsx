@@ -1,5 +1,6 @@
 import Link from "next/link";
 import type { NewsletterColorConfig } from "./NewsletterColorMap";
+import ServerAdPlacement from "@/components/ads/AdPlacement";
 
 /* ============================================================
    NEWSLETTER SIDEBAR — Desktop only
@@ -44,16 +45,7 @@ export function NewsletterSidebar({ types }: NewsletterSidebarProps) {
       </div>
 
       {/* ── 300×600 Vertical Ad ── */}
-      <div className="bg-[#f3f4f6] border border-dashed border-gray-300">
-        <div className="w-[300px] h-[600px] flex items-center justify-center mx-auto">
-          <div className="text-center">
-            <span className="text-xs text-gray-mid uppercase tracking-eyebrow block">
-              Advertisement
-            </span>
-            <p className="text-[10px] text-gray-400 mt-1">300 &times; 600</p>
-          </div>
-        </div>
-      </div>
+      <ServerAdPlacement placementKey="NEWSLETTER_SIDEBAR_01" variant="sidebar" />
 
       {/* ── Get Featured CTA ── */}
       <div className="bg-[#1a1a1a] p-6">
