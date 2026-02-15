@@ -2,11 +2,15 @@
 
 import { useMemo, useState } from "react";
 import Link from "next/link";
-import { ArrowLeft } from "lucide-react";
+import { ArrowLeft, X } from "lucide-react";
 import { PortalTopbar } from "@/components/portal/PortalTopbar";
 import { FilterBar } from "@/components/portal/FilterBar";
 import { StatusBadge } from "@/components/portal/StatusBadge";
 import { Pagination } from "@/components/portal/Pagination";
+import { ImagePicker } from "@/components/portal/ImagePicker";
+import { FormGroup } from "@/components/portal/FormGroup";
+import { FormInput } from "@/components/portal/FormInput";
+import { FormRow } from "@/components/portal/FormRow";
 
 /* ============================================================
    AD CREATIVES LIBRARY — Visual grid of all creatives
@@ -40,6 +44,14 @@ export function CreativesClient({ creatives, campaigns, sponsors }: CreativesCli
   const [typeFilter, setTypeFilter] = useState("");
   const [statusFilter, setStatusFilter] = useState("");
   const [page, setPage] = useState(1);
+
+  // New Creative form state
+  const [showNewForm, setShowNewForm] = useState(false);
+  const [newImageUrl, setNewImageUrl] = useState("");
+  const [newHeadline, setNewHeadline] = useState("");
+  const [newTargetUrl, setNewTargetUrl] = useState("");
+  const [newType, setNewType] = useState("image");
+  const [newCampaignId, setNewCampaignId] = useState("");
 
   // Build lookup maps
   const campaignMap = useMemo(() => {
@@ -87,7 +99,7 @@ export function CreativesClient({ creatives, campaigns, sponsors }: CreativesCli
               <ArrowLeft size={14} /> Sponsors
             </Link>
             <button
-              onClick={() => console.log("Create creative")}
+              onClick={() => setShowNewForm(true)}
               className="inline-flex items-center justify-center px-6 py-2.5 rounded-full text-sm font-semibold bg-[#fee198] text-[#1a1a1a] hover:bg-[#e6c46d] transition-colors"
             >
               + New Creative
@@ -95,6 +107,91 @@ export function CreativesClient({ creatives, campaigns, sponsors }: CreativesCli
           </div>
         }
       />
+      {/* New Creative Form Panel */}
+      {showNewForm && (
+        <div className="mx-8 mt-4 bg-white border border-[#e5e5e5] p-5 space-y-4 max-[899px]:mx-4 max-[899px]:mt-16">
+          <div className="flex items-center justify-between">
+            <h3 className="font-display text-[16px] font-semibold text-black">New Creative</h3>
+            <button
+              onClick={() => setShowNewForm(false)}
+              className="text-[#6b7280] hover:text-black transition-colors"
+            >
+              <X size={18} />
+            </button>
+          </div>
+          <ImagePicker
+            value={newImageUrl}
+            onChange={setNewImageUrl}
+            folder="ad-creatives"
+            label="Upload creative image"
+          />
+          <FormRow>
+            <FormGroup label="Headline">
+              <FormInput
+                value={newHeadline}
+                onChange={(e) => setNewHeadline(e.target.value)}
+                placeholder="Ad headline..."
+              />
+            </FormGroup>
+            <FormGroup label="Creative Type">
+              <select
+                value={newType}
+                onChange={(e) => setNewType(e.target.value)}
+                className="w-full border border-[#e5e5e5] bg-white px-3 py-2 text-[13px] font-body text-[#374151] focus:border-[#e6c46d] focus:outline-none transition-colors"
+              >
+                <option value="image">Image</option>
+                <option value="html">HTML</option>
+                <option value="text">Text</option>
+              </select>
+            </FormGroup>
+          </FormRow>
+          <FormRow>
+            <FormGroup label="Target URL">
+              <FormInput
+                value={newTargetUrl}
+                onChange={(e) => setNewTargetUrl(e.target.value)}
+                placeholder="https://..."
+              />
+            </FormGroup>
+            <FormGroup label="Campaign">
+              <select
+                value={newCampaignId}
+                onChange={(e) => setNewCampaignId(e.target.value)}
+                className="w-full border border-[#e5e5e5] bg-white px-3 py-2 text-[13px] font-body text-[#374151] focus:border-[#e6c46d] focus:outline-none transition-colors"
+              >
+                <option value="">Select campaign...</option>
+                {campaigns.map((c) => (
+                  <option key={c.id} value={c.id}>{c.name}</option>
+                ))}
+              </select>
+            </FormGroup>
+          </FormRow>
+          <div className="flex justify-end gap-3 pt-2">
+            <button
+              onClick={() => setShowNewForm(false)}
+              className="px-4 py-2 rounded-full text-xs font-semibold border border-[#e5e5e5] text-[#374151] hover:border-[#d1d5db] transition-colors"
+            >
+              Cancel
+            </button>
+            <button
+              onClick={() => {
+                console.log("Save creative:", { newImageUrl, newHeadline, newTargetUrl, newType, newCampaignId });
+                setShowNewForm(false);
+                setNewImageUrl("");
+                setNewHeadline("");
+                setNewTargetUrl("");
+                setNewType("image");
+                setNewCampaignId("");
+              }}
+              disabled={!newImageUrl || !newTargetUrl || !newCampaignId}
+              className="px-6 py-2 rounded-full text-sm font-semibold bg-[#fee198] text-[#1a1a1a] hover:bg-[#e6c46d] transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+            >
+              Save Creative
+            </button>
+          </div>
+        </div>
+      )}
+
       <div className="p-8 max-[899px]:pt-16 space-y-4">
         <FilterBar
           filters={[

@@ -41,6 +41,14 @@ export default async function RevenuePage() {
     data: { id: string; status: string; start_date: string; end_date: string }[] | null;
   };
 
+  // Fetch ad placements total count (for Ad Slots card)
+  const { data: placements } = (await supabase
+    .from("ad_placements")
+    .select("id")
+  ) as {
+    data: { id: string }[] | null;
+  };
+
   // Fetch newsletter stats
   const { data: newsletters } = (await supabase
     .from("newsletters")
@@ -73,6 +81,7 @@ export default async function RevenuePage() {
         activeSponsors: activeSponsors.length,
         totalSponsors: allSponsors.length,
         activeFlights,
+        totalPlacements: (placements ?? []).length,
         sponsoredNewsletters,
       }}
     />

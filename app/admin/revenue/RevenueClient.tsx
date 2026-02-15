@@ -34,6 +34,7 @@ interface RevenueClientProps {
     activeSponsors: number;
     totalSponsors: number;
     activeFlights: number;
+    totalPlacements: number;
     sponsoredNewsletters: number;
   };
 }
@@ -181,7 +182,7 @@ export function RevenueClient({ sponsors, stats }: RevenueClientProps) {
             <Megaphone size={18} className="text-[#6b7280]" />
             <div>
               <p className="text-[13px] font-semibold text-black">Ad Slots</p>
-              <p className="text-[11px] text-[#6b7280]">{stats.activeFlights} active flights</p>
+              <p className="text-[11px] text-[#6b7280]">{stats.totalPlacements} placements</p>
             </div>
           </Link>
           <Link

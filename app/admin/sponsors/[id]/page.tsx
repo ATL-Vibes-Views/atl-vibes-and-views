@@ -71,20 +71,6 @@ export default async function SponsorDetailPage({
     flights = (data ?? []) as FlightRow[];
   }
 
-  // Fetch sponsor deliverables (fulfillment tracking)
-  const { data: deliverables } = await supabase
-    .from("sponsor_deliverables")
-    .select("id, deliverable_type, label, quantity_promised, quantity_delivered, status, due_date, completed_at, notes")
-    .eq("sponsor_id", id)
-    .order("due_date", { ascending: true });
-
-  // Fetch fulfillment log entries
-  const { data: fulfillmentLog } = await supabase
-    .from("fulfillment_log")
-    .select("id, deliverable_id, action, content_url, notes, logged_at, logged_by")
-    .eq("sponsor_id", id)
-    .order("logged_at", { ascending: false });
-
   if (!sponsor) {
     return (
       <div className="p-8">
@@ -92,6 +78,22 @@ export default async function SponsorDetailPage({
       </div>
     );
   }
+
+  // Fetch sponsor deliverables — join on business_id (sponsor_deliverables.sponsor_id = sponsor.business_id)
+  const sponsorData = sponsor as SponsorData;
+  const deliverableJoinId = sponsorData.business_id ?? id;
+  const { data: deliverables } = await supabase
+    .from("sponsor_deliverables")
+    .select("id, deliverable_type, label, quantity_promised, quantity_delivered, status, due_date, completed_at, notes")
+    .eq("sponsor_id", deliverableJoinId)
+    .order("due_date", { ascending: true });
+
+  // Fetch fulfillment log — correct table name is sponsor_fulfillment_log, same join
+  const { data: fulfillmentLog } = await supabase
+    .from("sponsor_fulfillment_log")
+    .select("id, deliverable_id, action, content_url, notes, logged_at, logged_by")
+    .eq("sponsor_id", deliverableJoinId)
+    .order("logged_at", { ascending: false });
 
   return (
     <SponsorDetailClient

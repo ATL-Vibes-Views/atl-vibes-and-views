@@ -14,9 +14,12 @@ interface PackageTemplate {
   id: string;
   name: string;
   price: number | null;
+  price_display: string | null;
+  billing_cycle: string | null;
   placements_included: number | null;
   description: string | null;
   features: string | null;
+  deliverables: Record<string, unknown>[] | null;
   is_active: boolean;
   created_at: string;
 }
