@@ -192,6 +192,11 @@ export function NewslettersClient({ newsletters, types }: NewslettersClientProps
           onSearch={(q) => { setSearch(q); setPage(1); }}
         />
 
+        {/* U11: HubSpot API limitation banner */}
+        <div className="bg-[#fee198] px-4 py-3 text-[13px] text-[#1a1a1a] font-body">
+          <span className="font-semibold">&#9888;&#65039; HubSpot API scope limitation</span> — newsletters assembled here, then copy HTML to paste into HubSpot for sending.
+        </div>
+
         <AdminDataTable columns={columns} data={paginated} emptyMessage="No newsletters found." />
 
         <Pagination
@@ -201,6 +206,26 @@ export function NewslettersClient({ newsletters, types }: NewslettersClientProps
           itemsPerPage={ITEMS_PER_PAGE}
           onPageChange={setPage}
         />
+
+        {/* U10: Newsletter Templates section */}
+        <div className="pt-4">
+          <h3 className="font-display text-[18px] font-semibold text-black mb-3">Newsletter Templates</h3>
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+            {[
+              { name: "Weekly Brief", frequency: "Every Wednesday" },
+              { name: "Atlanta Events", frequency: "Biweekly" },
+              { name: "ON THE MENU", frequency: "Biweekly" },
+              { name: "Development Brief", frequency: "Monthly" },
+              { name: "Real Estate Snapshot", frequency: "Monthly" },
+              { name: "Entrepreneurial Resources", frequency: "Monthly" },
+            ].map((tpl) => (
+              <div key={tpl.name} className="bg-white border border-[#e5e5e5] p-4">
+                <p className="font-display text-[14px] font-bold text-black">{tpl.name}</p>
+                <p className="text-[12px] text-[#6b7280] mt-0.5">{tpl.frequency}</p>
+              </div>
+            ))}
+          </div>
+        </div>
       </div>
     </>
   );

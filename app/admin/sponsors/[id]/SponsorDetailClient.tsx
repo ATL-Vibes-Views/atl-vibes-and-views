@@ -111,6 +111,11 @@ export interface FulfillmentLogRow {
   delivered_at: string | null;
 }
 
+export interface DropdownOption {
+  id: string;
+  name: string;
+}
+
 interface SponsorDetailClientProps {
   sponsor: SponsorData;
   posts: PostRow[];
@@ -119,6 +124,9 @@ interface SponsorDetailClientProps {
   flights: FlightRow[];
   deliverables: DeliverableRow[];
   fulfillmentLog: FulfillmentLogRow[];
+  packageOptions: DropdownOption[];
+  categoryOptions: DropdownOption[];
+  neighborhoodOptions: DropdownOption[];
 }
 
 const TABS = [
@@ -165,6 +173,9 @@ export function SponsorDetailClient({
   flights,
   deliverables,
   fulfillmentLog,
+  packageOptions,
+  categoryOptions,
+  neighborhoodOptions,
 }: SponsorDetailClientProps) {
   const [activeTab, setActiveTab] = useState("info");
 
@@ -297,13 +308,40 @@ export function SponsorDetailClient({
               <h3 className="font-display text-[16px] font-semibold text-black">Package Summary</h3>
               <FormRow>
                 <FormGroup label="Package Type">
-                  <FormInput value={sponsor.package_type ?? "—"} readOnly />
+                  <select
+                    defaultValue={sponsor.package_type ?? ""}
+                    onChange={(e) => console.log("Package type changed:", e.target.value)}
+                    className="w-full border border-[#e5e5e5] bg-white px-3 py-2 text-[13px] font-body text-[#374151] focus:border-[#e6c46d] focus:outline-none transition-colors"
+                  >
+                    <option value="">Select package...</option>
+                    {packageOptions.map((p) => (
+                      <option key={p.id} value={p.name}>{p.name}</option>
+                    ))}
+                  </select>
                 </FormGroup>
                 <FormGroup label="Category Focus">
-                  <FormInput value={sponsor.category_focus ?? "—"} readOnly />
+                  <select
+                    defaultValue={sponsor.category_focus ?? ""}
+                    onChange={(e) => console.log("Category focus changed:", e.target.value)}
+                    className="w-full border border-[#e5e5e5] bg-white px-3 py-2 text-[13px] font-body text-[#374151] focus:border-[#e6c46d] focus:outline-none transition-colors"
+                  >
+                    <option value="">Select category...</option>
+                    {categoryOptions.map((c) => (
+                      <option key={c.id} value={c.name}>{c.name}</option>
+                    ))}
+                  </select>
                 </FormGroup>
                 <FormGroup label="Neighborhood Focus">
-                  <FormInput value={sponsor.neighborhood_focus ?? "—"} readOnly />
+                  <select
+                    defaultValue={sponsor.neighborhood_focus ?? ""}
+                    onChange={(e) => console.log("Neighborhood focus changed:", e.target.value)}
+                    className="w-full border border-[#e5e5e5] bg-white px-3 py-2 text-[13px] font-body text-[#374151] focus:border-[#e6c46d] focus:outline-none transition-colors"
+                  >
+                    <option value="">Select neighborhood...</option>
+                    {neighborhoodOptions.map((n) => (
+                      <option key={n.id} value={n.name}>{n.name}</option>
+                    ))}
+                  </select>
                 </FormGroup>
               </FormRow>
             </div>
@@ -452,7 +490,15 @@ export function SponsorDetailClient({
           <div className="space-y-6">
             {/* Creative cards with ImagePicker */}
             <div>
-              <h3 className="font-display text-[16px] font-semibold text-black mb-3">Ad Creatives</h3>
+              <div className="flex items-center justify-between mb-3">
+                <h3 className="font-display text-[16px] font-semibold text-black">Ad Creatives</h3>
+                <button
+                  onClick={() => console.log("Add creative for sponsor:", sponsor.id)}
+                  className="px-4 py-1.5 rounded-full text-[12px] font-semibold bg-[#fee198] text-[#1a1a1a] hover:bg-[#e6c46d] transition-colors"
+                >
+                  + Add Creative
+                </button>
+              </div>
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
                 {creatives.length === 0 ? (
                   <p className="col-span-full text-center text-[13px] text-[#6b7280] py-10 bg-white border border-[#e5e5e5]">

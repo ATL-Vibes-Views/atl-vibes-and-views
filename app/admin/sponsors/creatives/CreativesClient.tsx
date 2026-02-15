@@ -2,7 +2,7 @@
 
 import { useMemo, useState } from "react";
 import Link from "next/link";
-import { ArrowLeft, X } from "lucide-react";
+import { ArrowLeft, X, Eye, Pencil, Download } from "lucide-react";
 import { PortalTopbar } from "@/components/portal/PortalTopbar";
 import { FilterBar } from "@/components/portal/FilterBar";
 import { StatusBadge } from "@/components/portal/StatusBadge";
@@ -11,6 +11,7 @@ import { ImagePicker } from "@/components/portal/ImagePicker";
 import { FormGroup } from "@/components/portal/FormGroup";
 import { FormInput } from "@/components/portal/FormInput";
 import { FormRow } from "@/components/portal/FormRow";
+import { FormTextarea } from "@/components/portal/FormTextarea";
 
 /* ============================================================
    AD CREATIVES LIBRARY — Visual grid of all creatives
@@ -51,7 +52,8 @@ export function CreativesClient({ creatives, campaigns, sponsors }: CreativesCli
   const [newHeadline, setNewHeadline] = useState("");
   const [newTargetUrl, setNewTargetUrl] = useState("");
   const [newType, setNewType] = useState("image");
-  const [newCampaignId, setNewCampaignId] = useState("");
+  const [newSponsorId, setNewSponsorId] = useState("");
+  const [newAdCopy, setNewAdCopy] = useState("");
 
   // Build lookup maps
   const campaignMap = useMemo(() => {
@@ -142,6 +144,7 @@ export function CreativesClient({ creatives, campaigns, sponsors }: CreativesCli
                 <option value="image">Image</option>
                 <option value="html">HTML</option>
                 <option value="text">Text</option>
+                <option value="video">Video</option>
               </select>
             </FormGroup>
           </FormRow>
@@ -153,19 +156,27 @@ export function CreativesClient({ creatives, campaigns, sponsors }: CreativesCli
                 placeholder="https://..."
               />
             </FormGroup>
-            <FormGroup label="Campaign">
+            <FormGroup label="Sponsor">
               <select
-                value={newCampaignId}
-                onChange={(e) => setNewCampaignId(e.target.value)}
+                value={newSponsorId}
+                onChange={(e) => setNewSponsorId(e.target.value)}
                 className="w-full border border-[#e5e5e5] bg-white px-3 py-2 text-[13px] font-body text-[#374151] focus:border-[#e6c46d] focus:outline-none transition-colors"
               >
-                <option value="">Select campaign...</option>
-                {campaigns.map((c) => (
-                  <option key={c.id} value={c.id}>{c.name}</option>
+                <option value="">Select sponsor...</option>
+                {sponsors.map((s) => (
+                  <option key={s.id} value={s.id}>{s.sponsor_name}</option>
                 ))}
               </select>
             </FormGroup>
           </FormRow>
+          <FormGroup label="Ad Copy">
+            <FormTextarea
+              value={newAdCopy}
+              onChange={(e) => setNewAdCopy(e.target.value)}
+              placeholder="Enter the creative's ad copy text..."
+              rows={3}
+            />
+          </FormGroup>
           <div className="flex justify-end gap-3 pt-2">
             <button
               onClick={() => setShowNewForm(false)}
@@ -175,15 +186,16 @@ export function CreativesClient({ creatives, campaigns, sponsors }: CreativesCli
             </button>
             <button
               onClick={() => {
-                console.log("Save creative:", { newImageUrl, newHeadline, newTargetUrl, newType, newCampaignId });
+                console.log("Save creative:", { newImageUrl, newHeadline, newTargetUrl, newType, sponsor_id: newSponsorId, adCopy: newAdCopy });
                 setShowNewForm(false);
                 setNewImageUrl("");
                 setNewHeadline("");
                 setNewTargetUrl("");
                 setNewType("image");
-                setNewCampaignId("");
+                setNewSponsorId("");
+                setNewAdCopy("");
               }}
-              disabled={!newImageUrl || !newTargetUrl || !newCampaignId}
+              disabled={!newImageUrl || !newTargetUrl || !newSponsorId}
               className="px-6 py-2 rounded-full text-sm font-semibold bg-[#fee198] text-[#1a1a1a] hover:bg-[#e6c46d] transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
             >
               Save Creative
@@ -256,6 +268,34 @@ export function CreativesClient({ creatives, campaigns, sponsors }: CreativesCli
                         {c.is_active ? "Active" : "Inactive"}
                       </StatusBadge>
                       <span className="text-[10px] text-[#9ca3af]">{c.creative_type}</span>
+                    </div>
+                    {/* Action buttons */}
+                    <div className="flex items-center gap-2 pt-2 border-t border-[#f0f0f0] mt-2">
+                      {c.image_url && (
+                        <a
+                          href={c.image_url}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[10px] font-semibold border border-[#e5e5e5] text-[#374151] hover:border-[#d1d5db] transition-colors"
+                        >
+                          <Eye size={12} /> Preview
+                        </a>
+                      )}
+                      <button
+                        onClick={() => console.log("Edit creative:", c.id)}
+                        className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[10px] font-semibold border border-[#e5e5e5] text-[#374151] hover:border-[#d1d5db] transition-colors"
+                      >
+                        <Pencil size={12} /> Edit
+                      </button>
+                      {c.image_url && (
+                        <a
+                          href={c.image_url}
+                          download
+                          className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[10px] font-semibold border border-[#e5e5e5] text-[#374151] hover:border-[#d1d5db] transition-colors"
+                        >
+                          <Download size={12} /> Download
+                        </a>
+                      )}
                     </div>
                   </div>
                 </div>

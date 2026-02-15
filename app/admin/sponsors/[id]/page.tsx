@@ -79,6 +79,25 @@ export default async function SponsorDetailPage({
     );
   }
 
+  // Fetch dropdown options for Tab 2
+  const { data: packageOptions } = await (supabase
+    .from("sponsor_packages" as never)
+    .select("id, name")
+    .order("name") as unknown as Promise<{ data: { id: string; name: string }[] | null }>);
+
+  const { data: categoryOptions } = (await supabase
+    .from("categories")
+    .select("id, name")
+    .eq("is_active", true)
+    .order("name")
+  ) as { data: { id: string; name: string }[] | null };
+
+  const { data: neighborhoodOptions } = (await supabase
+    .from("neighborhoods")
+    .select("id, name")
+    .order("name")
+  ) as { data: { id: string; name: string }[] | null };
+
   // Fetch sponsor deliverables
   const { data: deliverables, error: delErr } = await supabase
     .from("sponsor_deliverables")
@@ -103,6 +122,9 @@ export default async function SponsorDetailPage({
       flights={flights}
       deliverables={(deliverables ?? []) as DeliverableRow[]}
       fulfillmentLog={(fulfillmentLog ?? []) as FulfillmentLogRow[]}
+      packageOptions={packageOptions ?? []}
+      categoryOptions={categoryOptions ?? []}
+      neighborhoodOptions={neighborhoodOptions ?? []}
     />
   );
 }

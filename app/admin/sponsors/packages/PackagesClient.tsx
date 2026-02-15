@@ -34,7 +34,7 @@ interface PackageTemplate {
 
 interface PackagesClientProps {
   packages: PackageTemplate[];
-  sponsors: { id: string; package_type: string | null; status: string }[];
+  sponsors: { id: string; package_id: string | null; package_type: string | null; status: string }[];
 }
 
 function parseDeliverableLine(d: DeliverableItem): string {
@@ -56,12 +56,12 @@ function parseDeliverableLine(d: DeliverableItem): string {
 }
 
 export function PackagesClient({ packages, sponsors }: PackagesClientProps) {
-  // Count sponsors by package type
+  // Count sponsors by package_id
   const usageMap = useMemo(() => {
     const map: Record<string, number> = {};
     sponsors.forEach((s) => {
-      if (s.package_type) {
-        map[s.package_type] = (map[s.package_type] ?? 0) + 1;
+      if (s.package_id) {
+        map[s.package_id] = (map[s.package_id] ?? 0) + 1;
       }
     });
     return map;
@@ -97,7 +97,7 @@ export function PackagesClient({ packages, sponsors }: PackagesClientProps) {
           <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-5">
             {packages.map((pkg) => {
               const deliverables = Array.isArray(pkg.deliverables) ? pkg.deliverables : [];
-              const sponsorCount = usageMap[pkg.name] ?? 0;
+              const sponsorCount = usageMap[pkg.id] ?? 0;
 
               return (
                 <div
@@ -152,14 +152,22 @@ export function PackagesClient({ packages, sponsors }: PackagesClientProps) {
 
                   {/* Card footer */}
                   <div className="px-5 py-3 border-t border-[#f0f0f0] flex items-center justify-between">
-                    <span className="text-[11px] text-[#6b7280]">
-                      {sponsorCount} active sponsor{sponsorCount !== 1 ? "s" : ""}
-                    </span>
-                    {pkg.placements_included != null && (
+                    <div className="flex items-center gap-3">
                       <span className="text-[11px] text-[#6b7280]">
-                        {pkg.placements_included} placement{pkg.placements_included !== 1 ? "s" : ""}
+                        {sponsorCount} active sponsor{sponsorCount !== 1 ? "s" : ""}
                       </span>
-                    )}
+                      {pkg.placements_included != null && (
+                        <span className="text-[11px] text-[#6b7280]">
+                          {pkg.placements_included} placement{pkg.placements_included !== 1 ? "s" : ""}
+                        </span>
+                      )}
+                    </div>
+                    <button
+                      onClick={() => console.log("Edit package:", pkg.id)}
+                      className="px-3 py-1 rounded-full text-[11px] font-semibold border border-[#e5e5e5] text-[#374151] hover:border-[#d1d5db] transition-colors"
+                    >
+                      Edit
+                    </button>
                   </div>
                 </div>
               );

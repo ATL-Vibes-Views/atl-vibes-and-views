@@ -35,11 +35,11 @@ export default async function PackagesPage() {
 
   if (error) console.error("Failed to fetch sponsor packages:", error);
 
-  // Also fetch sponsors grouped by package_type for usage stats
+  // Also fetch sponsors with package_id for usage stats (count by package_id, not name)
   const { data: sponsors } = (await supabase
     .from("sponsors")
-    .select("id, package_type, status")
-  ) as { data: { id: string; package_type: string | null; status: string }[] | null };
+    .select("id, package_id, package_type, status")
+  ) as { data: { id: string; package_id: string | null; package_type: string | null; status: string }[] | null };
 
   return <PackagesClient packages={packages ?? []} sponsors={sponsors ?? []} />;
 }
