@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import Image from "next/image";
-import { RotatingScope } from "@/components/partner/RotatingScope";
+
 import { PartnerSidebar } from "@/components/partner/PartnerSidebar";
 import { MediaKitButton } from "@/components/partner/MediaKitModal";
 
@@ -59,8 +59,8 @@ const COVERAGE = [
 export default function PartnerPage() {
   return (
     <>
-      {/* ========== HERO — full viewport ========== */}
-      <section className="relative h-[70vh] md:h-[80vh] lg:h-[85vh] flex items-center overflow-hidden">
+      {/* ========== HERO — full viewport, centered ========== */}
+      <section className="relative h-[45vh] sm:h-[55vh] md:h-[80vh] min-h-[340px] max-h-[640px] flex items-center justify-center text-center overflow-hidden">
         <Image
           src="https://images.unsplash.com/photo-1556740738-b6a63e27c4df?w=1600"
           alt="Atlanta cityscape"
@@ -69,19 +69,19 @@ export default function PartnerPage() {
           className="object-cover"
           priority
         />
-        <div className="absolute inset-0 bg-gradient-to-r from-black/95 via-black/70 to-transparent" />
-        <div className="relative z-10 max-w-[700px] px-5 md:px-16">
-          <p className="text-sm font-semibold text-gray-mid uppercase tracking-[0.2em] mb-4">
-            Covering Atlanta Across
+        <div className="absolute inset-0 bg-black/60" />
+        <div className="relative z-10 max-w-[700px] px-5">
+          <p className="font-body text-sm font-semibold uppercase tracking-[3px] text-[#fee198] mb-5">
+            Atlanta&rsquo;s Independent Media Platform
           </p>
-          <RotatingScope />
-          <h1 className="font-display text-[32px] md:text-[44px] lg:text-[52px] font-bold text-white leading-[1.1] mb-6">
-            Atlanta&rsquo;s Independent Media Platform for Culture, Business &amp; Community
+          <h1 className="font-display text-[32px] md:text-[44px] lg:text-[56px] font-normal italic text-white leading-[1.15] mb-6">
+            Your Brand, Atlanta&rsquo;s Conversation
           </h1>
-          <p className="text-lg md:text-[22px] text-white/90 font-light leading-relaxed mb-10">
-            Spotlighting the people, places, and stories shaping Atlanta &mdash; from neighborhood businesses to organizations driving real impact.
+          <p className="text-base md:text-lg text-white/80 font-light leading-relaxed mb-10 max-w-[540px] mx-auto">
+            Spotlighting the people, places, and stories shaping Atlanta &mdash;
+            from neighborhood businesses to organizations driving real impact.
           </p>
-          <div className="flex flex-col sm:flex-row gap-4">
+          <div className="flex flex-col sm:flex-row gap-4 justify-center">
             <Link
               href="/partner/contact"
               className="inline-block bg-[#fee198] text-[#1a1a1a] font-semibold text-base px-10 py-4 rounded-full hover:bg-[#c1121f] hover:text-white transition-all text-center"

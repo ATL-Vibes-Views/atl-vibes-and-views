@@ -114,7 +114,7 @@ export default function PartnerEventsPage() {
   return (
     <>
       {/* ========== HERO ========== */}
-      <section className="relative h-[70vh] md:h-[80vh] lg:h-[85vh] flex items-center justify-center overflow-hidden text-center">
+      <section className="relative h-[45vh] sm:h-[55vh] md:h-[80vh] min-h-[340px] max-h-[640px] flex items-center justify-center overflow-hidden text-center">
         <Image
           src="https://244168309.fs1.hubspotusercontent-na2.net/hubfs/244168309/happy-black-woman-dancing-with-her-friends-at-open-2026-01-09-11-30-41-utc.jpg"
           alt="Happy woman dancing with friends at an outdoor Atlanta event"

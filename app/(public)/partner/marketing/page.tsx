@@ -114,7 +114,7 @@ export default function MarketingPage() {
   return (
     <>
       {/* ========== HERO ========== */}
-      <section className="relative h-[70vh] md:h-[80vh] lg:h-[85vh] flex items-center justify-center text-center overflow-hidden">
+      <section className="relative h-[45vh] sm:h-[55vh] md:h-[80vh] min-h-[340px] max-h-[640px] flex items-center justify-center text-center overflow-hidden">
         <Image
           src="https://images.unsplash.com/photo-1552664730-d307ca884978?w=1600"
           alt="Team collaboration"
