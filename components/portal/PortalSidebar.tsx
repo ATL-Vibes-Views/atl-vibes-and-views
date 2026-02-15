@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { usePathname } from "next/navigation";
 import Link from "next/link";
 import { Menu, X } from "lucide-react";
@@ -41,6 +41,12 @@ export function PortalSidebar({
   const [mobileOpen, setMobileOpen] = useState(false);
   const pathname = usePathname();
   const isLight = theme === "light";
+
+  // Collect all nav paths for precise active detection
+  const allNavPaths = useMemo(
+    () => navGroups.flatMap((g) => g.items.map((i) => i.path)),
+    [navGroups]
+  );
 
   const sidebarWidth = isLight ? "w-[260px]" : "w-[240px]";
 
@@ -140,10 +146,14 @@ export function PortalSidebar({
               )}
 
               {group.items.map((item) => {
-                const isActive =
-                  item.path === "/admin" || item.path === "/dashboard"
-                    ? pathname === item.path
-                    : pathname === item.path || pathname.startsWith(item.path + "/");
+                // Exact match always wins. Only use startsWith if no more-specific
+                // nav item also matches (prevents double-highlight on nested routes).
+                const exactMatch = pathname === item.path;
+                const prefixMatch = pathname.startsWith(item.path + "/");
+                const moreSpecificExists = prefixMatch && allNavPaths.some(
+                  (p) => p !== item.path && p.startsWith(item.path + "/") && (pathname === p || pathname.startsWith(p + "/"))
+                );
+                const isActive = exactMatch || (prefixMatch && !moreSpecificExists);
 
                 const itemBase = isLight
                   ? "flex items-center gap-2.5 px-3 py-2 text-[13px] font-body border-l-[3px] transition-colors"

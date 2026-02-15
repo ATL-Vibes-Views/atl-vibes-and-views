@@ -105,9 +105,12 @@ export default async function AdminLayout({
     {
       label: "Revenue",
       items: [
+        { label: "Overview", path: "/admin/revenue", icon: <DollarSign size={16} /> },
         { label: "Sponsors", path: "/admin/sponsors", icon: <DollarSign size={16} /> },
-        { label: "Ad Slots", path: "/admin/ads", icon: <Megaphone size={16} /> },
-        { label: "Newsletter", path: "/admin/newsletter", icon: <Mail size={16} /> },
+        { label: "Packages", path: "/admin/sponsors/packages", icon: <ClipboardList size={16} /> },
+        { label: "Ad Creatives", path: "/admin/sponsors/creatives", icon: <Film size={16} /> },
+        { label: "Ad Placements", path: "/admin/ad-placements", icon: <Megaphone size={16} /> },
+        { label: "Newsletters", path: "/admin/newsletters", icon: <Mail size={16} /> },
       ],
     },
     {
