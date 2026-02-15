@@ -92,7 +92,7 @@ export interface DeliverableRow {
   id: string;
   deliverable_type: string;
   label: string;
-  quantity_promised: number;
+  quantity_owed: number;
   quantity_delivered: number;
   status: string;
   due_date: string | null;
@@ -103,11 +103,12 @@ export interface DeliverableRow {
 export interface FulfillmentLogRow {
   id: string;
   deliverable_id: string | null;
-  action: string;
+  title: string | null;
+  description: string | null;
+  channel: string | null;
+  platform: string | null;
   content_url: string | null;
-  notes: string | null;
-  logged_at: string;
-  logged_by: string | null;
+  delivered_at: string | null;
 }
 
 interface SponsorDetailClientProps {
@@ -334,7 +335,7 @@ export function SponsorDetailClient({
                           </StatusBadge>
                         </div>
                       </div>
-                      <ProgressBar delivered={d.quantity_delivered} promised={d.quantity_promised} />
+                      <ProgressBar delivered={d.quantity_delivered} promised={d.quantity_owed} />
                       {d.notes && (
                         <p className="text-[11px] text-[#6b7280] mt-2">{d.notes}</p>
                       )}
@@ -370,7 +371,7 @@ export function SponsorDetailClient({
                         <span className="text-[11px] text-[#c1121f] font-semibold">
                           Due {d.due_date ? new Date(d.due_date).toLocaleDateString("en-US", { month: "short", day: "numeric" }) : "—"}
                         </span>
-                        <span className="text-[11px] text-[#6b7280]">{d.quantity_delivered}/{d.quantity_promised}</span>
+                        <span className="text-[11px] text-[#6b7280]">{d.quantity_delivered}/{d.quantity_owed}</span>
                       </div>
                     </div>
                   ))}
@@ -395,42 +396,50 @@ export function SponsorDetailClient({
                 {/* Timeline line */}
                 <div className="absolute left-[11px] top-2 bottom-2 w-px bg-[#e5e5e5]" />
 
-                {fulfillmentLog.map((entry) => (
-                  <div key={entry.id} className="relative mb-4">
-                    {/* Timeline dot */}
-                    <div className="absolute left-[-17px] top-2 w-3 h-3 rounded-full bg-[#c1121f] border-2 border-white" />
-                    <div className="bg-white border border-[#e5e5e5] p-4 ml-2">
-                      <div className="flex items-center justify-between mb-1">
-                        <span className="font-display text-[13px] font-semibold text-black">{entry.action}</span>
-                        <span className="text-[11px] text-[#6b7280]">
-                          {new Date(entry.logged_at).toLocaleDateString("en-US", {
-                            month: "short",
-                            day: "numeric",
-                            year: "numeric",
-                            hour: "numeric",
-                            minute: "2-digit",
-                          })}
-                        </span>
+                {fulfillmentLog.map((entry) => {
+                  const dateStr = entry.delivered_at ? new Date(entry.delivered_at).toLocaleDateString("en-US", {
+                    month: "short",
+                    day: "numeric",
+                    year: "numeric",
+                    hour: "numeric",
+                    minute: "2-digit",
+                  }) : "—";
+                  return (
+                    <div key={entry.id} className="relative mb-4">
+                      {/* Timeline dot */}
+                      <div className="absolute left-[-17px] top-2 w-3 h-3 rounded-full bg-[#c1121f] border-2 border-white" />
+                      <div className="bg-white border border-[#e5e5e5] p-4 ml-2">
+                        <div className="flex items-center justify-between mb-1">
+                          <span className="font-display text-[13px] font-semibold text-black">{entry.title ?? "Untitled"}</span>
+                          <span className="text-[11px] text-[#6b7280]">{dateStr}</span>
+                        </div>
+                        {entry.description && (
+                          <p className="text-[12px] text-[#374151] mt-1">{entry.description}</p>
+                        )}
+                        {(entry.channel || entry.platform) && (
+                          <div className="flex items-center gap-2 mt-1.5">
+                            {entry.channel && (
+                              <span className="text-[10px] bg-[#f5f5f5] text-[#6b7280] px-2 py-0.5 rounded-full uppercase">{entry.channel}</span>
+                            )}
+                            {entry.platform && (
+                              <span className="text-[10px] bg-[#f5f5f5] text-[#6b7280] px-2 py-0.5 rounded-full uppercase">{entry.platform}</span>
+                            )}
+                          </div>
+                        )}
+                        {entry.content_url && (
+                          <a
+                            href={entry.content_url}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="inline-block mt-2 text-[12px] text-[#c1121f] font-semibold hover:underline"
+                          >
+                            View Content →
+                          </a>
+                        )}
                       </div>
-                      {entry.notes && (
-                        <p className="text-[12px] text-[#374151] mt-1">{entry.notes}</p>
-                      )}
-                      {entry.content_url && (
-                        <a
-                          href={entry.content_url}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="inline-block mt-2 text-[12px] text-[#c1121f] font-semibold hover:underline"
-                        >
-                          View Content →
-                        </a>
-                      )}
-                      {entry.logged_by && (
-                        <span className="block text-[10px] text-[#9ca3af] mt-1">by {entry.logged_by}</span>
-                      )}
                     </div>
-                  </div>
-                ))}
+                  );
+                })}
               </div>
             )}
           </div>
