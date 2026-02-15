@@ -1,15 +1,11 @@
 import { Metadata } from "next";
 import {
   FileText,
-  Building2,
+  Film,
   Star,
   BookOpen,
-  Users,
-  Mail,
-  Handshake,
   ClipboardList,
   Clock,
-  Send,
 } from "lucide-react";
 import { PortalTopbar } from "@/components/portal/PortalTopbar";
 import { StatCard } from "@/components/portal/StatCard";
@@ -114,50 +110,67 @@ export default async function AdminDashboardPage() {
     { label: "Published", status: "future" },
   ];
 
-  // Activity feed — placeholder data (would come from an audit log in production)
+  // Activity feed — real data from recent posts and scripts
+  const { data: recentPosts } = (await supabase
+    .from("blog_posts")
+    .select("id, title, status, updated_at")
+    .order("updated_at", { ascending: false })
+    .limit(5)) as {
+    data: { id: string; title: string; status: string; updated_at: string }[] | null;
+  };
+
+  const { data: recentScripts } = (await supabase
+    .from("scripts")
+    .select("id, title, status, created_at")
+    .eq("platform", "reel")
+    .eq("format", "talking_head")
+    .order("created_at", { ascending: false })
+    .limit(3)) as {
+    data: { id: string; title: string; status: string; created_at: string }[] | null;
+  };
+
+  function timeAgo(dateStr: string): string {
+    const diff = Date.now() - new Date(dateStr).getTime();
+    const mins = Math.floor(diff / 60000);
+    if (mins < 1) return "Just now";
+    if (mins < 60) return `${mins}m ago`;
+    const hrs = Math.floor(mins / 60);
+    if (hrs < 24) return `${hrs}h ago`;
+    const days = Math.floor(hrs / 24);
+    if (days < 7) return `${days}d ago`;
+    return `${Math.floor(days / 7)}w ago`;
+  }
+
+  const postStatusLabel: Record<string, string> = {
+    draft: "drafted",
+    published: "published",
+    scheduled: "scheduled",
+  };
+
   const activityItems: {
     icon: React.ReactNode;
     iconColor: "gold" | "blue" | "green" | "red" | "purple";
     text: React.ReactNode;
     timestamp: string;
-  }[] = [
-    {
+  }[] = [];
+
+  for (const post of recentPosts ?? []) {
+    activityItems.push({
       icon: <FileText size={16} />,
-      iconColor: "gold",
-      text: <><strong>Blog post</strong> &ldquo;Best Brunch Spots in Midtown&rdquo; was published</>,
-      timestamp: "2h ago",
-    },
-    {
-      icon: <Building2 size={16} />,
-      iconColor: "green",
-      text: <><strong>New listing</strong> &ldquo;Soul Bowl Kitchen&rdquo; submitted for review</>,
-      timestamp: "4h ago",
-    },
-    {
-      icon: <Star size={16} />,
-      iconColor: "purple",
-      text: <><strong>Review</strong> for Blandtown Boxing approved and published</>,
-      timestamp: "5h ago",
-    },
-    {
-      icon: <Mail size={16} />,
-      iconColor: "blue",
-      text: <><strong>Newsletter</strong> &ldquo;Weekly Vibes #42&rdquo; sent to 1,240 subscribers</>,
-      timestamp: "1d ago",
-    },
-    {
-      icon: <Handshake size={16} />,
-      iconColor: "gold",
-      text: <><strong>Sponsor</strong> campaign &ldquo;Spring Dining Guide&rdquo; activated</>,
-      timestamp: "2d ago",
-    },
-    {
-      icon: <Send size={16} />,
-      iconColor: "green",
-      text: <><strong>Script</strong> &ldquo;Westside Trail Restaurants&rdquo; published to Instagram</>,
-      timestamp: "3d ago",
-    },
-  ];
+      iconColor: post.status === "published" ? "green" : post.status === "scheduled" ? "purple" : "blue",
+      text: <><strong>Blog post</strong> &ldquo;{post.title}&rdquo; {postStatusLabel[post.status] ?? post.status}</>,
+      timestamp: timeAgo(post.updated_at),
+    });
+  }
+
+  for (const script of recentScripts ?? []) {
+    activityItems.push({
+      icon: <Film size={16} />,
+      iconColor: script.status === "approved" ? "green" : "gold",
+      text: <><strong>Script</strong> &ldquo;{script.title}&rdquo; {script.status}</>,
+      timestamp: timeAgo(script.created_at),
+    });
+  }
 
   return (
     <>

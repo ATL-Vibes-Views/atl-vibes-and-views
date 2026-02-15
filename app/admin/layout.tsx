@@ -49,7 +49,7 @@ export default async function AdminLayout({
     supabase.from("blog_posts").select("*", { count: "exact", head: true }).eq("status", "draft"),
     supabase.from("scripts").select("*", { count: "exact", head: true }).eq("status", "draft").eq("platform", "reel"),
     supabase.from("scripts").select("*", { count: "exact", head: true }).eq("status", "approved").eq("platform", "reel"),
-    supabase.from("stories").select("*", { count: "exact", head: true }).eq("tier", 3).eq("status", "scored"),
+    supabase.from("stories").select("*", { count: "exact", head: true }).eq("tier", "social").eq("status", "scored"),
     supabase.from("media_items").select("*", { count: "exact", head: true }),
     supabase.from("stories").select("*", { count: "exact", head: true }).eq("status", "in_progress"),
     supabase.from("business_listings").select("*", { count: "exact", head: true }),

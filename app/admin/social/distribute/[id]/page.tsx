@@ -18,10 +18,10 @@ export default async function DistributePage({
   const { id } = await params;
   const supabase = createServerClient();
 
-  // Fetch the filming script
-  const { data: script, error: scriptErr } = (await supabase
+  // Fetch the filming script with story + batch joins
+  const { data: filmingScript, error: scriptErr } = (await supabase
     .from("scripts")
-    .select("*, script_batches(batch_name), stories(headline, tier, source_name)")
+    .select("*, script_batches(batch_name), stories(headline, source_name, score, tier, category_id, categories(name))")
     .eq("id", id)
     .single()) as {
     data: {
@@ -38,13 +38,20 @@ export default async function DistributePage({
       scheduled_date: string | null;
       created_at: string;
       script_batches: { batch_name: string | null } | null;
-      stories: { headline: string; tier: number | null; source_name: string | null } | null;
+      stories: {
+        headline: string;
+        source_name: string | null;
+        score: number | null;
+        tier: string | null;
+        category_id: string | null;
+        categories: { name: string } | null;
+      } | null;
     } | null;
     error: unknown;
   };
   if (scriptErr) console.error("Failed to fetch script:", scriptErr);
 
-  // Fetch captions: all rows for this story_id where platform != 'reel'
+  // Fetch all 6 caption rows for this story
   let captions: {
     id: string;
     story_id: string | null;
@@ -56,11 +63,11 @@ export default async function DistributePage({
     status: string;
   }[] = [];
 
-  if (script?.story_id) {
+  if (filmingScript?.story_id) {
     const { data: captionData, error: captionErr } = (await supabase
       .from("scripts")
       .select("id, story_id, platform, caption, description, tags, hashtags, status")
-      .eq("story_id", script.story_id)
+      .eq("story_id", filmingScript.story_id)
       .neq("platform", "reel")
       .order("platform")) as {
       data: {
@@ -81,7 +88,7 @@ export default async function DistributePage({
 
   return (
     <DistributeClient
-      script={script}
+      filmingScript={filmingScript}
       captions={captions}
     />
   );

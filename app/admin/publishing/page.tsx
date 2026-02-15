@@ -12,7 +12,6 @@ export const dynamic = 'force-dynamic';
 
 export default async function PublishingPage() {
   const supabase = createServerClient();
-  const today = new Date().toISOString().split("T")[0];
 
   // Blog posts in draft — the publishing queue is where drafts get media + published
   const { data: posts, error: postsErr } = (await supabase
@@ -41,7 +40,6 @@ export default async function PublishingPage() {
   return (
     <PublishingClient
       posts={posts ?? []}
-      today={today}
     />
   );
 }

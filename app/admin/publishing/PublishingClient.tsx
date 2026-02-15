@@ -29,31 +29,26 @@ interface PostRow {
 
 interface PublishingClientProps {
   posts: PostRow[];
-  today: string;
 }
 
 const ITEMS_PER_PAGE = 10;
 
-export function PublishingClient({ posts, today }: PublishingClientProps) {
+export function PublishingClient({ posts }: PublishingClientProps) {
   const [statusFilter, setStatusFilter] = useState("");
   const [page, setPage] = useState(1);
   const [publishModal, setPublishModal] = useState<PostRow | null>(null);
 
-  // Stats
-  const needsMedia = posts.filter((p) => p.status === "approved" && !p.featured_image_url).length;
-  const readyToPublish = posts.filter((p) => p.status === "scheduled").length;
-  const publishedToday = posts.filter((p) =>
-    p.status === "published" && p.published_at?.startsWith(today)
-  ).length;
+  // Stats — all posts here are drafts; split by whether they have media attached
+  const needsMedia = posts.filter((p) => !p.featured_image_url).length;
+  const readyToPublish = posts.filter((p) => !!p.featured_image_url).length;
+  const publishedToday = 0; // Published posts live elsewhere
 
   const filtered = useMemo(() => {
     let items = posts;
     if (statusFilter === "needs_media") {
-      items = items.filter((p) => p.status === "approved" && !p.featured_image_url);
+      items = items.filter((p) => !p.featured_image_url);
     } else if (statusFilter === "ready") {
-      items = items.filter((p) => p.status === "scheduled");
-    } else if (statusFilter === "published") {
-      items = items.filter((p) => p.status === "published");
+      items = items.filter((p) => !!p.featured_image_url);
     }
     return items;
   }, [posts, statusFilter]);
@@ -66,10 +61,9 @@ export function PublishingClient({ posts, today }: PublishingClientProps) {
     setPage(1);
   };
 
-  const isNeedsMedia = (post: PostRow) =>
-    post.status === "approved" && !post.featured_image_url;
+  const isNeedsMedia = (post: PostRow) => !post.featured_image_url;
 
-  const isReady = (post: PostRow) => post.status === "scheduled";
+  const isReady = (post: PostRow) => !!post.featured_image_url;
 
   const workflowSteps = [
     { label: "Pipeline", status: "done" as const },
@@ -105,7 +99,6 @@ export function PublishingClient({ posts, today }: PublishingClientProps) {
               options: [
                 { value: "needs_media", label: "Needs Media" },
                 { value: "ready", label: "Ready to Publish" },
-                { value: "published", label: "Published" },
               ],
             },
           ]}

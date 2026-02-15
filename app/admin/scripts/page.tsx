@@ -13,12 +13,13 @@ export const dynamic = 'force-dynamic';
 export default async function ScriptsPage() {
   const supabase = createServerClient();
 
-  // Filming scripts: platform='reel', format='talking_head'
+  // Filming scripts: draft/pending only — approved scripts go to Social Queue
   const { data: filmingScripts, error: scriptsErr } = (await supabase
     .from("scripts")
     .select("*, script_batches(batch_name), stories(headline)")
     .eq("platform", "reel")
     .eq("format", "talking_head")
+    .in("status", ["draft", "pending"])
     .order("created_at", { ascending: false })) as {
     data: {
       id: string;
@@ -65,11 +66,27 @@ export default async function ScriptsPage() {
     data: { id: string; batch_name: string | null }[] | null;
   };
 
+  // Count filming scripts by status for stat cards
+  const { data: statusCounts } = (await supabase
+    .from("scripts")
+    .select("status")
+    .eq("platform", "reel")
+    .eq("format", "talking_head")) as {
+    data: { status: string }[] | null;
+  };
+
+  const counts = {
+    pending: (statusCounts ?? []).filter(s => s.status === "draft" || s.status === "pending").length,
+    approved: (statusCounts ?? []).filter(s => s.status === "approved").length,
+    published: (statusCounts ?? []).filter(s => s.status === "posted" || s.status === "published").length,
+  };
+
   return (
     <ScriptsClient
       filmingScripts={filmingScripts ?? []}
       captions={captions ?? []}
       batches={(batches ?? []).filter((b) => b.batch_name !== null) as { id: string; batch_name: string }[]}
+      counts={counts}
     />
   );
 }
