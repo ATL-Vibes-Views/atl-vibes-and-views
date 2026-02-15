@@ -144,6 +144,26 @@ export const MOCK_FULFILLMENTS = [
   },
 ];
 
+// Mock analytics deliverables for ?state=sponsor on /dashboard/analytics
+export const MOCK_ANALYTICS_DELIVERABLES = [
+  { deliverable_type: "blog_feature", label: "Blog Features", quantity_delivered: 4 },
+  { deliverable_type: "reel", label: "Social Media Reels", quantity_delivered: 8 },
+  { deliverable_type: "newsletter", label: "Newsletter Mentions", quantity_delivered: 5 },
+];
+
+// Mock sponsored post IDs for ?state=sponsor on /dashboard/stories
+// Takes the real stories array and marks the first published post as sponsored
+export function MOCK_STORIES_SPONSORED_POST_IDS(
+  stories: { blog_posts: { id: string; status: string } | null }[] | null
+): string[] {
+  if (!stories) return [];
+  const published = stories.filter(
+    (s) => s.blog_posts && s.blog_posts.status === "published"
+  );
+  // Mark the first published post as sponsored so the badge is visible
+  return published.length > 0 ? [published[0].blog_posts!.id] : [];
+}
+
 export const MOCK_FLIGHTS = [
   {
     id: "mock-flight-1",
