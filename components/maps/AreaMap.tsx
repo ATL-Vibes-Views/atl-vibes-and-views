@@ -101,7 +101,7 @@ function makeFillLayer(
     id: 'area-fill',
     type: 'fill' as const,
     paint: {
-      'fill-color': ['get', 'areaColor'] as unknown as string,
+      'fill-color': '#c4a24d',
       'fill-opacity': [
         'case',
         ['==', ['get', 'slug'], selectedSlug ?? ''],
