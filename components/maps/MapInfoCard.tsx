@@ -45,6 +45,25 @@ interface MapInfoCardProps {
   };
 }
 
+// Shared card wrapper classes — slides from left on desktop, bottom on mobile
+const cardBase = `
+  absolute z-10 bg-white border-r border-[#e5e5e5]
+  transition-transform duration-300 ease-in-out overflow-y-auto
+  left-0 top-0 bottom-0 w-[340px]
+  max-md:left-0 max-md:right-0 max-md:top-auto max-md:bottom-0 max-md:w-full max-md:max-h-[70%] max-md:border-r-0 max-md:border-t max-md:border-[#e5e5e5]
+`;
+
+function cardTransform(isOpen: boolean) {
+  return isOpen
+    ? 'translate-x-0 max-md:translate-x-0 max-md:translate-y-0'
+    : '-translate-x-full max-md:translate-x-0 max-md:translate-y-full';
+}
+
+// Right-edge shadow for desktop (left-sliding card)
+const cardShadow: React.CSSProperties = {
+  boxShadow: '8px 0 40px rgba(0,0,0,0.5)',
+};
+
 // ---------------------------------------------------------------------------
 // Component
 // ---------------------------------------------------------------------------
@@ -81,16 +100,8 @@ export default function MapInfoCard({
 
     return (
       <div
-        className={`
-          absolute z-10 bg-white border border-[#e5e5e5] shadow-lg
-          transition-transform duration-300 ease-in-out overflow-y-auto
-          right-0 top-0 bottom-0 w-[340px]
-          max-md:right-0 max-md:left-0 max-md:top-auto max-md:bottom-0 max-md:w-full max-md:max-h-[70%]
-          ${isOpen
-            ? 'translate-x-0 max-md:translate-x-0 max-md:translate-y-0'
-            : 'translate-x-full max-md:translate-x-0 max-md:translate-y-full'
-          }
-        `}
+        className={`${cardBase} ${cardTransform(isOpen)}`}
+        style={cardShadow}
       >
         {/* Hero image */}
         <div className="relative h-[180px] w-full bg-[#1a1a1a]">
@@ -210,16 +221,8 @@ export default function MapInfoCard({
 
     return (
       <div
-        className={`
-          absolute z-10 bg-white border border-[#e5e5e5] shadow-lg
-          transition-transform duration-300 ease-in-out overflow-y-auto
-          right-0 top-0 bottom-0 w-[340px]
-          max-md:right-0 max-md:left-0 max-md:top-auto max-md:bottom-0 max-md:w-full max-md:max-h-[70%]
-          ${isOpen
-            ? 'translate-x-0 max-md:translate-x-0 max-md:translate-y-0'
-            : 'translate-x-full max-md:translate-x-0 max-md:translate-y-full'
-          }
-        `}
+        className={`${cardBase} ${cardTransform(isOpen)}`}
+        style={cardShadow}
       >
         {/* Hero image */}
         <div className="relative h-[160px] w-full bg-[#1a1a1a]">

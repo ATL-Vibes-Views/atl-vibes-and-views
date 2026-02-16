@@ -9,6 +9,7 @@ import type {
   SymbolLayerSpecification,
 } from 'mapbox-gl';
 import type { FeatureCollection, Feature, Polygon, MultiPolygon } from 'geojson';
+import { MousePointerClick } from 'lucide-react';
 import 'mapbox-gl/dist/mapbox-gl.css';
 
 import {
@@ -52,10 +53,7 @@ interface AreaMapProps {
   center?: { lng: number; lat: number };
   zoom?: number;
   showLabels?: boolean;
-
-  /** Pre-fetched area card data keyed by area slug (for areas mode). */
   areaCardData?: Record<string, AreaCardData>;
-  /** Pre-fetched neighborhood card data keyed by neighborhood slug (for neighborhoods mode). */
   neighborhoodCardData?: Record<string, NeighborhoodCardData>;
 }
 
@@ -96,7 +94,8 @@ function computeCentroid(geometry: Polygon | MultiPolygon): [number, number] {
 // ---------------------------------------------------------------------------
 
 function makeFillLayer(
-  hoveredId: string | null,
+  hoveredSlug: string | null,
+  selectedSlug: string | null,
 ): Omit<FillLayerSpecification, 'source'> & { id: string } {
   return {
     id: 'area-fill',
@@ -105,9 +104,11 @@ function makeFillLayer(
       'fill-color': ['get', 'areaColor'] as unknown as string,
       'fill-opacity': [
         'case',
-        ['==', ['get', 'slug'], hoveredId ?? ''],
-        0.5,
-        0.25,
+        ['==', ['get', 'slug'], selectedSlug ?? ''],
+        0.55,
+        ['==', ['get', 'slug'], hoveredSlug ?? ''],
+        0.50,
+        0.30,
       ] as unknown as number,
     },
   };
@@ -117,9 +118,9 @@ const lineLayer: Omit<LineLayerSpecification, 'source'> & { id: string } = {
   id: 'area-line',
   type: 'line' as const,
   paint: {
-    'line-color': ['get', 'areaColor'] as unknown as string,
+    'line-color': 'rgba(255,248,230,0.45)',
     'line-width': 1.5,
-    'line-opacity': 0.8,
+    'line-opacity': 1,
   },
 };
 
@@ -140,6 +141,46 @@ const labelLayer: Omit<SymbolLayerSpecification, 'source'> & { id: string } = {
     'text-halo-width': 1.5,
   },
 };
+
+// ---------------------------------------------------------------------------
+// Instruction Panel (left overlay when no area is selected)
+// ---------------------------------------------------------------------------
+
+function InstructionPanel({ visible }: { visible: boolean }) {
+  return (
+    <div
+      className="absolute top-0 left-0 bottom-0 z-[5] flex w-[380px] max-md:w-full items-center pointer-events-none transition-all duration-[350ms] ease-in-out"
+      style={{
+        background:
+          'linear-gradient(to right, rgba(10,10,10,0.92) 0%, rgba(10,10,10,0.7) 70%, transparent 100%)',
+        opacity: visible ? 1 : 0,
+        transform: visible ? 'translateX(0)' : 'translateX(-20px)',
+      }}
+    >
+      <div className="px-12 max-md:px-8">
+        <span className="text-[#c1121f] text-[10px] font-semibold uppercase tracking-[0.15em]">
+          Explore Atlanta
+        </span>
+        <h2 className="font-display text-4xl font-semibold italic text-white mt-3 leading-tight">
+          Discover Your Neighborhood
+        </h2>
+        <p className="mt-4 text-sm text-white/50 leading-[1.7]">
+          Tap an area on the map to uncover the neighborhoods, businesses, and
+          stories that define Atlanta&rsquo;s most vibrant communities.
+        </p>
+        <div className="mt-6 flex items-center gap-2">
+          <MousePointerClick
+            size={16}
+            className="text-[#fee198] animate-[pulse-icon_2s_ease-in-out_infinite]"
+          />
+          <span className="text-[#fee198] text-xs font-medium">
+            Select an area to begin
+          </span>
+        </div>
+      </div>
+    </div>
+  );
+}
 
 // ---------------------------------------------------------------------------
 // Component
@@ -172,7 +213,7 @@ export default function AreaMap({
   const [cardOpen, setCardOpen] = useState(false);
   const [selectedSlug, setSelectedSlug] = useState<string | null>(null);
 
-  // Build lookup maps (using plain objects to avoid Map/MapGL name clash)
+  // Build lookup maps
   const areaById = useMemo(() => {
     const lookup: Record<string, AreaEntry> = {};
     for (const a of areas) lookup[a.id] = a;
@@ -393,6 +434,7 @@ export default function AreaMap({
       if (features.length === 0) {
         // Clicked map background — close the card
         setCardOpen(false);
+        setSelectedSlug(null);
         return;
       }
 
@@ -415,6 +457,7 @@ export default function AreaMap({
 
   const handleCardClose = useCallback(() => {
     setCardOpen(false);
+    setSelectedSlug(null);
   }, []);
 
   // -----------------------------------------------------------------------
@@ -426,9 +469,12 @@ export default function AreaMap({
     : undefined;
 
   // -----------------------------------------------------------------------
-  // Memoize fill layer (depends on hovered slug)
+  // Memoize fill layer (depends on hovered + selected slug)
   // -----------------------------------------------------------------------
-  const fillLayer = useMemo(() => makeFillLayer(hoveredSlug), [hoveredSlug]);
+  const fillLayer = useMemo(
+    () => makeFillLayer(hoveredSlug, cardOpen ? selectedSlug : null),
+    [hoveredSlug, selectedSlug, cardOpen],
+  );
 
   // -----------------------------------------------------------------------
   // Initial view state
@@ -447,6 +493,14 @@ export default function AreaMap({
   // -----------------------------------------------------------------------
   return (
     <div className="relative w-full overflow-hidden" style={{ height }}>
+      {/* Keyframe for pulsing icon animation */}
+      <style>{`
+        @keyframes pulse-icon {
+          0%, 100% { opacity: 0.6; }
+          50% { opacity: 1; }
+        }
+      `}</style>
+
       <MapGL
         ref={mapRef}
         initialViewState={initialViewState}
@@ -475,7 +529,10 @@ export default function AreaMap({
         )}
       </MapGL>
 
-      {/* Info card — slides in from right (desktop) or bottom (mobile) */}
+      {/* Instruction panel — visible when no card is open (areas mode only) */}
+      {mode === 'areas' && <InstructionPanel visible={!cardOpen} />}
+
+      {/* Info card — slides in from left (desktop) or bottom (mobile) */}
       {mode === 'areas' && activeAreaCard && (
         <MapInfoCard
           type="area"

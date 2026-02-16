@@ -5,18 +5,18 @@ export const MAPBOX_STYLE = 'mapbox://styles/mellanda/cmloinh8v001p01qnc5eq0qjs'
 export const ATLANTA_CENTER = { lng: -84.388, lat: 33.749 };
 export const ATLANTA_ZOOM = 11;
 
-// Area colors — used for polygon fills and borders
+// Area colors — monochromatic gold for polygon fills and borders
 export const AREA_COLORS: Record<string, string> = {
-  'buckhead': '#9b59b6',
-  'midtown': '#3498db',
-  'downtown': '#e74c3c',
-  'eastside': '#2ecc71',
-  'westside': '#f39c12',
-  'north-atlanta': '#1abc9c',
-  'south-atlanta': '#e67e22',
-  'southeast-atlanta': '#00bcd4',
-  'southwest-atlanta': '#8bc34a',
+  'buckhead': '#c4a24d',
+  'midtown': '#c4a24d',
+  'downtown': '#c4a24d',
+  'eastside': '#c4a24d',
+  'westside': '#c4a24d',
+  'north-atlanta': '#c4a24d',
+  'south-atlanta': '#c4a24d',
+  'southeast-atlanta': '#c4a24d',
+  'southwest-atlanta': '#c4a24d',
 };
 
 // Fallback color for unknown areas
-export const DEFAULT_AREA_COLOR = '#95a5a6';
+export const DEFAULT_AREA_COLOR = '#c4a24d';

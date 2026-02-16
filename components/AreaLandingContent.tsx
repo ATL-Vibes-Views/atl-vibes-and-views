@@ -45,6 +45,12 @@ export interface AreaLandingContentProps {
   mapCtaText: string;
   mapCtaHref: string;
 
+  /* Optional: hero section rendered above the grid */
+  heroContent?: React.ReactNode;
+
+  /* Optional: custom map component (replaces placeholder) */
+  mapContent?: React.ReactNode;
+
   /* Videos */
   videos: MediaItem[];
 
@@ -98,6 +104,8 @@ export function AreaLandingContent({
   cardLinkPrefix,
   mapCtaText,
   mapCtaHref,
+  heroContent,
+  mapContent,
   videos,
   stories,
   guides,
@@ -112,6 +120,9 @@ export function AreaLandingContent({
 
   return (
     <>
+      {/* ========== HERO (optional — rendered above grid) ========== */}
+      {heroContent}
+
       {/* ========== SECTIONS 1-3: Main + Sidebar Grid ========== */}
       <div className="site-container pt-10 pb-16 md:pt-12 md:pb-20">
         <div className="grid grid-cols-1 lg:grid-cols-[1fr_340px] gap-12 lg:gap-16">
@@ -216,16 +227,18 @@ export function AreaLandingContent({
 
             {/* ===== 3. INTERACTIVE MAP ===== */}
             <section>
-              <div className="bg-[#f5f5f5] border border-dashed border-gray-300 aspect-[16/7] flex items-center justify-center text-center">
-                <div>
-                  <p className="text-sm text-gray-400 uppercase tracking-widest mb-2">
-                    Interactive Map
-                  </p>
-                  <p className="text-xs text-gray-300">
-                    Mapbox integration — developer task
-                  </p>
+              {mapContent ?? (
+                <div className="bg-[#f5f5f5] border border-dashed border-gray-300 aspect-[16/7] flex items-center justify-center text-center">
+                  <div>
+                    <p className="text-sm text-gray-400 uppercase tracking-widest mb-2">
+                      Interactive Map
+                    </p>
+                    <p className="text-xs text-gray-300">
+                      Mapbox integration — developer task
+                    </p>
+                  </div>
                 </div>
-              </div>
+              )}
               <div className="mt-6 text-center">
                 <Link
                   href={mapCtaHref}
