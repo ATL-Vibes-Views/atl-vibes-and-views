@@ -784,6 +784,7 @@ export default async function BusinessDetailPage({
                       className="absolute inset-0 w-full h-full"
                       allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
                       allowFullScreen
+                      title={`${biz.business_name} video`}
                     />
                   ) : biz.video_url.includes("vimeo") ? (
                     <iframe
@@ -791,6 +792,7 @@ export default async function BusinessDetailPage({
                       className="absolute inset-0 w-full h-full"
                       allow="autoplay; fullscreen; picture-in-picture"
                       allowFullScreen
+                      title={`${biz.business_name} video`}
                     />
                   ) : (
                     <video

@@ -49,7 +49,7 @@ export default function ContactPage() {
   return (
     <>
       {/* ========== HERO ========== */}
-      <section className="relative w-full h-[30vh] sm:h-[35vh] min-h-[240px] max-h-[400px] overflow-hidden">
+      <section className="relative w-full h-[30vh] sm:h-[35vh] min-h-[240px] max-h-[400px] overflow-hidden bg-[#1a1a1a]" style={{ backgroundImage: "url(/images/default-hero.png)", backgroundSize: "cover", backgroundPosition: "center" }}>
         <Image
           src="https://images.unsplash.com/photo-1455390582262-044cdead277a?w=1600"
           alt="Get in touch"

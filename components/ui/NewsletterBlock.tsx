@@ -34,6 +34,7 @@ export function NewsletterBlock({
               type="email"
               placeholder="Enter Your Email"
               className="flex-1 px-6 py-4 text-sm outline-none bg-transparent placeholder:text-gray-mid"
+              aria-label="Email address"
             />
             <button
               type="submit"

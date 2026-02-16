@@ -96,7 +96,7 @@ export function PartnerContactForm() {
             required
             value={form.firstname}
             onChange={update("firstname")}
-            className="w-full bg-transparent border-b border-black px-0 py-2 text-base focus:outline-none focus:border-[#c1121f] transition-colors"
+            className="w-full bg-transparent border-b border-black px-0 py-2 text-base focus:outline-none focus:ring-2 focus:ring-[#c1121f]/30 focus:border-[#c1121f] transition-colors"
           />
         </div>
         <div>
@@ -108,7 +108,7 @@ export function PartnerContactForm() {
             required
             value={form.lastname}
             onChange={update("lastname")}
-            className="w-full bg-transparent border-b border-black px-0 py-2 text-base focus:outline-none focus:border-[#c1121f] transition-colors"
+            className="w-full bg-transparent border-b border-black px-0 py-2 text-base focus:outline-none focus:ring-2 focus:ring-[#c1121f]/30 focus:border-[#c1121f] transition-colors"
           />
         </div>
       </div>
@@ -123,7 +123,7 @@ export function PartnerContactForm() {
           required
           value={form.email}
           onChange={update("email")}
-          className="w-full bg-transparent border-b border-black px-0 py-2 text-base focus:outline-none focus:border-[#c1121f] transition-colors"
+          className="w-full bg-transparent border-b border-black px-0 py-2 text-base focus:outline-none focus:ring-2 focus:ring-[#c1121f]/30 focus:border-[#c1121f] transition-colors"
         />
       </div>
 
@@ -136,7 +136,7 @@ export function PartnerContactForm() {
           type="tel"
           value={form.phone}
           onChange={update("phone")}
-          className="w-full bg-transparent border-b border-black px-0 py-2 text-base focus:outline-none focus:border-[#c1121f] transition-colors"
+          className="w-full bg-transparent border-b border-black px-0 py-2 text-base focus:outline-none focus:ring-2 focus:ring-[#c1121f]/30 focus:border-[#c1121f] transition-colors"
         />
       </div>
 
@@ -149,7 +149,7 @@ export function PartnerContactForm() {
           type="text"
           value={form.company}
           onChange={update("company")}
-          className="w-full bg-transparent border-b border-black px-0 py-2 text-base focus:outline-none focus:border-[#c1121f] transition-colors"
+          className="w-full bg-transparent border-b border-black px-0 py-2 text-base focus:outline-none focus:ring-2 focus:ring-[#c1121f]/30 focus:border-[#c1121f] transition-colors"
         />
       </div>
 
@@ -163,7 +163,7 @@ export function PartnerContactForm() {
           rows={4}
           value={form.message}
           onChange={update("message")}
-          className="w-full bg-transparent border-b border-black px-0 py-2 text-base focus:outline-none focus:border-[#c1121f] transition-colors resize-none"
+          className="w-full bg-transparent border-b border-black px-0 py-2 text-base focus:outline-none focus:ring-2 focus:ring-[#c1121f]/30 focus:border-[#c1121f] transition-colors resize-none"
         />
       </div>
 

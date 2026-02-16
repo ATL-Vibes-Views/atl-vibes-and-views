@@ -65,7 +65,7 @@ export function SearchBar({
               setValue("");
               pushSearch("");
             }}
-            className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-mid hover:text-black"
+            className="absolute right-2 top-1/2 -translate-y-1/2 p-1.5 text-gray-mid hover:text-black"
             aria-label="Clear search"
           >
             <X size={16} />

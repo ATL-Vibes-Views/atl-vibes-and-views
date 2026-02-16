@@ -623,7 +623,8 @@ export function LocationDetailContent(props: LocationDetailProps) {
                   type="email"
                   placeholder="Enter Your Email"
                   required
-                  className="flex-1 px-4 py-3 border border-gray-300 text-sm focus:outline-none focus:border-[#e6c46d]"
+                  aria-label="Email address"
+                  className="flex-1 px-4 py-3 border border-gray-300 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#e6c46d] focus-visible:border-[#e6c46d]"
                 />
                 <button
                   type="submit"

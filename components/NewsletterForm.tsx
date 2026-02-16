@@ -53,6 +53,7 @@ export function NewsletterForm({ compact = false }: { compact?: boolean }) {
         onChange={(e) => setEmail(e.target.value)}
         className="flex-1 px-6 py-4 text-sm outline-none bg-transparent placeholder:text-gray-mid"
         required
+        aria-label="Email address"
       />
       {compact ? (
         <button
