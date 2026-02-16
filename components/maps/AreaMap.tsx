@@ -255,83 +255,108 @@ export default function AreaMap({
         const enriched: Feature<Polygon | MultiPolygon, NeighborhoodProperties>[] = [];
         const labelPoints: Feature[] = [];
 
-        const areaCentroids: Record<
-          string,
-          { lngSum: number; latSum: number; count: number; name: string }
-        > = {};
+        if (mode === 'areas') {
+          // ----- Areas mode: merge neighborhood polygons into one MultiPolygon per area -----
+          const areaGroups: Record<
+            string,
+            { coords: number[][][] []; areaName: string; color: string }
+          > = {};
 
-        for (const feature of raw.features) {
-          const name = (feature.properties as Record<string, unknown>)
-            ?.NAME as string | undefined;
-          if (!name) continue;
+          for (const feature of raw.features) {
+            const name = (feature.properties as Record<string, unknown>)
+              ?.NAME as string | undefined;
+            if (!name) continue;
 
-          const nbr = neighborhoodByGeoKey[name];
+            const nbr = neighborhoodByGeoKey[name];
+            const nAreaSlug = nbr ? getAreaSlug(nbr) : '';
+            const groupKey = nAreaSlug || '__unmatched__';
+            const color = AREA_COLORS[nAreaSlug] ?? DEFAULT_AREA_COLOR;
+            const area = nbr ? areaById[nbr.area_id] : undefined;
 
-          // In neighborhoods/single-neighborhood modes, skip features without a DB match
-          if (!nbr && mode !== 'areas') continue;
+            const geom = feature.geometry as Polygon | MultiPolygon;
+            const polygonCoords =
+              geom.type === 'Polygon'
+                ? [geom.coordinates]
+                : geom.coordinates;
 
-          const nAreaSlug = nbr ? getAreaSlug(nbr) : '';
-          const color = AREA_COLORS[nAreaSlug] ?? DEFAULT_AREA_COLOR;
-          const area = nbr ? areaById[nbr.area_id] : undefined;
-
-          if (mode === 'neighborhoods' && nAreaSlug !== areaSlug) continue;
-          if (mode === 'single-neighborhood' && nbr?.slug !== neighborhoodSlug)
-            continue;
-
-          enriched.push({
-            ...feature,
-            geometry: feature.geometry as Polygon | MultiPolygon,
-            properties: {
-              ...(feature.properties as NeighborhoodProperties),
-              areaSlug: nAreaSlug,
-              areaColor: color,
-              slug: mode === 'areas' ? (nAreaSlug || name) : (nbr?.slug ?? name),
-              label: mode === 'areas' ? (area?.name ?? nAreaSlug) : (nbr?.name ?? name),
-            },
-          });
-
-          if (mode === 'areas') {
-            const centroid = computeCentroid(
-              feature.geometry as Polygon | MultiPolygon,
-            );
-            const centroidKey = nAreaSlug || '__unmatched__';
-            const existing = areaCentroids[centroidKey];
+            const existing = areaGroups[groupKey];
             if (existing) {
-              existing.lngSum += centroid[0];
-              existing.latSum += centroid[1];
-              existing.count += 1;
+              existing.coords.push(...polygonCoords);
             } else {
-              areaCentroids[centroidKey] = {
-                lngSum: centroid[0],
-                latSum: centroid[1],
-                count: 1,
-                name: area?.name ?? nAreaSlug,
+              areaGroups[groupKey] = {
+                coords: [...polygonCoords],
+                areaName: area?.name ?? nAreaSlug,
+                color,
               };
             }
-          } else {
+          }
+
+          // Emit one merged MultiPolygon feature per area
+          for (const [slug, group] of Object.entries(areaGroups)) {
+            enriched.push({
+              type: 'Feature',
+              geometry: {
+                type: 'MultiPolygon',
+                coordinates: group.coords,
+              },
+              properties: {
+                NAME: group.areaName,
+                areaSlug: slug,
+                areaColor: group.color,
+                slug,
+                label: group.areaName,
+              },
+            });
+
+            // Label point — prefer DB-stored map center, fall back to centroid
+            const areaData = areas.find((a) => a.slug === slug);
+            if (areaData) {
+              labelPoints.push({
+                type: 'Feature',
+                geometry: {
+                  type: 'Point',
+                  coordinates: [areaData.map_center_lng, areaData.map_center_lat],
+                },
+                properties: { label: group.areaName },
+              });
+            }
+          }
+        } else {
+          // ----- Neighborhoods / single-neighborhood mode: one feature per neighborhood -----
+          for (const feature of raw.features) {
+            const name = (feature.properties as Record<string, unknown>)
+              ?.NAME as string | undefined;
+            if (!name) continue;
+
+            const nbr = neighborhoodByGeoKey[name];
+            if (!nbr) continue;
+
+            const nAreaSlug = getAreaSlug(nbr);
+            const color = AREA_COLORS[nAreaSlug] ?? DEFAULT_AREA_COLOR;
+
+            if (mode === 'neighborhoods' && nAreaSlug !== areaSlug) continue;
+            if (mode === 'single-neighborhood' && nbr.slug !== neighborhoodSlug)
+              continue;
+
+            enriched.push({
+              ...feature,
+              geometry: feature.geometry as Polygon | MultiPolygon,
+              properties: {
+                ...(feature.properties as NeighborhoodProperties),
+                areaSlug: nAreaSlug,
+                areaColor: color,
+                slug: nbr.slug,
+                label: nbr.name,
+              },
+            });
+
             const centroid = computeCentroid(
               feature.geometry as Polygon | MultiPolygon,
             );
             labelPoints.push({
               type: 'Feature',
               geometry: { type: 'Point', coordinates: centroid },
-              properties: { label: nbr?.name ?? name },
-            });
-          }
-        }
-
-        if (mode === 'areas') {
-          for (const [slug, data] of Object.entries(areaCentroids)) {
-            const areaData = areas.find((a) => a.slug === slug);
-            const lng =
-              areaData?.map_center_lng ?? data.lngSum / data.count;
-            const lat =
-              areaData?.map_center_lat ?? data.latSum / data.count;
-
-            labelPoints.push({
-              type: 'Feature',
-              geometry: { type: 'Point', coordinates: [lng, lat] },
-              properties: { label: data.name },
+              properties: { label: nbr.name },
             });
           }
         }
