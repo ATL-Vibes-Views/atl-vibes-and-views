@@ -1,5 +1,5 @@
 import { Metadata } from "next";
-import { createServerClient } from "@/lib/supabase";
+import { createServiceRoleClient } from "@/lib/supabase";
 import { SocialClient } from "./SocialClient";
 
 export const metadata: Metadata = {
@@ -11,7 +11,7 @@ export const metadata: Metadata = {
 export const dynamic = 'force-dynamic';
 
 export default async function SocialPage() {
-  const supabase = createServerClient();
+  const supabase = createServiceRoleClient();
 
   // Approved/scheduled/posted filming scripts (ready for social distribution)
   const { data: scripts, error: scriptsErr } = (await supabase
@@ -41,7 +41,7 @@ export default async function SocialPage() {
     .from("stories")
     .select("*, categories(name)")
     .eq("tier", "social")
-    .eq("status", "scored")
+    .in("status", ["assigned_blog", "assigned_script", "assigned_dual", "assigned_social"])
     .order("created_at", { ascending: false })) as {
     data: {
       id: string;

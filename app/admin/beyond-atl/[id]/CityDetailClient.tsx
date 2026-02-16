@@ -1,8 +1,10 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useRef, useCallback } from "react";
+import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { ArrowLeft, Store, Map } from "lucide-react";
+import { updateCity } from "@/app/admin/actions";
 import { PortalTopbar } from "@/components/portal/PortalTopbar";
 import { TabNav } from "@/components/portal/TabNav";
 import { StatusBadge } from "@/components/portal/StatusBadge";
@@ -52,7 +54,36 @@ function fieldBool(obj: Record<string, unknown> | null, key: string): boolean {
 }
 
 export function CityDetailClient({ city, isNew, businesses, areas }: CityDetailClientProps) {
+  const router = useRouter();
   const [activeTab, setActiveTab] = useState("details");
+  const [saving, setSaving] = useState(false);
+  const [isActive, setIsActive] = useState(fieldBool(city, "is_active"));
+  const formRef = useRef<HTMLDivElement>(null);
+
+  const handleSave = useCallback(async () => {
+    if (!city || isNew) return;
+    setSaving(true);
+    const getValue = (label: string) => {
+      const el = formRef.current?.querySelector(`[data-field="${label}"]`) as HTMLInputElement | HTMLTextAreaElement | null;
+      return el?.value ?? "";
+    };
+    const result = await updateCity(String(city.id), {
+      name: getValue("name"),
+      state: getValue("state"),
+      metro_area: getValue("metro_area") || null,
+      tagline: getValue("tagline") || null,
+      description: getValue("description") || null,
+      hero_image_url: getValue("hero_image_url") || null,
+      logo_url: getValue("logo_url") || null,
+      latitude: getValue("latitude") ? Number(getValue("latitude")) : null,
+      longitude: getValue("longitude") ? Number(getValue("longitude")) : null,
+      population: getValue("population") ? Number(getValue("population")) : null,
+      is_active: isActive,
+    });
+    setSaving(false);
+    if (result.error) { alert("Error: " + result.error); return; }
+    router.refresh();
+  }, [city, isNew, isActive, router]);
 
   const title = isNew ? "New City" : `${field(city, "name", "City")}${field(city, "state") ? `, ${field(city, "state")}` : ""}`;
 
@@ -75,30 +106,30 @@ export function CityDetailClient({ city, isNew, businesses, areas }: CityDetailC
 
         {/* Tab 1 — Details */}
         {activeTab === "details" && (
-          <div className="space-y-4">
-            <FormGroup label="Name"><FormInput defaultValue={field(city, "name")} /></FormGroup>
+          <div className="space-y-4" ref={formRef}>
+            <FormGroup label="Name"><FormInput data-field="name" defaultValue={field(city, "name")} /></FormGroup>
             <FormGroup label="Slug"><FormInput defaultValue={field(city, "slug")} readOnly className="bg-[#f5f5f5]" /></FormGroup>
             <FormRow columns={2}>
-              <FormGroup label="State"><FormInput defaultValue={field(city, "state")} /></FormGroup>
-              <FormGroup label="Metro Area"><FormInput defaultValue={field(city, "metro_area")} /></FormGroup>
+              <FormGroup label="State"><FormInput data-field="state" defaultValue={field(city, "state")} /></FormGroup>
+              <FormGroup label="Metro Area"><FormInput data-field="metro_area" defaultValue={field(city, "metro_area")} /></FormGroup>
             </FormRow>
-            <FormGroup label="Tagline"><FormInput defaultValue={field(city, "tagline")} /></FormGroup>
-            <FormGroup label="Description"><FormTextarea defaultValue={field(city, "description")} rows={5} /></FormGroup>
-            <FormGroup label="Hero Image URL"><FormInput defaultValue={field(city, "hero_image_url")} /></FormGroup>
+            <FormGroup label="Tagline"><FormInput data-field="tagline" defaultValue={field(city, "tagline")} /></FormGroup>
+            <FormGroup label="Description"><FormTextarea data-field="description" defaultValue={field(city, "description")} rows={5} /></FormGroup>
+            <FormGroup label="Hero Image URL"><FormInput data-field="hero_image_url" defaultValue={field(city, "hero_image_url")} /></FormGroup>
             {field(city, "hero_image_url") && (
               <div className="w-full max-w-[400px] aspect-[16/9] border border-[#e5e5e5] overflow-hidden">
                 <img src={field(city, "hero_image_url")} alt={`${field(city, "name", "City")} hero image`} className="w-full h-full object-cover" />
               </div>
             )}
-            <FormGroup label="Logo URL"><FormInput defaultValue={field(city, "logo_url")} /></FormGroup>
+            <FormGroup label="Logo URL"><FormInput data-field="logo_url" defaultValue={field(city, "logo_url")} /></FormGroup>
             <FormRow columns={2}>
-              <FormGroup label="Latitude"><FormInput type="number" defaultValue={field(city, "latitude")} /></FormGroup>
-              <FormGroup label="Longitude"><FormInput type="number" defaultValue={field(city, "longitude")} /></FormGroup>
+              <FormGroup label="Latitude"><FormInput data-field="latitude" type="number" defaultValue={field(city, "latitude")} /></FormGroup>
+              <FormGroup label="Longitude"><FormInput data-field="longitude" type="number" defaultValue={field(city, "longitude")} /></FormGroup>
             </FormRow>
-            <FormGroup label="Population"><FormInput type="number" defaultValue={field(city, "population")} /></FormGroup>
-            <ToggleSwitch label="Active" checked={fieldBool(city, "is_active")} onChange={() => console.log("Toggle active")} />
+            <FormGroup label="Population"><FormInput data-field="population" type="number" defaultValue={field(city, "population")} /></FormGroup>
+            <ToggleSwitch label="Active" checked={isActive} onChange={() => setIsActive(!isActive)} />
             <ButtonBar>
-              <button onClick={() => console.log("Save city")} className="inline-flex items-center px-6 py-2.5 rounded-full text-sm font-semibold bg-[#fee198] text-[#1a1a1a] hover:bg-[#fdd870] transition-colors">Save Changes</button>
+              <button onClick={handleSave} disabled={saving} className="inline-flex items-center px-6 py-2.5 rounded-full text-sm font-semibold bg-[#fee198] text-[#1a1a1a] hover:bg-[#fdd870] transition-colors disabled:opacity-50">{saving ? "Saving..." : "Save Changes"}</button>
             </ButtonBar>
           </div>
         )}

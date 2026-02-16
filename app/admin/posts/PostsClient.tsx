@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useMemo } from "react";
+import { useRouter } from "next/navigation";
 import { PortalTopbar } from "@/components/portal/PortalTopbar";
 import { StatusBadge } from "@/components/portal/StatusBadge";
 import { FilterBar } from "@/components/portal/FilterBar";
@@ -33,13 +34,14 @@ const ITEMS_PER_PAGE = 25;
 
 const statusBadgeMap: Record<string, "green" | "gray" | "blue" | "yellow" | "red"> = {
   published: "green",
-  approved: "blue",
+  draft: "gray",
+  ready_for_review: "blue",
   scheduled: "yellow",
-  archived: "gray",
-  rejected: "red",
+  archived: "red",
 };
 
 export function PostsClient({ posts, categories }: PostsClientProps) {
+  const router = useRouter();
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState("");
   const [typeFilter, setTypeFilter] = useState("");
@@ -76,7 +78,7 @@ export function PostsClient({ posts, categories }: PostsClientProps) {
       render: (item: PostRow) => (
         <span
           className="font-display text-[14px] font-semibold text-black hover:text-[#c1121f] cursor-pointer transition-colors"
-          onClick={() => console.log("Open post:", item.id)}
+          onClick={() => router.push(`/admin/posts/${item.id}`)}
         >
           {item.title}
         </span>
@@ -141,9 +143,10 @@ export function PostsClient({ posts, categories }: PostsClientProps) {
               label: "All Status",
               value: statusFilter,
               options: [
-                { value: "published", label: "Published" },
-                { value: "approved", label: "Approved" },
+                { value: "draft", label: "Draft" },
+                { value: "ready_for_review", label: "Ready for Review" },
                 { value: "scheduled", label: "Scheduled" },
+                { value: "published", label: "Published" },
                 { value: "archived", label: "Archived" },
               ],
             },
@@ -176,7 +179,7 @@ export function PostsClient({ posts, categories }: PostsClientProps) {
           data={paginated}
           actions={(item) => (
             <button
-              onClick={() => console.log("Edit post:", item.id)}
+              onClick={() => router.push(`/admin/posts/${item.id}`)}
               className="inline-flex items-center px-3 py-1 text-xs font-semibold rounded-full border border-[#e5e5e5] text-[#374151] hover:border-[#d1d5db] transition-colors"
             >
               Edit

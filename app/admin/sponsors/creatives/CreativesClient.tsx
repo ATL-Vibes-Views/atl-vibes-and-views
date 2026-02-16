@@ -1,8 +1,10 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useMemo, useState, useCallback } from "react";
+import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { ArrowLeft, X, Eye, Pencil, Download } from "lucide-react";
+import { updateAdCreative } from "@/app/admin/actions";
 import { PortalTopbar } from "@/components/portal/PortalTopbar";
 import { FilterBar } from "@/components/portal/FilterBar";
 import { StatusBadge } from "@/components/portal/StatusBadge";
@@ -41,6 +43,7 @@ interface CreativesClientProps {
 const ITEMS_PER_PAGE = 12;
 
 export function CreativesClient({ creatives, campaigns, sponsors }: CreativesClientProps) {
+  const router = useRouter();
   const [search, setSearch] = useState("");
   const [typeFilter, setTypeFilter] = useState("");
   const [statusFilter, setStatusFilter] = useState("");
@@ -54,6 +57,17 @@ export function CreativesClient({ creatives, campaigns, sponsors }: CreativesCli
   const [newType, setNewType] = useState("image");
   const [newSponsorId, setNewSponsorId] = useState("");
   const [newAdCopy, setNewAdCopy] = useState("");
+  const [saving, setSaving] = useState(false);
+  const [editingCreative, setEditingCreative] = useState<CreativeRow | null>(null);
+
+  const handleEditCreative = useCallback(async (creativeId: string, data: Record<string, unknown>) => {
+    setSaving(true);
+    const result = await updateAdCreative(creativeId, data);
+    setSaving(false);
+    if ("error" in result && result.error) { alert("Error: " + result.error); return; }
+    setEditingCreative(null);
+    router.refresh();
+  }, [router]);
 
   // Build lookup maps
   const campaignMap = useMemo(() => {
@@ -185,20 +199,20 @@ export function CreativesClient({ creatives, campaigns, sponsors }: CreativesCli
               Cancel
             </button>
             <button
-              onClick={() => {
-                console.log("Save creative:", { newImageUrl, newHeadline, newTargetUrl, newType, sponsor_id: newSponsorId, adCopy: newAdCopy });
-                setShowNewForm(false);
-                setNewImageUrl("");
-                setNewHeadline("");
-                setNewTargetUrl("");
-                setNewType("image");
-                setNewSponsorId("");
-                setNewAdCopy("");
+              onClick={async () => {
+                if (!newImageUrl || !newTargetUrl || !newSponsorId) return;
+                const sponsorCampaign = campaigns.find((c) => c.sponsor_id === newSponsorId);
+                if (!sponsorCampaign) { alert("No campaign found for this sponsor. Create a campaign first."); return; }
+                setSaving(true);
+                // For new creatives, we use updateAdCreative on a placeholder — in practice
+                // you'd need a createAdCreative action. For now, alert the user.
+                setSaving(false);
+                alert("Create creative server action not yet available. Add createAdCreative to actions.ts.");
               }}
-              disabled={!newImageUrl || !newTargetUrl || !newSponsorId}
+              disabled={!newImageUrl || !newTargetUrl || !newSponsorId || saving}
               className="px-6 py-2 rounded-full text-sm font-semibold bg-[#fee198] text-[#1a1a1a] hover:bg-[#e6c46d] transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
             >
-              Save Creative
+              {saving ? "Saving..." : "Save Creative"}
             </button>
           </div>
         </div>
@@ -282,10 +296,14 @@ export function CreativesClient({ creatives, campaigns, sponsors }: CreativesCli
                         </a>
                       )}
                       <button
-                        onClick={() => console.log("Edit creative:", c.id)}
+                        onClick={async () => {
+                          const result = await updateAdCreative(c.id, { is_active: !c.is_active });
+                          if (result.error) { alert("Error: " + result.error); return; }
+                          router.refresh();
+                        }}
                         className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[10px] font-semibold border border-[#e5e5e5] text-[#374151] hover:border-[#d1d5db] transition-colors"
                       >
-                        <Pencil size={12} /> Edit
+                        <Pencil size={12} /> {c.is_active ? "Deactivate" : "Activate"}
                       </button>
                       {c.image_url && (
                         <a

@@ -1,5 +1,5 @@
 import { Metadata } from "next";
-import { createServerClient } from "@/lib/supabase";
+import { createServiceRoleClient } from "@/lib/supabase";
 import { AreasClient } from "./AreasClient";
 
 export const metadata: Metadata = {
@@ -11,7 +11,7 @@ export const metadata: Metadata = {
 export const dynamic = 'force-dynamic';
 
 export default async function AreasPage() {
-  const supabase = createServerClient();
+  const supabase = createServiceRoleClient();
 
   const { data: areas, error: aErr } = (await supabase
     .from("areas")

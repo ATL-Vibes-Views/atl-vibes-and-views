@@ -1,6 +1,7 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useMemo, useState, useCallback } from "react";
+import { useRouter } from "next/navigation";
 import { PortalTopbar } from "@/components/portal/PortalTopbar";
 import { StatCard } from "@/components/portal/StatCard";
 import { StatGrid } from "@/components/portal/StatGrid";
@@ -8,6 +9,7 @@ import { FilterBar } from "@/components/portal/FilterBar";
 import { AdminDataTable } from "@/components/portal/AdminDataTable";
 import { StatusBadge } from "@/components/portal/StatusBadge";
 import { Pagination } from "@/components/portal/Pagination";
+import { updateSubmissionStatus } from "@/app/admin/actions";
 
 /* ============================================================
    SUBMISSIONS — Review queue for business & event submissions
@@ -36,10 +38,23 @@ const statusBadgeMap: Record<string, "green" | "gold" | "gray" | "red" | "blue" 
 };
 
 export function SubmissionsClient({ submissions }: { submissions: SubmissionRow[] }) {
+  const router = useRouter();
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState("");
   const [typeFilter, setTypeFilter] = useState("");
   const [page, setPage] = useState(1);
+  const [acting, setActing] = useState<string | null>(null);
+
+  const handleSubmissionAction = useCallback(async (id: string, status: string) => {
+    setActing(id);
+    const result = await updateSubmissionStatus(id, status);
+    setActing(null);
+    if (result.error) {
+      alert("Error: " + result.error);
+      return;
+    }
+    router.refresh();
+  }, [router]);
 
   const filtered = useMemo(() => {
     let items = submissions;
@@ -171,14 +186,16 @@ export function SubmissionsClient({ submissions }: { submissions: SubmissionRow[
           actions={(item) => (
             <div className="flex gap-2">
               <button
-                onClick={() => console.log("Approve submission:", item.id)}
-                className="text-[#16a34a] text-xs font-semibold hover:underline"
+                onClick={() => handleSubmissionAction(item.id, "approved")}
+                disabled={acting === item.id}
+                className="text-[#16a34a] text-xs font-semibold hover:underline disabled:opacity-50"
               >
                 Approve
               </button>
               <button
-                onClick={() => console.log("Reject submission:", item.id)}
-                className="text-[#c1121f] text-xs font-semibold hover:underline"
+                onClick={() => handleSubmissionAction(item.id, "rejected")}
+                disabled={acting === item.id}
+                className="text-[#c1121f] text-xs font-semibold hover:underline disabled:opacity-50"
               >
                 Reject
               </button>

@@ -1,5 +1,5 @@
 import { Metadata } from "next";
-import { createServerClient } from "@/lib/supabase";
+import { createServiceRoleClient } from "@/lib/supabase";
 import { CalendarClient } from "./CalendarClient";
 
 export const metadata: Metadata = {
@@ -11,7 +11,7 @@ export const metadata: Metadata = {
 export const dynamic = 'force-dynamic';
 
 export default async function CalendarPage() {
-  const supabase = createServerClient();
+  const supabase = createServiceRoleClient();
 
   // Fetch content_calendar entries with story and post joins
   const { data: entries, error: entriesErr } = (await supabase

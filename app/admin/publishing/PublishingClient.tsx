@@ -1,6 +1,8 @@
 "use client";
 
-import { useState, useMemo } from "react";
+import { useState, useMemo, useCallback } from "react";
+import { useRouter } from "next/navigation";
+import Link from "next/link";
 import { PortalTopbar } from "@/components/portal/PortalTopbar";
 import { WorkflowBanner } from "@/components/portal/WorkflowBanner";
 import { StatCard } from "@/components/portal/StatCard";
@@ -11,6 +13,7 @@ import { UploadZone } from "@/components/portal/UploadZone";
 import { Modal } from "@/components/portal/Modal";
 import { Pagination } from "@/components/portal/Pagination";
 import { AlertTriangle } from "lucide-react";
+import { publishBlogPost } from "@/app/admin/actions";
 
 interface PostRow {
   id: string;
@@ -34,9 +37,24 @@ interface PublishingClientProps {
 const ITEMS_PER_PAGE = 10;
 
 export function PublishingClient({ posts }: PublishingClientProps) {
+  const router = useRouter();
   const [statusFilter, setStatusFilter] = useState("");
   const [page, setPage] = useState(1);
   const [publishModal, setPublishModal] = useState<PostRow | null>(null);
+  const [publishing, setPublishing] = useState(false);
+
+  const handlePublish = useCallback(async () => {
+    if (!publishModal) return;
+    setPublishing(true);
+    const result = await publishBlogPost(publishModal.id);
+    setPublishing(false);
+    if (result.error) {
+      alert("Error: " + result.error);
+      return;
+    }
+    setPublishModal(null);
+    router.refresh();
+  }, [publishModal, router]);
 
   // Stats — all posts here are drafts; split by whether they have media attached
   const needsMedia = posts.filter((p) => !p.featured_image_url).length;
@@ -76,9 +94,12 @@ export function PublishingClient({ posts }: PublishingClientProps) {
       <PortalTopbar
         title="Publishing Queue"
         actions={
-          <span className="text-[12px] text-[#6b7280]">
-            Blog posts — attach media, preview, and publish
-          </span>
+          <Link
+            href="/admin/publishing/new"
+            className="inline-flex items-center px-6 py-2.5 rounded-full text-sm font-semibold bg-[#fee198] text-[#1a1a1a] hover:bg-[#e6c46d] transition-colors"
+          >
+            + Add Blog Post
+          </Link>
         }
       />
       <div className="p-8 max-[899px]:pt-16 space-y-4">
@@ -124,7 +145,10 @@ export function PublishingClient({ posts }: PublishingClientProps) {
             return (
               <div key={post.id} className={`bg-white border border-[#e5e5e5] border-l-4 ${borderColor}`}>
                 <div className="px-5 py-4">
-                  <h3 className="font-display text-[16px] font-semibold text-black">
+                  <h3
+                    className="font-display text-[16px] font-semibold text-black cursor-pointer hover:text-[#c1121f] transition-colors"
+                    onClick={() => router.push(`/admin/posts/${post.id}`)}
+                  >
                     {post.title}
                   </h3>
 
@@ -166,7 +190,7 @@ export function PublishingClient({ posts }: PublishingClientProps) {
                   {/* Actions */}
                   <div className="flex items-center gap-2 mt-4">
                     <button
-                      onClick={() => console.log("Preview:", post.id)}
+                      onClick={() => window.open(`/hub/stories/${post.slug}`, "_blank")}
                       className="inline-flex items-center px-3 py-1 text-xs font-semibold rounded-full border border-[#e5e5e5] text-[#374151] hover:border-[#d1d5db] transition-colors"
                     >
                       Preview
@@ -212,13 +236,11 @@ export function PublishingClient({ posts }: PublishingClientProps) {
               Cancel
             </button>
             <button
-              onClick={() => {
-                console.log("Publish confirmed:", publishModal?.id);
-                setPublishModal(null);
-              }}
-              className="inline-flex items-center px-6 py-2.5 rounded-full text-sm font-semibold bg-[#16a34a] text-white hover:bg-[#15803d] transition-colors"
+              onClick={handlePublish}
+              disabled={publishing}
+              className="inline-flex items-center px-6 py-2.5 rounded-full text-sm font-semibold bg-[#16a34a] text-white hover:bg-[#15803d] transition-colors disabled:opacity-50"
             >
-              Yes, Publish Now
+              {publishing ? "Publishing..." : "Yes, Publish Now"}
             </button>
           </>
         }

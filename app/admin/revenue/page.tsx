@@ -1,5 +1,5 @@
 import { Metadata } from "next";
-import { createServerClient } from "@/lib/supabase";
+import { createServiceRoleClient } from "@/lib/supabase";
 import { RevenueClient } from "./RevenueClient";
 
 export const metadata: Metadata = {
@@ -11,7 +11,7 @@ export const metadata: Metadata = {
 export const dynamic = "force-dynamic";
 
 export default async function RevenuePage() {
-  const supabase = createServerClient();
+  const supabase = createServiceRoleClient();
 
   // Fetch sponsors
   const { data: sponsors } = (await supabase

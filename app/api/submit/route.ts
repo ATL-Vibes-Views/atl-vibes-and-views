@@ -1,4 +1,4 @@
-import { createServerClient } from "@/lib/supabase";
+import { createServiceRoleClient } from "@/lib/supabase";
 import { NextResponse } from "next/server";
 import { withCors } from "@/lib/cors";
 import { sendSubmissionConfirmation, sendAdminNotification } from "@/lib/email";
@@ -35,7 +35,7 @@ export async function POST(request: Request) {
       );
     }
 
-    const supabase = createServerClient();
+    const supabase = createServiceRoleClient();
 
     const { data: submission, error } = await supabase
       .from("submissions" as never)

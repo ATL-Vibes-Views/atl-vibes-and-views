@@ -1,5 +1,5 @@
 import { Metadata } from "next";
-import { createServerClient } from "@/lib/supabase";
+import { createServiceRoleClient } from "@/lib/supabase";
 import { PostsClient } from "./PostsClient";
 
 export const metadata: Metadata = {
@@ -11,7 +11,7 @@ export const metadata: Metadata = {
 export const dynamic = 'force-dynamic';
 
 export default async function PostsPage() {
-  const supabase = createServerClient();
+  const supabase = createServiceRoleClient();
 
   // Exclude drafts — they enter via the publishing queue
   const { data: posts, error: postsErr } = (await supabase

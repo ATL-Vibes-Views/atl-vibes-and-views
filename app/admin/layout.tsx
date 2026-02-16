@@ -28,7 +28,7 @@ import {
   Settings,
 } from "lucide-react";
 import { PortalSidebar } from "@/components/portal/PortalSidebar";
-import { createServerClient } from "@/lib/supabase";
+import { createServiceRoleClient } from "@/lib/supabase";
 
 export const metadata: Metadata = {
   title: "Admin | ATL Vibes & Views",
@@ -41,7 +41,7 @@ export default async function AdminLayout({
 }: {
   children: React.ReactNode;
 }) {
-  const supabase = createServerClient();
+  const supabase = createServiceRoleClient();
 
   // Fetch count badges in parallel — 11 badges total
   const counts = (await Promise.all([
@@ -49,12 +49,12 @@ export default async function AdminLayout({
     supabase.from("blog_posts").select("*", { count: "exact", head: true }).eq("status", "draft"),
     supabase.from("scripts").select("*", { count: "exact", head: true }).eq("status", "draft").eq("platform", "reel"),
     supabase.from("scripts").select("*", { count: "exact", head: true }).eq("status", "approved").eq("platform", "reel"),
-    supabase.from("stories").select("*", { count: "exact", head: true }).eq("tier", "social").eq("status", "scored"),
+    supabase.from("stories").select("*", { count: "exact", head: true }).eq("tier", "social").in("status", ["assigned_blog", "assigned_script", "assigned_dual", "assigned_social"]),
     supabase.from("media_items").select("*", { count: "exact", head: true }),
-    supabase.from("stories").select("*", { count: "exact", head: true }).eq("status", "in_progress"),
+    supabase.from("stories").select("*", { count: "exact", head: true }).in("status", ["draft_script", "draft_social"]),
     supabase.from("business_listings").select("*", { count: "exact", head: true }),
     supabase.from("events").select("*", { count: "exact", head: true }),
-    supabase.from("reviews").select("*", { count: "exact", head: true }).eq("status", "pending"),
+    supabase.from("reviews").select("*", { count: "exact", head: true }).eq("status", "pending_review"),
     supabase.from("submissions").select("*", { count: "exact", head: true }).eq("status", "pending"),
   ])) as unknown as { count: number | null }[];
 

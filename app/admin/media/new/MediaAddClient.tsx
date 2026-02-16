@@ -1,5 +1,7 @@
 "use client";
 
+import { useState } from "react";
+import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { ArrowLeft } from "lucide-react";
 import { PortalTopbar } from "@/components/portal/PortalTopbar";
@@ -7,15 +9,31 @@ import { FormGroup } from "@/components/portal/FormGroup";
 import { FormRow } from "@/components/portal/FormRow";
 import { FormInput } from "@/components/portal/FormInput";
 import { FormTextarea } from "@/components/portal/FormTextarea";
-import { ToggleSwitch } from "@/components/portal/ToggleSwitch";
 import { ButtonBar } from "@/components/portal/ButtonBar";
 import { UploadZone } from "@/components/portal/UploadZone";
+import { createMediaItem } from "@/app/admin/actions";
 
 interface MediaAddClientProps {
   neighborhoods: { id: string; name: string }[];
 }
 
 export function MediaAddClient({ neighborhoods }: MediaAddClientProps) {
+  const router = useRouter();
+  const [saving, setSaving] = useState(false);
+
+  async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
+    e.preventDefault();
+    setSaving(true);
+    const formData = new FormData(e.currentTarget);
+    const result = await createMediaItem(formData);
+    setSaving(false);
+    if (result.error) {
+      alert("Error: " + result.error);
+      return;
+    }
+    router.push("/admin/media");
+  }
+
   return (
     <>
       <PortalTopbar title="Add Media" />
@@ -24,63 +42,59 @@ export function MediaAddClient({ neighborhoods }: MediaAddClientProps) {
           <ArrowLeft size={14} /> Back to Media
         </Link>
 
-        <div className="space-y-4 max-w-[720px]">
+        <form onSubmit={handleSubmit} className="space-y-4 max-w-[720px]">
           <FormGroup label="Title">
-            <FormInput placeholder="Enter media title" />
-          </FormGroup>
-
-          <FormGroup label="Slug">
-            <FormInput placeholder="auto-generated-from-title" readOnly className="bg-[#f5f5f5]" />
+            <FormInput name="title" placeholder="Enter media title" required />
           </FormGroup>
 
           <FormRow columns={2}>
             <FormGroup label="Media Type">
-              <select className="w-full h-[40px] px-3 text-[13px] border border-[#e5e5e5] bg-white text-[#374151] focus:outline-none focus:border-[#1a1a1a]">
+              <select name="media_type" className="w-full h-[40px] px-3 text-[13px] border border-[#e5e5e5] bg-white text-[#374151] focus:outline-none focus:border-[#1a1a1a]" required>
                 <option value="">Select type</option>
                 <option value="video">Video</option>
-                <option value="image">Image</option>
                 <option value="audio">Audio</option>
+                <option value="podcast">Podcast</option>
+                <option value="short">Short</option>
+                <option value="image">Image</option>
               </select>
             </FormGroup>
             <FormGroup label="Source Type">
-              <select className="w-full h-[40px] px-3 text-[13px] border border-[#e5e5e5] bg-white text-[#374151] focus:outline-none focus:border-[#1a1a1a]">
-                <option value="">Select source</option>
-                <option value="youtube">YouTube</option>
-                <option value="instagram">Instagram</option>
-                <option value="tiktok">TikTok</option>
-                <option value="upload">Upload</option>
-                <option value="external">External</option>
+              <select name="source_type" className="w-full h-[40px] px-3 text-[13px] border border-[#e5e5e5] bg-white text-[#374151] focus:outline-none focus:border-[#1a1a1a]" required>
+                <option value="embed">Embed</option>
+                <option value="asset">Asset (Upload)</option>
               </select>
             </FormGroup>
           </FormRow>
 
           <FormGroup label="Embed URL">
-            <FormInput placeholder="https://youtube.com/watch?v=..." />
+            <FormInput name="embed_url" placeholder="https://youtube.com/watch?v=..." />
+          </FormGroup>
+
+          <FormGroup label="Excerpt">
+            <FormInput name="excerpt" placeholder="Short excerpt" />
           </FormGroup>
 
           <FormGroup label="Description">
-            <FormTextarea placeholder="Brief description of the media item" rows={4} />
+            <FormTextarea name="description" placeholder="Brief description of the media item" rows={4} />
           </FormGroup>
 
-          <FormGroup label="Neighborhood">
-            <select className="w-full h-[40px] px-3 text-[13px] border border-[#e5e5e5] bg-white text-[#374151] focus:outline-none focus:border-[#1a1a1a]">
-              <option value="">No neighborhood</option>
-              {neighborhoods.map((n) => (
-                <option key={n.id} value={n.id}>{n.name}</option>
-              ))}
-            </select>
-          </FormGroup>
+          <FormRow columns={2}>
+            <FormGroup label="SEO Title">
+              <FormInput name="seo_title" placeholder="SEO title (optional)" />
+            </FormGroup>
+            <FormGroup label="Meta Description">
+              <FormInput name="meta_description" placeholder="Meta description (optional)" />
+            </FormGroup>
+          </FormRow>
 
           <FormGroup label="Thumbnail">
             <UploadZone
               onUpload={(files) => console.log("Upload thumbnail:", files)}
               accept="image/*"
               label="Drop thumbnail image here"
-              hint="PNG, JPG, WebP up to 5MB"
+              hint="PNG, JPG, WebP up to 5MB — file upload deferred"
             />
           </FormGroup>
-
-          <ToggleSwitch label="Featured" checked={false} onChange={() => console.log("Toggle featured")} />
 
           <ButtonBar>
             <Link
@@ -90,13 +104,14 @@ export function MediaAddClient({ neighborhoods }: MediaAddClientProps) {
               Cancel
             </Link>
             <button
-              onClick={() => console.log("Save media")}
-              className="inline-flex items-center px-6 py-2.5 rounded-full text-sm font-semibold bg-[#fee198] text-[#1a1a1a] hover:bg-[#fdd870] transition-colors"
+              type="submit"
+              disabled={saving}
+              className="inline-flex items-center px-6 py-2.5 rounded-full text-sm font-semibold bg-[#fee198] text-[#1a1a1a] hover:bg-[#fdd870] transition-colors disabled:opacity-50"
             >
-              Save Media
+              {saving ? "Saving..." : "Save Media"}
             </button>
           </ButtonBar>
-        </div>
+        </form>
       </div>
     </>
   );

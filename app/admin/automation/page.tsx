@@ -1,5 +1,5 @@
 import { Metadata } from "next";
-import { createServerClient } from "@/lib/supabase";
+import { createServiceRoleClient } from "@/lib/supabase";
 import { AutomationClient } from "./AutomationClient";
 
 export const metadata: Metadata = {
@@ -11,13 +11,13 @@ export const metadata: Metadata = {
 export const dynamic = "force-dynamic";
 
 export default async function AutomationPage() {
-  const supabase = createServerClient();
+  const supabase = createServiceRoleClient();
 
   // Pipeline stats
   const counts = (await Promise.all([
     supabase.from("stories").select("*", { count: "exact", head: true }).eq("status", "new"),
-    supabase.from("stories").select("*", { count: "exact", head: true }).eq("status", "scored"),
-    supabase.from("stories").select("*", { count: "exact", head: true }).eq("status", "in_progress"),
+    supabase.from("stories").select("*", { count: "exact", head: true }).in("status", ["assigned_blog", "assigned_script", "assigned_dual", "assigned_social"]),
+    supabase.from("stories").select("*", { count: "exact", head: true }).in("status", ["draft_script", "draft_social"]),
     supabase.from("stories").select("*", { count: "exact", head: true }).eq("status", "used"),
     supabase.from("scripts").select("*", { count: "exact", head: true }).eq("status", "draft"),
     supabase.from("scripts").select("*", { count: "exact", head: true }).eq("status", "approved"),
