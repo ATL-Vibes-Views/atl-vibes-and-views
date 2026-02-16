@@ -1,13 +1,8 @@
 'use client';
 
 import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
-import MapGL, { Source, Layer } from 'react-map-gl/mapbox';
+import MapGL from 'react-map-gl/mapbox';
 import type { MapRef, MapMouseEvent } from 'react-map-gl/mapbox';
-import type {
-  FillLayerSpecification,
-  LineLayerSpecification,
-  SymbolLayerSpecification,
-} from 'mapbox-gl';
 import type { FeatureCollection, Feature, Polygon, MultiPolygon } from 'geojson';
 import { MousePointerClick } from 'lucide-react';
 import 'mapbox-gl/dist/mapbox-gl.css';
@@ -90,48 +85,6 @@ function computeCentroid(geometry: Polygon | MultiPolygon): [number, number] {
 }
 
 // ---------------------------------------------------------------------------
-// Layer styles
-// ---------------------------------------------------------------------------
-
-// Static fill — no expressions — to debug rendering
-const STATIC_FILL_LAYER: Omit<FillLayerSpecification, 'source'> & { id: string } = {
-  id: 'area-fill',
-  type: 'fill' as const,
-  paint: {
-    'fill-color': '#ff0000',
-    'fill-opacity': 0.8,
-  },
-};
-
-const lineLayer: Omit<LineLayerSpecification, 'source'> & { id: string } = {
-  id: 'area-line',
-  type: 'line' as const,
-  paint: {
-    'line-color': '#ffffff',
-    'line-width': 2,
-    'line-opacity': 1,
-  },
-};
-
-const labelLayer: Omit<SymbolLayerSpecification, 'source'> & { id: string } = {
-  id: 'area-labels',
-  type: 'symbol' as const,
-  layout: {
-    'text-field': ['get', 'label'] as unknown as string,
-    'text-size': 13,
-    'text-font': ['DIN Pro Medium', 'Arial Unicode MS Bold'],
-    'text-anchor': 'center',
-    'text-allow-overlap': false,
-    'text-ignore-placement': false,
-  },
-  paint: {
-    'text-color': '#ffffff',
-    'text-halo-color': '#000000',
-    'text-halo-width': 1.5,
-  },
-};
-
-// ---------------------------------------------------------------------------
 // Instruction Panel (left overlay when no area is selected)
 // ---------------------------------------------------------------------------
 
@@ -192,15 +145,17 @@ export default function AreaMap({
 }: AreaMapProps) {
   const mapRef = useRef<MapRef>(null);
   const [geojson, setGeojson] = useState<FeatureCollection | null>(null);
-  const [labelGeojson, setLabelGeojson] = useState<FeatureCollection | null>(
-    null,
-  );
+  const [labelGeojson, setLabelGeojson] = useState<FeatureCollection | null>(null);
   const [hoveredSlug, setHoveredSlug] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
+  const [mapLoaded, setMapLoaded] = useState(false);
 
   // Info card state
   const [cardOpen, setCardOpen] = useState(false);
   const [selectedSlug, setSelectedSlug] = useState<string | null>(null);
+
+  // Track whether imperative layers have been added
+  const layersAdded = useRef(false);
 
   // Build lookup maps
   const areaById = useMemo(() => {
@@ -212,9 +167,7 @@ export default function AreaMap({
   const neighborhoodByGeoKey = useMemo(() => {
     const lookup: Record<string, NeighborhoodEntry> = {};
     for (const n of neighborhoods) {
-      // Index by geojson_key first (takes precedence)
       if (n.geojson_key) lookup[n.geojson_key] = n;
-      // Also index by name as fallback when geojson_key is not populated
       if (!lookup[n.name]) lookup[n.name] = n;
     }
     return lookup;
@@ -245,7 +198,6 @@ export default function AreaMap({
         const labelPoints: Feature[] = [];
 
         if (mode === 'areas') {
-          // ----- Areas mode: tag each neighborhood polygon with its area -----
           const seenAreaSlugs = new Set<string>();
 
           for (const feature of raw.features) {
@@ -274,7 +226,6 @@ export default function AreaMap({
               },
             });
 
-            // One label per area (placed at DB-stored map center)
             if (nAreaSlug && !seenAreaSlugs.has(nAreaSlug)) {
               seenAreaSlugs.add(nAreaSlug);
               const areaData = areas.find((a) => a.slug === nAreaSlug);
@@ -293,7 +244,6 @@ export default function AreaMap({
 
           console.log('[AreaMap] areas mode — enriched features:', enriched.length, 'labels:', labelPoints.length);
         } else {
-          // ----- Neighborhoods / single-neighborhood mode: one feature per neighborhood -----
           for (const feature of raw.features) {
             const name = (feature.properties as Record<string, unknown>)
               ?.NAME as string | undefined;
@@ -359,6 +309,84 @@ export default function AreaMap({
   ]);
 
   // -----------------------------------------------------------------------
+  // Imperative layer management — add sources/layers via raw Mapbox GL API
+  // -----------------------------------------------------------------------
+  useEffect(() => {
+    const map = mapRef.current?.getMap();
+    if (!map || !mapLoaded || !geojson) return;
+
+    // Add or update the areas source
+    const existingSource = map.getSource('areas');
+    if (existingSource && 'setData' in existingSource) {
+      (existingSource as mapboxgl.GeoJSONSource).setData(geojson);
+    } else if (!existingSource) {
+      map.addSource('areas', { type: 'geojson', data: geojson });
+    }
+
+    // Add fill layer if not present
+    if (!map.getLayer('area-fill')) {
+      map.addLayer({
+        id: 'area-fill',
+        type: 'fill',
+        source: 'areas',
+        paint: {
+          'fill-color': '#c4a24d',
+          'fill-opacity': 0.55,
+        },
+      });
+    }
+
+    // Add line layer if not present
+    if (!map.getLayer('area-line')) {
+      map.addLayer({
+        id: 'area-line',
+        type: 'line',
+        source: 'areas',
+        paint: {
+          'line-color': 'rgba(255,248,230,0.45)',
+          'line-width': 1.5,
+          'line-opacity': 1,
+        },
+      });
+    }
+
+    // Labels source + layer
+    if (showLabels && labelGeojson) {
+      const existingLabelSource = map.getSource('labels');
+      if (existingLabelSource && 'setData' in existingLabelSource) {
+        (existingLabelSource as mapboxgl.GeoJSONSource).setData(labelGeojson);
+      } else if (!existingLabelSource) {
+        map.addSource('labels', { type: 'geojson', data: labelGeojson });
+      }
+
+      if (!map.getLayer('area-labels')) {
+        map.addLayer({
+          id: 'area-labels',
+          type: 'symbol',
+          source: 'labels',
+          layout: {
+            'text-field': ['get', 'label'],
+            'text-size': 13,
+            'text-font': ['DIN Pro Medium', 'Arial Unicode MS Bold'],
+            'text-anchor': 'center',
+            'text-allow-overlap': false,
+            'text-ignore-placement': false,
+          },
+          paint: {
+            'text-color': '#ffffff',
+            'text-halo-color': '#000000',
+            'text-halo-width': 1.5,
+          },
+        });
+      }
+    }
+
+    layersAdded.current = true;
+
+    console.log('[AreaMap] Imperative layers added. Style layers:', map.getStyle().layers.map((l: { id: string }) => l.id));
+  }, [mapLoaded, geojson, labelGeojson, showLabels]);
+
+  // -----------------------------------------------------------------------
   // Auto-fit bounds
   // -----------------------------------------------------------------------
   useEffect(() => {
@@ -402,7 +430,7 @@ export default function AreaMap({
   // -----------------------------------------------------------------------
   const handleMouseMove = useCallback((e: MapMouseEvent) => {
     const map = mapRef.current?.getMap();
-    if (!map) return;
+    if (!map || !map.getLayer('area-fill')) return;
 
     const features = map.queryRenderedFeatures(e.point, {
       layers: ['area-fill'],
@@ -427,14 +455,13 @@ export default function AreaMap({
   const handleClick = useCallback(
     (e: MapMouseEvent) => {
       const map = mapRef.current?.getMap();
-      if (!map) return;
+      if (!map || !map.getLayer('area-fill')) return;
 
       const features = map.queryRenderedFeatures(e.point, {
         layers: ['area-fill'],
       });
 
       if (features.length === 0) {
-        // Clicked map background — close the card
         setCardOpen(false);
         setSelectedSlug(null);
         return;
@@ -443,11 +470,9 @@ export default function AreaMap({
       const slug = features[0].properties?.slug as string | undefined;
       if (!slug) return;
 
-      // Open info card
       setSelectedSlug(slug);
       setCardOpen(true);
 
-      // Fire parent callbacks
       if (mode === 'areas') {
         onAreaClick?.(slug);
       } else if (mode === 'neighborhoods') {
@@ -463,20 +488,20 @@ export default function AreaMap({
   }, []);
 
   // -----------------------------------------------------------------------
+  // Map load handler
+  // -----------------------------------------------------------------------
+  const handleMapLoad = useCallback(() => {
+    setMapLoaded(true);
+    console.log('[AreaMap] Map style loaded');
+  }, []);
+
+  // -----------------------------------------------------------------------
   // Resolve card data from pre-fetched sets
   // -----------------------------------------------------------------------
   const activeAreaCard = selectedSlug ? areaCardData[selectedSlug] : undefined;
   const activeNeighborhoodCard = selectedSlug
     ? neighborhoodCardData[selectedSlug]
     : undefined;
-
-  // -----------------------------------------------------------------------
-  // Memoize fill layer (depends on hovered + selected slug)
-  // -----------------------------------------------------------------------
-  const fillLayer = useMemo(
-    () => STATIC_FILL_LAYER,
-    [hoveredSlug, selectedSlug, cardOpen],
-  );
 
   // -----------------------------------------------------------------------
   // Initial view state
@@ -495,7 +520,6 @@ export default function AreaMap({
   // -----------------------------------------------------------------------
   return (
     <div className="relative w-full overflow-hidden" style={{ height }}>
-      {/* Keyframe for pulsing icon animation */}
       <style>{`
         @keyframes pulse-icon {
           0%, 100% { opacity: 0.6; }
@@ -509,27 +533,15 @@ export default function AreaMap({
         mapboxAccessToken={MAPBOX_TOKEN}
         mapStyle={MAPBOX_STYLE}
         style={{ width: '100%', height: '100%' }}
+        onLoad={handleMapLoad}
         onMouseMove={handleMouseMove}
         onMouseLeave={handleMouseLeave}
         onClick={handleClick}
         dragRotate={false}
         touchZoomRotate={true}
         touchPitch={false}
-        interactiveLayerIds={['area-fill']}
-      >
-        {geojson && (
-          <Source id="areas" type="geojson" data={geojson}>
-            <Layer {...fillLayer} />
-            <Layer {...lineLayer} />
-          </Source>
-        )}
-
-        {showLabels && labelGeojson && (
-          <Source id="labels" type="geojson" data={labelGeojson}>
-            <Layer {...labelLayer} />
-          </Source>
-        )}
-      </MapGL>
+        interactiveLayerIds={layersAdded.current ? ['area-fill'] : []}
+      />
 
       {/* Instruction panel — visible when no card is open (areas mode only) */}
       {mode === 'areas' && <InstructionPanel visible={!cardOpen} />}
@@ -555,9 +567,9 @@ export default function AreaMap({
         />
       )}
 
-      {/* Debug overlay — remove after confirming polygons render */}
+      {/* Debug overlay */}
       <div className="absolute bottom-2 right-2 z-10 rounded bg-black/80 px-3 py-1.5 text-[10px] text-white font-mono pointer-events-none">
-        features: {geojson?.features.length ?? 0} | labels: {labelGeojson?.features.length ?? 0}
+        features: {geojson?.features.length ?? 0} | labels: {labelGeojson?.features.length ?? 0} | map: {mapLoaded ? 'loaded' : 'loading'}
       </div>
 
       {loading && (
