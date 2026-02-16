@@ -1,3 +1,4 @@
+import type { Metadata } from "next";
 import Link from "next/link";
 import Image from "next/image";
 import { notFound } from "next/navigation";
@@ -28,6 +29,35 @@ import {
   getEvents,
   getMediaItems,
 } from "@/lib/queries";
+
+export async function generateMetadata({
+  params,
+}: {
+  params: Promise<{ slug: string }>;
+}): Promise<Metadata> {
+  const { slug } = await params;
+  const event = await getEventBySlug(slug).catch(() => null);
+  if (!event) return { title: "Event Not Found" };
+
+  const title = event.title;
+  const description =
+    event.tagline ||
+    event.description?.slice(0, 160).replace(/<[^>]*>/g, "") ||
+    `${event.title} — an event in Atlanta.`;
+
+  return {
+    title,
+    description,
+    openGraph: {
+      title: `${title} | ATL Vibes & Views`,
+      description,
+      url: `https://atlvibesandviews.com/events/${slug}`,
+      ...(event.featured_image_url
+        ? { images: [{ url: event.featured_image_url }] }
+        : {}),
+    },
+  };
+}
 
 /* ============================================================
    HELPERS

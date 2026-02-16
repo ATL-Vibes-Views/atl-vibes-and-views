@@ -88,10 +88,11 @@ export function PartnerContactForm() {
       {/* Name row */}
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
         <div>
-          <label className="block text-sm font-semibold text-black mb-1">
+          <label htmlFor="partner-firstname" className="block text-sm font-semibold text-black mb-1">
             First Name *
           </label>
           <input
+            id="partner-firstname"
             type="text"
             required
             value={form.firstname}
@@ -100,10 +101,11 @@ export function PartnerContactForm() {
           />
         </div>
         <div>
-          <label className="block text-sm font-semibold text-black mb-1">
+          <label htmlFor="partner-lastname" className="block text-sm font-semibold text-black mb-1">
             Last Name *
           </label>
           <input
+            id="partner-lastname"
             type="text"
             required
             value={form.lastname}
@@ -115,10 +117,11 @@ export function PartnerContactForm() {
 
       {/* Email */}
       <div>
-        <label className="block text-sm font-semibold text-black mb-1">
+        <label htmlFor="partner-email" className="block text-sm font-semibold text-black mb-1">
           Email *
         </label>
         <input
+          id="partner-email"
           type="email"
           required
           value={form.email}
@@ -129,10 +132,11 @@ export function PartnerContactForm() {
 
       {/* Phone */}
       <div>
-        <label className="block text-sm font-semibold text-black mb-1">
+        <label htmlFor="partner-phone" className="block text-sm font-semibold text-black mb-1">
           Phone
         </label>
         <input
+          id="partner-phone"
           type="tel"
           value={form.phone}
           onChange={update("phone")}
@@ -142,10 +146,11 @@ export function PartnerContactForm() {
 
       {/* Company */}
       <div>
-        <label className="block text-sm font-semibold text-black mb-1">
+        <label htmlFor="partner-company" className="block text-sm font-semibold text-black mb-1">
           Company / Brand
         </label>
         <input
+          id="partner-company"
           type="text"
           value={form.company}
           onChange={update("company")}
@@ -155,10 +160,11 @@ export function PartnerContactForm() {
 
       {/* Message */}
       <div>
-        <label className="block text-sm font-semibold text-black mb-1">
+        <label htmlFor="partner-message" className="block text-sm font-semibold text-black mb-1">
           Message *
         </label>
         <textarea
+          id="partner-message"
           required
           rows={4}
           value={form.message}

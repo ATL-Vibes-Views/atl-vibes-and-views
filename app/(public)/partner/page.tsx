@@ -9,6 +9,10 @@ export const metadata: Metadata = {
   title: "Partner With Us",
   description:
     "ATL Vibes & Views is Atlanta's independent media platform spotlighting local businesses, events, and community stories.",
+  openGraph: {
+    title: "Partner With Us",
+    description: "ATL Vibes & Views is Atlanta's independent media platform spotlighting local businesses, events, and community stories.",
+  },
 };
 
 /* ============================================================

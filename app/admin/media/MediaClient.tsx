@@ -71,7 +71,7 @@ export function MediaClient({ media }: MediaClientProps) {
       render: (item: MediaRow) => (
         <div className="w-[48px] h-[32px] bg-[#f5f5f5] border border-[#e5e5e5] flex items-center justify-center overflow-hidden">
           {item.thumbnail_url ? (
-            <img src={item.thumbnail_url} alt="" className="w-full h-full object-cover" />
+            <img src={item.thumbnail_url} alt={item.title || "Media thumbnail"} className="w-full h-full object-cover" />
           ) : (
             <span className="text-[9px] text-[#6b7280]">No img</span>
           )}

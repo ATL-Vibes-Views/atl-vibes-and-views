@@ -7,6 +7,10 @@ export const metadata: Metadata = {
   description:
     "Important disclaimers about content on ATL Vibes & Views, including business listings, events, and editorial content.",
   robots: { index: true, follow: true },
+  openGraph: {
+    title: "Disclaimer",
+    description: "Important disclaimers about content on ATL Vibes & Views, including business listings, events, and editorial content.",
+  },
 };
 
 export default function DisclaimerPage() {

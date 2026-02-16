@@ -8,6 +8,10 @@ export const metadata: Metadata = {
   title: "Editorial Partnerships",
   description:
     "Connect your brand with Atlanta's most engaged audiences through editorial storytelling, social media, and authentic local content.",
+  openGraph: {
+    title: "Editorial Partnerships",
+    description: "Connect your brand with Atlanta's most engaged audiences through editorial storytelling, social media, and authentic local content.",
+  },
 };
 
 /* ============================================================

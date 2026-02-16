@@ -74,6 +74,8 @@ export function DistributeClient({ filmingScript, captions }: DistributeClientPr
   const [activeTab, setActiveTab] = useState<TabKey>("all");
   const [scriptExpanded, setScriptExpanded] = useState(false);
   const [scheduleMode, setScheduleMode] = useState<"now" | "later">("later");
+  const [distributing, setDistributing] = useState(false);
+  const [distributeStatus, setDistributeStatus] = useState<"idle" | "success" | "error">("idle");
   const [platformToggles, setPlatformToggles] = useState<Record<string, boolean>>(
     Object.fromEntries(PLATFORM_ACCOUNTS.map((p) => [p.platform, true]))
   );
@@ -617,12 +619,67 @@ export function DistributeClient({ filmingScript, captions }: DistributeClientPr
                   <strong>Publishing fires Make.com S9.</strong> Content will be posted to all active platforms. This cannot be undone.
                 </span>
               </div>
+              {distributeStatus === "success" && (
+                <div className="bg-[#dcfce7] p-3 flex items-start gap-2 mb-2">
+                  <span className="text-[12px] text-[#16a34a] font-semibold">Distribution triggered successfully.</span>
+                </div>
+              )}
+              {distributeStatus === "error" && (
+                <div className="bg-[#fee2e2] p-3 flex items-start gap-2 mb-2">
+                  <AlertTriangle size={14} className="text-[#c1121f] flex-shrink-0 mt-0.5" />
+                  <span className="text-[12px] text-[#c1121f]">Distribution failed. Check Make.com webhook configuration.</span>
+                </div>
+              )}
               <div className="flex flex-col gap-2">
                 <button
-                  onClick={() => console.log(`Social Queue: Distribute ${filmingScript.id} to all platforms — firing S9`)}
-                  className="w-full inline-flex items-center justify-center px-6 py-2.5 rounded-full text-sm font-semibold bg-[#16a34a] text-white hover:bg-[#15803d] transition-colors"
+                  disabled={distributing}
+                  onClick={async () => {
+                    const webhookUrl = process.env.NEXT_PUBLIC_MAKE_S9_WEBHOOK_URL;
+                    if (!webhookUrl) {
+                      console.error("Make.com S9 webhook URL not configured (NEXT_PUBLIC_MAKE_S9_WEBHOOK_URL)");
+                      setDistributeStatus("error");
+                      return;
+                    }
+                    setDistributing(true);
+                    setDistributeStatus("idle");
+                    try {
+                      const activePlatforms = Object.entries(platformToggles)
+                        .filter(([, enabled]) => enabled)
+                        .map(([platform]) => platform);
+
+                      const payload = {
+                        script_id: filmingScript.id,
+                        title: filmingScript.title,
+                        story_id: filmingScript.story_id,
+                        platforms: activePlatforms,
+                        schedule_mode: scheduleMode,
+                        captions: Object.fromEntries(
+                          captions
+                            .filter((c) => activePlatforms.includes(c.platform))
+                            .map((c) => [c.platform, { caption: c.caption, hashtags: c.hashtags, description: c.description, tags: c.tags }])
+                        ),
+                      };
+
+                      const res = await fetch(webhookUrl, {
+                        method: "POST",
+                        headers: { "Content-Type": "application/json" },
+                        body: JSON.stringify(payload),
+                      });
+
+                      if (res.ok) {
+                        setDistributeStatus("success");
+                      } else {
+                        setDistributeStatus("error");
+                      }
+                    } catch {
+                      setDistributeStatus("error");
+                    } finally {
+                      setDistributing(false);
+                    }
+                  }}
+                  className="w-full inline-flex items-center justify-center px-6 py-2.5 rounded-full text-sm font-semibold bg-[#16a34a] text-white hover:bg-[#15803d] transition-colors disabled:opacity-50"
                 >
-                  {scheduleMode === "now" ? "Distribute Now" : "Schedule Distribution"}
+                  {distributing ? "Distributing…" : scheduleMode === "now" ? "Distribute Now" : "Schedule Distribution"}
                 </button>
                 <button
                   onClick={() => console.log(`Social Queue: Save draft ${filmingScript.id}`)}

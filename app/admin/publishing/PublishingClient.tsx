@@ -157,7 +157,7 @@ export function PublishingClient({ posts }: PublishingClientProps) {
                   {ready && post.featured_image_url && (
                     <div className="mt-3 flex items-center gap-3">
                       <div className="w-[120px] h-[68px] bg-[#f5f5f5] border border-[#e5e5e5] flex items-center justify-center overflow-hidden">
-                        <img src={post.featured_image_url} alt="" className="w-full h-full object-cover" />
+                        <img src={post.featured_image_url} alt={post.title || "Featured image"} className="w-full h-full object-cover" />
                       </div>
                       <span className="text-[11px] text-[#6b7280]">Featured image attached</span>
                     </div>

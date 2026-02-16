@@ -7,6 +7,10 @@ export const metadata: Metadata = {
   title: "About",
   description:
     "ATL Vibes & Views is Atlanta's media and marketing company helping businesses get visible and communities stay connected.",
+  openGraph: {
+    title: "About",
+    description: "ATL Vibes & Views is Atlanta's media and marketing company helping businesses get visible and communities stay connected.",
+  },
 };
 
 /* ============================================================

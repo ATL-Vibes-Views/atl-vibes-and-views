@@ -72,7 +72,7 @@ export function UsersClient({ users }: { users: UserRow[] }) {
         render: (item: UserRow) => (
           <div className="flex items-center gap-3">
             {item.avatar_url ? (
-              <img src={item.avatar_url} alt="" className="w-8 h-8 rounded-full object-cover" />
+              <img src={item.avatar_url} alt={item.display_name || "User avatar"} className="w-8 h-8 rounded-full object-cover" />
             ) : (
               <div className="w-8 h-8 rounded-full bg-[#f5f5f5] flex items-center justify-center text-[11px] font-semibold text-[#6b7280]">
                 {(item.display_name ?? item.email)[0].toUpperCase()}

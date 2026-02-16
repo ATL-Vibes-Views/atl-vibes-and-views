@@ -34,7 +34,7 @@ export function PartnerFooter() {
               target="_blank"
               rel="noopener noreferrer"
               aria-label={label}
-              className="text-white/40 hover:text-[#fee198] transition-colors"
+              className="text-white/60 hover:text-[#fee198] transition-colors"
             >
               <Icon size={18} />
             </a>

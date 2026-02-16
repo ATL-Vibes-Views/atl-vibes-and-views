@@ -1,3 +1,4 @@
+import type { Metadata } from "next";
 import Link from "next/link";
 import { Breadcrumbs } from "@/components/ui/Breadcrumbs";
 import { HeroSection } from "@/components/ui/HeroSection";
@@ -18,6 +19,18 @@ import {
 } from "@/components/Sidebar";
 import { HubArchiveClient } from "@/components/HubArchiveClient";
 import type { HubArchiveConfig } from "@/components/HubArchiveClient";
+
+export const metadata: Metadata = {
+  title: "Shop Local Atlanta — Businesses",
+  description:
+    "Discover Atlanta's best local businesses — from restaurants and boutiques to services and community favorites.",
+  openGraph: {
+    title: "Shop Local Atlanta — Businesses | ATL Vibes & Views",
+    description:
+      "Discover Atlanta's best local businesses — from restaurants and boutiques to services and community favorites.",
+    url: "https://atlvibesandviews.com/hub/businesses",
+  },
+};
 
 const HUB_CONFIG: HubArchiveConfig = {
   detailBasePath: "/places",

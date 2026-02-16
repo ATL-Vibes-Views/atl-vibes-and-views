@@ -1,3 +1,4 @@
+import type { Metadata } from "next";
 import Link from "next/link";
 import { Breadcrumbs } from "@/components/ui/Breadcrumbs";
 import { HeroSection } from "@/components/ui/HeroSection";
@@ -18,6 +19,18 @@ import {
 } from "@/components/Sidebar";
 import { HubArchiveClient } from "@/components/HubArchiveClient";
 import type { HubArchiveConfig } from "@/components/HubArchiveClient";
+
+export const metadata: Metadata = {
+  title: "Eats & Drinks — Dining in Atlanta",
+  description:
+    "Restaurants, cafés, bars, and local food spots worth knowing in Atlanta.",
+  openGraph: {
+    title: "Eats & Drinks — Dining in Atlanta | ATL Vibes & Views",
+    description:
+      "Restaurants, cafés, bars, and local food spots worth knowing in Atlanta.",
+    url: "https://atlvibesandviews.com/hub/eats-and-drinks",
+  },
+};
 
 const HUB_CONFIG: HubArchiveConfig = {
   detailBasePath: "/places",

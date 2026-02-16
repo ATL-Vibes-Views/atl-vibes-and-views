@@ -1,3 +1,4 @@
+import type { Metadata } from "next";
 import Link from "next/link";
 import Image from "next/image";
 import { notFound } from "next/navigation";
@@ -26,6 +27,34 @@ import {
   getMediaItems,
   getBusinessCountsByNeighborhood,
 } from "@/lib/queries";
+
+export async function generateMetadata({
+  params,
+}: {
+  params: Promise<{ slug: string }>;
+}): Promise<Metadata> {
+  const { slug } = await params;
+  const area = await getAreaBySlug(slug).catch(() => null);
+  if (!area) return { title: "Area Not Found" };
+
+  const title = `${area.name} — Explore Atlanta`;
+  const description =
+    area.tagline ||
+    `Discover neighborhoods, restaurants, events, and things to do in ${area.name}, Atlanta.`;
+
+  return {
+    title,
+    description,
+    openGraph: {
+      title: `${area.name} | ATL Vibes & Views`,
+      description,
+      url: `https://atlvibesandviews.com/areas/${slug}`,
+      ...(area.hero_image_url
+        ? { images: [{ url: area.hero_image_url }] }
+        : {}),
+    },
+  };
+}
 
 /* ============================================================
    HELPERS

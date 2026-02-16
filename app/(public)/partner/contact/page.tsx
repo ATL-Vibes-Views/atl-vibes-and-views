@@ -8,6 +8,10 @@ export const metadata: Metadata = {
   title: "Contact",
   description:
     "Get in touch with ATL Vibes & Views. Ready to tell your story, plan a partnership, or just curious about what we do? We'd love to hear from you.",
+  openGraph: {
+    title: "Contact",
+    description: "Get in touch with ATL Vibes & Views. Ready to tell your story, plan a partnership, or just curious about what we do? We'd love to hear from you.",
+  },
 };
 
 /* ============================================================

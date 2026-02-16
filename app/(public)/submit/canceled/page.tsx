@@ -3,6 +3,11 @@ import type { Metadata } from "next";
 
 export const metadata: Metadata = {
   title: "Payment Canceled | ATL Vibes & Views",
+  description: "Your payment was not completed. You can return to your submission and complete payment anytime.",
+  openGraph: {
+    title: "Payment Canceled | ATL Vibes & Views",
+    description: "Your payment was not completed. You can return to your submission and complete payment anytime.",
+  },
 };
 
 export default function CanceledPage() {
