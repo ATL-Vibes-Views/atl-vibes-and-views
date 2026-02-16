@@ -312,54 +312,72 @@ export default function AreaMap({
   // Imperative layer management — add sources/layers via raw Mapbox GL API
   // -----------------------------------------------------------------------
   useEffect(() => {
-    const map = mapRef.current?.getMap();
-    if (!map || !mapLoaded || !geojson) return;
+    const m = mapRef.current?.getMap();
+    if (!m || !mapLoaded || !geojson) return;
 
-    // Add or update the areas source
-    const existingSource = map.getSource('areas');
-    if (existingSource && 'setData' in existingSource) {
-      (existingSource as mapboxgl.GeoJSONSource).setData(geojson);
-    } else if (!existingSource) {
-      map.addSource('areas', { type: 'geojson', data: geojson });
-    }
+    // Capture in local const so TS narrows the type inside closures
+    const map = m;
+    const data = geojson;
 
-    // Add fill layer if not present
-    if (!map.getLayer('area-fill')) {
-      map.addLayer({
-        id: 'area-fill',
-        type: 'fill',
-        source: 'areas',
-        paint: {
-          'fill-color': '#c4a24d',
-          'fill-opacity': 0.55,
-        },
-      });
-    }
+    function addAllLayers() {
+      // Clean up any existing layers/sources first (handles style reloads)
+      try {
+        if (map.getLayer('area-labels')) map.removeLayer('area-labels');
+        if (map.getLayer('area-line')) map.removeLayer('area-line');
+        if (map.getLayer('area-fill')) map.removeLayer('area-fill');
+        if (map.getSource('labels')) map.removeSource('labels');
+        if (map.getSource('areas')) map.removeSource('areas');
+      } catch { /* ignore cleanup errors */ }
 
-    // Add line layer if not present
-    if (!map.getLayer('area-line')) {
-      map.addLayer({
-        id: 'area-line',
-        type: 'line',
-        source: 'areas',
-        paint: {
-          'line-color': 'rgba(255,248,230,0.45)',
-          'line-width': 1.5,
-          'line-opacity': 1,
-        },
-      });
-    }
-
-    // Labels source + layer
-    if (showLabels && labelGeojson) {
-      const existingLabelSource = map.getSource('labels');
-      if (existingLabelSource && 'setData' in existingLabelSource) {
-        (existingLabelSource as mapboxgl.GeoJSONSource).setData(labelGeojson);
-      } else if (!existingLabelSource) {
-        map.addSource('labels', { type: 'geojson', data: labelGeojson });
+      // Find the first symbol layer in the style — insert our fills BEFORE it
+      // so polygons sit above land/water/roads but below place labels
+      const styleLayers = map.getStyle()?.layers || [];
+      let firstSymbolId: string | undefined;
+      for (const layer of styleLayers) {
+        if (layer.type === 'symbol') {
+          firstSymbolId = layer.id;
+          break;
+        }
       }
 
-      if (!map.getLayer('area-labels')) {
+      console.log('[AreaMap] Style has', styleLayers.length, 'layers. First symbol:', firstSymbolId);
+      console.log('[AreaMap] All style layer IDs:', styleLayers.map((l: { id: string }) => l.id));
+
+      // Add areas source
+      map.addSource('areas', { type: 'geojson', data });
+
+      // Add fill layer BEFORE the first symbol layer (not at the end)
+      map.addLayer(
+        {
+          id: 'area-fill',
+          type: 'fill',
+          source: 'areas',
+          paint: {
+            'fill-color': '#c4a24d',
+            'fill-opacity': 0.55,
+          },
+        },
+        firstSymbolId,
+      );
+
+      // Add line layer right after fill
+      map.addLayer(
+        {
+          id: 'area-line',
+          type: 'line',
+          source: 'areas',
+          paint: {
+            'line-color': 'rgba(255,248,230,0.45)',
+            'line-width': 1.5,
+            'line-opacity': 1,
+          },
+        },
+        firstSymbolId,
+      );
+
+      // Labels source + layer (on top of everything)
+      if (showLabels && labelGeojson) {
+        map.addSource('labels', { type: 'geojson', data: labelGeojson });
         map.addLayer({
           id: 'area-labels',
           type: 'symbol',
@@ -379,11 +397,29 @@ export default function AreaMap({
           },
         });
       }
+
+      layersAdded.current = true;
+      console.log('[AreaMap] Layers added. area-fill exists:', !!map.getLayer('area-fill'));
     }
 
-    layersAdded.current = true;
+    // Ensure style is fully loaded before adding layers
+    if (map.isStyleLoaded()) {
+      addAllLayers();
+    } else {
+      map.once('style.load', addAllLayers);
+    }
 
-    console.log('[AreaMap] Imperative layers added. Style layers:', map.getStyle().layers.map((l: { id: string }) => l.id));
+    // Re-add layers if style reloads (e.g. from react-map-gl re-render)
+    const handleStyleLoad = () => {
+      if (!map.getLayer('area-fill')) {
+        addAllLayers();
+      }
+    };
+    map.on('style.load', handleStyleLoad);
+
+    return () => {
+      map.off('style.load', handleStyleLoad);
+    };
   }, [mapLoaded, geojson, labelGeojson, showLabels]);
 
   // -----------------------------------------------------------------------
