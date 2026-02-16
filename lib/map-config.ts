@@ -1,5 +1,5 @@
 export const MAPBOX_TOKEN = process.env.NEXT_PUBLIC_MAPBOX_TOKEN!;
-export const MAPBOX_STYLE = 'mapbox://styles/mapbox/dark-v11';
+export const MAPBOX_STYLE = 'mapbox://styles/mellanda/cmloinh8v001p01qnc5eq0qjs';
 
 // Default map center (Atlanta)
 export const ATLANTA_CENTER = { lng: -84.388, lat: 33.749 };
