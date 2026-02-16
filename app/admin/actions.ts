@@ -1,0 +1,411 @@
+"use server";
+
+import { createServiceRoleClient } from "@/lib/supabase";
+import { revalidatePath } from "next/cache";
+
+/* ============================================================
+   ADMIN SERVER ACTIONS
+   All INSERT / UPDATE operations use service-role client.
+   ============================================================ */
+
+function slugify(text: string): string {
+  return text
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/(^-|-$)/g, "");
+}
+
+// ─── BLOG POSTS ───────────────────────────────────────────────
+
+export async function createBlogPost(formData: FormData) {
+  const supabase = createServiceRoleClient();
+  const title = formData.get("title") as string;
+  const slug = slugify(title);
+  const content_html = (formData.get("content_html") as string) || null;
+  const excerpt = (formData.get("excerpt") as string) || null;
+  const type = (formData.get("type") as string) || null;
+  const content_type = (formData.get("content_type") as string) || null;
+  const category_id = (formData.get("category_id") as string) || null;
+  const neighborhood_id = (formData.get("neighborhood_id") as string) || null;
+  const area_id = (formData.get("area_id") as string) || null;
+  const is_sponsored = formData.get("is_sponsored") === "on";
+  const meta_title = (formData.get("meta_title") as string) || null;
+  const meta_description = (formData.get("meta_description") as string) || null;
+
+  const { error } = await supabase.from("blog_posts").insert({
+    title,
+    slug,
+    content_html,
+    excerpt,
+    type,
+    content_type,
+    category_id,
+    neighborhood_id,
+    is_sponsored,
+    meta_title,
+    meta_description,
+    status: "draft",
+    content_source: "manual",
+  } as never);
+
+  if (error) return { error: error.message };
+  revalidatePath("/admin/publishing");
+  return { success: true };
+}
+
+export async function updateBlogPost(id: string, data: Record<string, unknown>) {
+  const supabase = createServiceRoleClient();
+  const { error } = await supabase
+    .from("blog_posts")
+    .update({ ...data, updated_at: new Date().toISOString() } as never)
+    .eq("id", id);
+  if (error) return { error: error.message };
+  revalidatePath("/admin/publishing");
+  revalidatePath("/admin/posts");
+  return { success: true };
+}
+
+export async function publishBlogPost(id: string) {
+  const supabase = createServiceRoleClient();
+  const { error } = await supabase
+    .from("blog_posts")
+    .update({
+      status: "published",
+      published_at: new Date().toISOString(),
+      updated_at: new Date().toISOString(),
+    } as never)
+    .eq("id", id);
+  if (error) return { error: error.message };
+  revalidatePath("/admin/publishing");
+  revalidatePath("/admin/posts");
+  return { success: true };
+}
+
+// ─── STORIES ──────────────────────────────────────────────────
+
+export async function createStory(formData: FormData) {
+  const supabase = createServiceRoleClient();
+  const headline = formData.get("headline") as string;
+  const summary = (formData.get("summary") as string) || null;
+  const source_url = (formData.get("source_url") as string) || null;
+  const source_name = (formData.get("source_name") as string) || "manual_entry";
+  const neighborhood_id = (formData.get("neighborhood_id") as string) || null;
+  const category_id = (formData.get("category_id") as string) || null;
+  const tier = (formData.get("tier") as string) || null;
+
+  // Routing logic: tier determines status
+  let status = "new";
+  if (tier === "blog") status = "assigned_blog";
+  else if (tier === "script") status = "assigned_script";
+  else if (tier === "social") status = "assigned_social";
+
+  const { error } = await supabase.from("stories").insert({
+    headline,
+    summary,
+    source_url,
+    source_name: source_name || "manual_entry",
+    neighborhood_id,
+    category_id,
+    tier,
+    status,
+  } as never);
+
+  if (error) return { error: error.message };
+  revalidatePath("/admin/pipeline");
+  return { success: true };
+}
+
+export async function updateStoryStatus(id: string, status: string) {
+  const supabase = createServiceRoleClient();
+  const { error } = await supabase
+    .from("stories")
+    .update({ status, updated_at: new Date().toISOString() } as never)
+    .eq("id", id);
+  if (error) return { error: error.message };
+  revalidatePath("/admin/pipeline");
+  return { success: true };
+}
+
+// ─── SCRIPTS ──────────────────────────────────────────────────
+
+export async function createScript(formData: FormData) {
+  const supabase = createServiceRoleClient();
+  const title = formData.get("title") as string;
+  const script_text = formData.get("script_text") as string;
+  const hook = (formData.get("hook") as string) || null;
+  const format = (formData.get("format") as string) || null;
+  const story_id = (formData.get("story_id") as string) || null;
+
+  const { error } = await supabase.from("scripts").insert({
+    title,
+    script_text,
+    call_to_action: hook,
+    format,
+    story_id,
+    status: "draft",
+    platform: "reel",
+  } as never);
+
+  if (error) return { error: error.message };
+  revalidatePath("/admin/scripts");
+  return { success: true };
+}
+
+export async function updateScript(id: string, data: Record<string, unknown>) {
+  const supabase = createServiceRoleClient();
+  const { error } = await supabase
+    .from("scripts")
+    .update({ ...data, updated_at: new Date().toISOString() } as never)
+    .eq("id", id);
+  if (error) return { error: error.message };
+  revalidatePath("/admin/scripts");
+  return { success: true };
+}
+
+export async function rejectScript(id: string) {
+  const supabase = createServiceRoleClient();
+  const { error } = await supabase
+    .from("scripts")
+    .update({ status: "killed", updated_at: new Date().toISOString() } as never)
+    .eq("id", id);
+  if (error) return { error: error.message };
+  revalidatePath("/admin/scripts");
+  return { success: true };
+}
+
+// ─── REVIEWS ──────────────────────────────────────────────────
+
+export async function updateReviewStatus(id: string, status: string) {
+  const supabase = createServiceRoleClient();
+  const updateData: Record<string, unknown> = {
+    status,
+    moderated_at: new Date().toISOString(),
+    updated_at: new Date().toISOString(),
+  };
+  if (status === "approved") {
+    updateData.published_at = new Date().toISOString();
+  }
+  const { error } = await supabase
+    .from("reviews")
+    .update(updateData as never)
+    .eq("id", id);
+  if (error) return { error: error.message };
+  revalidatePath("/admin/reviews");
+  return { success: true };
+}
+
+// ─── SUBMISSIONS ──────────────────────────────────────────────
+
+export async function updateSubmissionStatus(id: string, status: string) {
+  const supabase = createServiceRoleClient();
+  const { error } = await supabase
+    .from("submissions")
+    .update({
+      status,
+      reviewed_at: new Date().toISOString(),
+      updated_at: new Date().toISOString(),
+    } as never)
+    .eq("id", id);
+  if (error) return { error: error.message };
+  revalidatePath("/admin/submissions");
+  return { success: true };
+}
+
+// ─── MEDIA ITEMS ──────────────────────────────────────────────
+
+export async function createMediaItem(formData: FormData) {
+  const supabase = createServiceRoleClient();
+  const title = formData.get("title") as string;
+  const slug = slugify(title);
+  const excerpt = (formData.get("excerpt") as string) || null;
+  const description = (formData.get("description") as string) || null;
+  const media_type = (formData.get("media_type") as string) || "video";
+  const source_type = (formData.get("source_type") as string) || "embed";
+  const embed_url = (formData.get("embed_url") as string) || null;
+  const seo_title = (formData.get("seo_title") as string) || null;
+  const meta_description = (formData.get("meta_description") as string) || null;
+
+  const { error } = await supabase.from("media_items").insert({
+    title,
+    slug,
+    excerpt,
+    description,
+    media_type,
+    source_type,
+    embed_url,
+    seo_title,
+    meta_description,
+    status: "draft",
+  } as never);
+
+  if (error) return { error: error.message };
+  revalidatePath("/admin/media");
+  return { success: true };
+}
+
+export async function updateMediaItem(id: string, data: Record<string, unknown>) {
+  const supabase = createServiceRoleClient();
+  const { error } = await supabase
+    .from("media_items")
+    .update({ ...data, updated_at: new Date().toISOString() } as never)
+    .eq("id", id);
+  if (error) return { error: error.message };
+  revalidatePath("/admin/media");
+  return { success: true };
+}
+
+// ─── BUSINESS LISTINGS ────────────────────────────────────────
+
+export async function updateBusiness(id: string, data: Record<string, unknown>) {
+  const supabase = createServiceRoleClient();
+  const { error } = await supabase
+    .from("business_listings")
+    .update({ ...data, updated_at: new Date().toISOString() } as never)
+    .eq("id", id);
+  if (error) return { error: error.message };
+  revalidatePath(`/admin/businesses/${id}`);
+  revalidatePath("/admin/businesses");
+  return { success: true };
+}
+
+// ─── EVENTS ───────────────────────────────────────────────────
+
+export async function updateEvent(id: string, data: Record<string, unknown>) {
+  const supabase = createServiceRoleClient();
+  const { error } = await supabase
+    .from("events")
+    .update({ ...data, updated_at: new Date().toISOString() } as never)
+    .eq("id", id);
+  if (error) return { error: error.message };
+  revalidatePath(`/admin/events/${id}`);
+  revalidatePath("/admin/events");
+  return { success: true };
+}
+
+// ─── NEIGHBORHOODS ────────────────────────────────────────────
+
+export async function updateNeighborhood(id: string, data: Record<string, unknown>) {
+  const supabase = createServiceRoleClient();
+  const { error } = await supabase
+    .from("neighborhoods")
+    .update({ ...data, updated_at: new Date().toISOString() } as never)
+    .eq("id", id);
+  if (error) return { error: error.message };
+  revalidatePath(`/admin/neighborhoods/${id}`);
+  revalidatePath("/admin/neighborhoods");
+  return { success: true };
+}
+
+// ─── AREAS ────────────────────────────────────────────────────
+
+export async function updateArea(id: string, data: Record<string, unknown>) {
+  const supabase = createServiceRoleClient();
+  const { error } = await supabase
+    .from("areas")
+    .update({ ...data, updated_at: new Date().toISOString() } as never)
+    .eq("id", id);
+  if (error) return { error: error.message };
+  revalidatePath(`/admin/areas/${id}`);
+  revalidatePath("/admin/areas");
+  return { success: true };
+}
+
+// ─── SPONSORS ─────────────────────────────────────────────────
+
+export async function updateSponsor(id: string, data: Record<string, unknown>) {
+  const supabase = createServiceRoleClient();
+  const { error } = await supabase
+    .from("sponsors")
+    .update({ ...data, updated_at: new Date().toISOString() } as never)
+    .eq("id", id);
+  if (error) return { error: error.message };
+  revalidatePath(`/admin/sponsors/${id}`);
+  revalidatePath("/admin/sponsors");
+  return { success: true };
+}
+
+// ─── SPONSOR PACKAGES ─────────────────────────────────────────
+
+export async function createSponsorPackage(formData: FormData) {
+  const supabase = createServiceRoleClient();
+  const name = formData.get("name") as string;
+  const slug = slugify(name);
+  const price_display = formData.get("price_display") as string;
+  const billing_cycle = (formData.get("billing_cycle") as string) || "monthly";
+  const description = (formData.get("description") as string) || null;
+
+  const { error } = await supabase.from("sponsor_packages").insert({
+    name,
+    slug,
+    price_display,
+    billing_cycle,
+    description,
+  } as never);
+
+  if (error) return { error: error.message };
+  revalidatePath("/admin/sponsors/packages");
+  return { success: true };
+}
+
+export async function updateSponsorPackage(id: string, data: Record<string, unknown>) {
+  const supabase = createServiceRoleClient();
+  const { error } = await supabase
+    .from("sponsor_packages")
+    .update({ ...data, updated_at: new Date().toISOString() } as never)
+    .eq("id", id);
+  if (error) return { error: error.message };
+  revalidatePath("/admin/sponsors/packages");
+  return { success: true };
+}
+
+// ─── CITIES (Beyond ATL) ──────────────────────────────────────
+
+export async function updateCity(id: string, data: Record<string, unknown>) {
+  const supabase = createServiceRoleClient();
+  const { error } = await supabase
+    .from("cities")
+    .update({ ...data, updated_at: new Date().toISOString() } as never)
+    .eq("id", id);
+  if (error) return { error: error.message };
+  revalidatePath(`/admin/beyond-atl/${id}`);
+  revalidatePath("/admin/beyond-atl");
+  return { success: true };
+}
+
+// ─── AD PLACEMENTS ────────────────────────────────────────────
+
+export async function createAdPlacement(formData: FormData) {
+  const supabase = createServiceRoleClient();
+  const name = formData.get("name") as string;
+  const channel = formData.get("channel") as string;
+  const placement_key = formData.get("placement_key") as string;
+  const page_type = (formData.get("page_type") as string) || null;
+  const dimensions = (formData.get("dimensions") as string) || null;
+  const description = (formData.get("description") as string) || null;
+
+  const { error } = await supabase.from("ad_placements").insert({
+    name,
+    channel,
+    placement_key,
+    page_type,
+    dimensions,
+    description,
+  } as never);
+
+  if (error) return { error: error.message };
+  revalidatePath("/admin/ad-placements");
+  return { success: true };
+}
+
+// ─── AD CREATIVES ─────────────────────────────────────────────
+
+export async function updateAdCreative(id: string, data: Record<string, unknown>) {
+  const supabase = createServiceRoleClient();
+  const { error } = await supabase
+    .from("ad_creatives")
+    .update({ ...data, updated_at: new Date().toISOString() } as never)
+    .eq("id", id);
+  if (error) return { error: error.message };
+  revalidatePath("/admin/sponsors/creatives");
+  return { success: true };
+}

@@ -1,6 +1,8 @@
 "use client";
 
 import { useState, useMemo, useCallback } from "react";
+import { useRouter } from "next/navigation";
+import Link from "next/link";
 import { PortalTopbar } from "@/components/portal/PortalTopbar";
 import { StatCard } from "@/components/portal/StatCard";
 import { StatGrid } from "@/components/portal/StatGrid";
@@ -10,6 +12,7 @@ import { Modal } from "@/components/portal/Modal";
 import { Pagination } from "@/components/portal/Pagination";
 import { createBrowserClient } from "@/lib/supabase";
 import { ChevronDown, ChevronUp } from "lucide-react";
+import { rejectScript, updateScript } from "@/app/admin/actions";
 
 interface FilmingScript {
   id: string;
@@ -66,12 +69,47 @@ const PLATFORM_LABELS: Record<string, string> = {
 };
 
 export function ScriptsClient({ filmingScripts, captions, batches, counts }: ScriptsClientProps) {
+  const router = useRouter();
   const [scripts, setScripts] = useState(filmingScripts);
   const [batchFilter, setBatchFilter] = useState("");
   const [page, setPage] = useState(1);
   const [expandedCaptions, setExpandedCaptions] = useState<Set<string>>(new Set());
   const [editModal, setEditModal] = useState<FilmingScript | null>(null);
+  const [editText, setEditText] = useState("");
   const [approving, setApproving] = useState<string | null>(null);
+  const [rejecting, setRejecting] = useState<string | null>(null);
+  const [savingEdit, setSavingEdit] = useState(false);
+
+  const openEditModal = useCallback((script: FilmingScript) => {
+    setEditText(script.script_text ?? "");
+    setEditModal(script);
+  }, []);
+
+  const handleReject = useCallback(async (id: string) => {
+    setRejecting(id);
+    const result = await rejectScript(id);
+    setRejecting(null);
+    if (result.error) {
+      alert("Error: " + result.error);
+      return;
+    }
+    setScripts((prev) => prev.filter((s) => s.id !== id));
+  }, []);
+
+  const handleSaveEdit = useCallback(async () => {
+    if (!editModal) return;
+    setSavingEdit(true);
+    const result = await updateScript(editModal.id, { script_text: editText });
+    setSavingEdit(false);
+    if (result.error) {
+      alert("Error: " + result.error);
+      return;
+    }
+    setScripts((prev) =>
+      prev.map((s) => s.id === editModal.id ? { ...s, script_text: editText } : s)
+    );
+    setEditModal(null);
+  }, [editModal, editText]);
 
   // Group captions by story_id using Map
   const captionsByStory = useMemo(() => {
@@ -149,9 +187,12 @@ export function ScriptsClient({ filmingScripts, captions, batches, counts }: Scr
       <PortalTopbar
         title="Scripts"
         actions={
-          <span className="text-[12px] text-[#6b7280]">
-            Filming scripts and platform captions — delivered every Friday
-          </span>
+          <Link
+            href="/admin/scripts/new"
+            className="inline-flex items-center px-6 py-2.5 rounded-full text-sm font-semibold bg-[#fee198] text-[#1a1a1a] hover:bg-[#e6c46d] transition-colors"
+          >
+            + Add Script
+          </Link>
         }
       />
       <div className="p-8 max-[899px]:pt-16 space-y-4">
@@ -253,16 +294,17 @@ export function ScriptsClient({ filmingScripts, captions, batches, counts }: Scr
                       View Captions
                     </button>
                     <button
-                      onClick={() => setEditModal(script)}
+                      onClick={() => openEditModal(script)}
                       className="inline-flex items-center px-3 py-1 text-xs font-semibold rounded-full border border-[#e5e5e5] text-[#374151] hover:border-[#d1d5db] transition-colors"
                     >
                       Edit
                     </button>
                     <button
-                      onClick={() => console.log("Scripts: Reject script", script.id)}
-                      className="inline-flex items-center px-3 py-1 text-xs font-semibold rounded-full border border-[#c1121f] text-[#c1121f] hover:bg-[#fee2e2] transition-colors"
+                      onClick={() => handleReject(script.id)}
+                      disabled={rejecting === script.id}
+                      className="inline-flex items-center px-3 py-1 text-xs font-semibold rounded-full border border-[#c1121f] text-[#c1121f] hover:bg-[#fee2e2] transition-colors disabled:opacity-50"
                     >
-                      Reject
+                      {rejecting === script.id ? "Rejecting..." : "Reject"}
                     </button>
                     <button
                       onClick={() => handleApprove(script)}
@@ -334,13 +376,11 @@ export function ScriptsClient({ filmingScripts, captions, batches, counts }: Scr
               Cancel
             </button>
             <button
-              onClick={() => {
-                console.log("Scripts: Save edit for script", editModal?.id);
-                setEditModal(null);
-              }}
-              className="inline-flex items-center px-6 py-2.5 rounded-full text-sm font-semibold bg-[#fee198] text-[#1a1a1a] hover:bg-[#fdd870] transition-colors"
+              onClick={handleSaveEdit}
+              disabled={savingEdit}
+              className="inline-flex items-center px-6 py-2.5 rounded-full text-sm font-semibold bg-[#fee198] text-[#1a1a1a] hover:bg-[#fdd870] transition-colors disabled:opacity-50"
             >
-              Save
+              {savingEdit ? "Saving..." : "Save"}
             </button>
           </>
         }
@@ -354,9 +394,9 @@ export function ScriptsClient({ filmingScripts, captions, batches, counts }: Scr
             <div>
               <label className="block text-[12px] font-semibold text-[#374151] mb-1">Filming Script</label>
               <textarea
-                readOnly
-                className="w-full h-[200px] p-3 text-[13px] border border-[#e5e5e5] bg-[#f5f5f5] text-[#374151] font-body resize-vertical"
-                defaultValue={editModal.script_text ?? ""}
+                className="w-full h-[200px] p-3 text-[13px] border border-[#e5e5e5] bg-white text-[#374151] font-body resize-vertical"
+                value={editText}
+                onChange={(e) => setEditText(e.target.value)}
               />
             </div>
           </div>

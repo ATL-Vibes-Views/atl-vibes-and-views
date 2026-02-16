@@ -1,6 +1,8 @@
 "use client";
 
-import { useState, useMemo } from "react";
+import { useState, useMemo, useCallback } from "react";
+import { useRouter } from "next/navigation";
+import Link from "next/link";
 import { PortalTopbar } from "@/components/portal/PortalTopbar";
 import { WorkflowBanner } from "@/components/portal/WorkflowBanner";
 import { StatCard } from "@/components/portal/StatCard";
@@ -9,6 +11,7 @@ import { StatusBadge } from "@/components/portal/StatusBadge";
 import { FilterBar } from "@/components/portal/FilterBar";
 import { AdminDataTable } from "@/components/portal/AdminDataTable";
 import { Pagination } from "@/components/portal/Pagination";
+import { updateStoryStatus } from "@/app/admin/actions";
 
 interface StoryRow {
   id: string;
@@ -55,10 +58,23 @@ const tierBadgeMap: Record<number, "green" | "blue" | "gold"> = {
 };
 
 export function PipelineClient({ stories, categories }: PipelineClientProps) {
+  const router = useRouter();
   const [statusFilter, setStatusFilter] = useState("");
   const [categoryFilter, setCategoryFilter] = useState("");
   const [tierFilter, setTierFilter] = useState("");
   const [page, setPage] = useState(1);
+  const [activating, setActivating] = useState<string | null>(null);
+
+  const handleActivate = useCallback(async (id: string) => {
+    setActivating(id);
+    const result = await updateStoryStatus(id, "new");
+    setActivating(null);
+    if (result.error) {
+      alert("Error: " + result.error);
+      return;
+    }
+    router.refresh();
+  }, [router]);
 
   // Stats
   const newCount = stories.filter((s) => s.status === "new").length;
@@ -154,41 +170,37 @@ export function PipelineClient({ stories, categories }: PipelineClientProps) {
   const renderActions = (item: StoryRow) => {
     if (item.status === "new") {
       return (
-        <button
-          onClick={() => console.log("Score story:", item.id)}
-          className="inline-flex items-center px-3 py-1 text-xs font-semibold rounded-full bg-[#fee198] text-[#1a1a1a] hover:bg-[#e6c46d] transition-colors"
-        >
-          Score
-        </button>
+        <span className="text-[11px] text-[#6b7280]">
+          Awaiting S3 scoring
+        </span>
       );
     }
     if (ASSIGNED_STATUSES.includes(item.status)) {
       return (
         <button
-          onClick={() => console.log("Activate story:", item.id)}
-          className="inline-flex items-center px-3 py-1 text-xs font-semibold rounded-full bg-[#fee198] text-[#1a1a1a] hover:bg-[#e6c46d] transition-colors"
+          onClick={() => handleActivate(item.id)}
+          disabled={activating === item.id}
+          className="inline-flex items-center px-3 py-1 text-xs font-semibold rounded-full bg-[#fee198] text-[#1a1a1a] hover:bg-[#e6c46d] transition-colors disabled:opacity-50"
         >
-          Activate
+          {activating === item.id ? "Activating..." : "Activate"}
         </button>
       );
     }
     if (item.status === "banked") {
       return (
         <button
-          onClick={() => console.log("Activate banked story:", item.id)}
-          className="inline-flex items-center px-3 py-1 text-xs font-semibold rounded-full border border-[#e5e5e5] text-[#374151] hover:border-[#d1d5db] transition-colors"
+          onClick={() => handleActivate(item.id)}
+          disabled={activating === item.id}
+          className="inline-flex items-center px-3 py-1 text-xs font-semibold rounded-full border border-[#e5e5e5] text-[#374151] hover:border-[#d1d5db] transition-colors disabled:opacity-50"
         >
-          Activate
+          {activating === item.id ? "Activating..." : "Activate"}
         </button>
       );
     }
     if (item.status === "used") {
       return (
-        <span
-          className="text-[#c1121f] text-xs font-semibold hover:underline cursor-pointer"
-          onClick={() => console.log("View linked content:", item.id)}
-        >
-          View Content
+        <span className="text-[#6b7280] text-xs font-semibold">
+          Used
         </span>
       );
     }
@@ -206,9 +218,12 @@ export function PipelineClient({ stories, categories }: PipelineClientProps) {
       <PortalTopbar
         title="Pipeline — Story Bank"
         actions={
-          <span className="text-[12px] text-[#6b7280]">
-            Scored stories from RSS intake · Activate to send to publishing
-          </span>
+          <Link
+            href="/admin/pipeline/new"
+            className="inline-flex items-center px-6 py-2.5 rounded-full text-sm font-semibold bg-[#fee198] text-[#1a1a1a] hover:bg-[#e6c46d] transition-colors"
+          >
+            + Add Story
+          </Link>
         }
       />
       <div className="p-8 max-[899px]:pt-16 space-y-4">

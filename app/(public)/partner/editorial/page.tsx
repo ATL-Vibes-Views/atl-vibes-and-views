@@ -345,10 +345,10 @@ export default function EditorialPage() {
                 paid the price
               </h2>
               <Link
-                href="/partner/case-studies/smorgasburg"
+                href="/partner"
                 className="text-[#fee198] font-semibold text-[17px] tracking-[1px] border-b-2 border-[#fee198] pb-1 hover:text-white hover:border-white transition-all"
               >
-                See What Happened
+                Get Started
               </Link>
             </div>
           </section>
