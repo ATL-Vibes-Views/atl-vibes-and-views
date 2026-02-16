@@ -368,18 +368,19 @@ export default function AreaMap({
       map.addSource('areas', { type: 'geojson', data: testData });
       console.log('[AreaMap] Added test source with hardcoded square');
 
-      // Add fill layer — no beforeId, goes on TOP of everything
+      // Add fill layer with no paint (will be black by default)
       map.addLayer({
         id: 'area-fill',
         type: 'fill',
         source: 'areas',
-        paint: {
-          'fill-color': '#ff0000',
-          'fill-opacity': 0.8,
-        },
       });
 
-      console.log('[AreaMap] area-fill layer added. Visibility:', map.getLayoutProperty('area-fill', 'visibility'));
+      // Force paint properties AFTER layer creation via setPaintProperty
+      map.setPaintProperty('area-fill', 'fill-color', '#ff0000');
+      map.setPaintProperty('area-fill', 'fill-opacity', 0.8);
+
+      console.log('[AreaMap] area-fill added. fill-color:', map.getPaintProperty('area-fill', 'fill-color'));
+      console.log('[AreaMap] area-fill opacity:', map.getPaintProperty('area-fill', 'fill-opacity'));
 
       // Add line layer right after fill
       map.addLayer(
