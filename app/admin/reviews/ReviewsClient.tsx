@@ -166,7 +166,7 @@ export function ReviewsClient({ reviews, businesses, users }: ReviewsClientProps
   return (
     <>
       <PortalTopbar title="Reviews" />
-      <div className="p-8 max-[899px]:pt-16 space-y-4">
+      <div className="p-8 space-y-4">
         <StatGrid columns={4}>
           <StatCard label="Total Reviews" value={reviews.length} />
           <StatCard

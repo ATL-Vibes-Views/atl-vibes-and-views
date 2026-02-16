@@ -68,7 +68,7 @@ export function AnalyticsClient({ stats, topPosts, performance }: AnalyticsClien
   return (
     <>
       <PortalTopbar title="Analytics" />
-      <div className="p-8 max-[899px]:pt-16 space-y-6">
+      <div className="p-8 space-y-6">
         <TabNav tabs={TABS} activeTab={activeTab} onTabChange={setActiveTab} />
 
         {/* ── Overview Tab ── */}

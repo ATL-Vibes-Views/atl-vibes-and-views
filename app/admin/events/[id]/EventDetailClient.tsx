@@ -163,7 +163,7 @@ export function EventDetailClient({
   return (
     <>
       <PortalTopbar title={title} />
-      <div className="p-8 max-[899px]:pt-16 space-y-6">
+      <div className="p-8 space-y-6">
         <Link href="/admin/events" className="inline-flex items-center gap-1.5 text-[13px] text-[#6b7280] hover:text-black transition-colors">
           <ArrowLeft size={14} /> Back to Events
         </Link>

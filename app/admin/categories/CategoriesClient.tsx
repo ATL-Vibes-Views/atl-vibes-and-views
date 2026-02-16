@@ -116,7 +116,7 @@ export function CategoriesClient({ categories, usageMap }: CategoriesClientProps
           </button>
         }
       />
-      <div className="p-8 max-[899px]:pt-16 space-y-4">
+      <div className="p-8 space-y-4">
         <FilterBar
           filters={[
             {

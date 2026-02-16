@@ -92,7 +92,7 @@ export function DistributeClient({ filmingScript, captions }: DistributeClientPr
     return (
       <>
         <PortalTopbar title="Script Not Found" />
-        <div className="p-8 max-[899px]:pt-16">
+        <div className="p-8">
           <Link href="/admin/social" className="inline-flex items-center gap-1.5 text-[13px] text-[#6b7280] hover:text-black transition-colors">
             <ArrowLeft size={14} /> Back to Social Queue
           </Link>
@@ -293,7 +293,7 @@ export function DistributeClient({ filmingScript, captions }: DistributeClientPr
           </span>
         }
       />
-      <div className="p-8 max-[899px]:pt-16 space-y-5">
+      <div className="p-8 space-y-5">
         {/* Back link */}
         <Link href="/admin/social" className="inline-flex items-center gap-1.5 text-[13px] text-[#6b7280] hover:text-black transition-colors">
           <ArrowLeft size={14} /> Back to Social Queue

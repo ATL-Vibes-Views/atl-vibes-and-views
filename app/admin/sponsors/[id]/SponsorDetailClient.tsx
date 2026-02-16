@@ -240,7 +240,7 @@ export function SponsorDetailClient({
           </div>
         }
       />
-      <div className="p-8 max-[899px]:pt-16 space-y-6">
+      <div className="p-8 space-y-6">
         {/* Status bar */}
         <div className="flex items-center gap-3">
           <StatusBadge variant={statusBadgeMap[sponsor.status] ?? "gray"}>

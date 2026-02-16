@@ -188,7 +188,7 @@ export function CalendarClient({ entries, scripts, events, newsletters }: Calend
           </button>
         }
       />
-      <div className="p-8 max-[899px]:pt-16 space-y-4">
+      <div className="p-8 space-y-4">
         {/* Week navigation */}
         <div className="flex items-center justify-between">
           <button

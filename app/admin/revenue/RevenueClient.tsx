@@ -140,7 +140,7 @@ export function RevenueClient({ sponsors, stats }: RevenueClientProps) {
           </Link>
         }
       />
-      <div className="p-8 max-[899px]:pt-16 space-y-6">
+      <div className="p-8 space-y-6">
         {/* Stat Cards */}
         <StatGrid columns={4}>
           <StatCard

@@ -90,7 +90,7 @@ export function CityDetailClient({ city, isNew, businesses, areas }: CityDetailC
   return (
     <>
       <PortalTopbar title={title} />
-      <div className="p-8 max-[899px]:pt-16 space-y-6">
+      <div className="p-8 space-y-6">
         <Link href="/admin/beyond-atl" className="inline-flex items-center gap-1.5 text-[13px] text-[#6b7280] hover:text-black transition-colors">
           <ArrowLeft size={14} /> Back to Beyond ATL Cities
         </Link>
