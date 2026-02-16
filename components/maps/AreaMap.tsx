@@ -256,13 +256,13 @@ export default function AreaMap({
         const labelPoints: Feature[] = [];
 
         if (mode === 'areas') {
-          // ----- Areas mode: merge neighborhood polygons into one MultiPolygon per area -----
-          const areaGroups: Record<
-            string,
-            { coords: number[][][] []; areaName: string; color: string }
-          > = {};
+          // ----- Areas mode: tag each neighborhood polygon with its area -----
+          const seenAreaSlugs = new Set<string>();
 
           for (const feature of raw.features) {
+            const geom = feature.geometry;
+            if (!geom || (geom.type !== 'Polygon' && geom.type !== 'MultiPolygon')) continue;
+
             const name = (feature.properties as Record<string, unknown>)
               ?.NAME as string | undefined;
             if (!name) continue;
@@ -273,54 +273,36 @@ export default function AreaMap({
             const color = AREA_COLORS[nAreaSlug] ?? DEFAULT_AREA_COLOR;
             const area = nbr ? areaById[nbr.area_id] : undefined;
 
-            const geom = feature.geometry as Polygon | MultiPolygon;
-            const polygonCoords =
-              geom.type === 'Polygon'
-                ? [geom.coordinates]
-                : geom.coordinates;
-
-            const existing = areaGroups[groupKey];
-            if (existing) {
-              existing.coords.push(...polygonCoords);
-            } else {
-              areaGroups[groupKey] = {
-                coords: [...polygonCoords],
-                areaName: area?.name ?? nAreaSlug,
-                color,
-              };
-            }
-          }
-
-          // Emit one merged MultiPolygon feature per area
-          for (const [slug, group] of Object.entries(areaGroups)) {
             enriched.push({
               type: 'Feature',
-              geometry: {
-                type: 'MultiPolygon',
-                coordinates: group.coords,
-              },
+              geometry: geom as Polygon | MultiPolygon,
               properties: {
-                NAME: group.areaName,
-                areaSlug: slug,
-                areaColor: group.color,
-                slug,
-                label: group.areaName,
+                NAME: name,
+                areaSlug: groupKey,
+                areaColor: color,
+                slug: groupKey,
+                label: area?.name ?? name,
               },
             });
 
-            // Label point — prefer DB-stored map center, fall back to centroid
-            const areaData = areas.find((a) => a.slug === slug);
-            if (areaData) {
-              labelPoints.push({
-                type: 'Feature',
-                geometry: {
-                  type: 'Point',
-                  coordinates: [areaData.map_center_lng, areaData.map_center_lat],
-                },
-                properties: { label: group.areaName },
-              });
+            // One label per area (placed at DB-stored map center)
+            if (nAreaSlug && !seenAreaSlugs.has(nAreaSlug)) {
+              seenAreaSlugs.add(nAreaSlug);
+              const areaData = areas.find((a) => a.slug === nAreaSlug);
+              if (areaData) {
+                labelPoints.push({
+                  type: 'Feature',
+                  geometry: {
+                    type: 'Point',
+                    coordinates: [areaData.map_center_lng, areaData.map_center_lat],
+                  },
+                  properties: { label: area?.name ?? nAreaSlug },
+                });
+              }
             }
           }
+
+          console.log('[AreaMap] areas mode — enriched features:', enriched.length, 'labels:', labelPoints.length);
         } else {
           // ----- Neighborhoods / single-neighborhood mode: one feature per neighborhood -----
           for (const feature of raw.features) {
@@ -583,6 +565,11 @@ export default function AreaMap({
           neighborhood={activeNeighborhoodCard.neighborhood}
         />
       )}
+
+      {/* Debug overlay — remove after confirming polygons render */}
+      <div className="absolute bottom-2 right-2 z-10 rounded bg-black/80 px-3 py-1.5 text-[10px] text-white font-mono pointer-events-none">
+        features: {geojson?.features.length ?? 0} | labels: {labelGeojson?.features.length ?? 0}
+      </div>
 
       {loading && (
         <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
