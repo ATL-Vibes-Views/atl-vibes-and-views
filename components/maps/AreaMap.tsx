@@ -93,33 +93,22 @@ function computeCentroid(geometry: Polygon | MultiPolygon): [number, number] {
 // Layer styles
 // ---------------------------------------------------------------------------
 
-function makeFillLayer(
-  hoveredSlug: string | null,
-  selectedSlug: string | null,
-): Omit<FillLayerSpecification, 'source'> & { id: string } {
-  return {
-    id: 'area-fill',
-    type: 'fill' as const,
-    paint: {
-      'fill-color': '#c4a24d',
-      'fill-opacity': [
-        'case',
-        ['==', ['get', 'slug'], selectedSlug ?? ''],
-        0.80,
-        ['==', ['get', 'slug'], hoveredSlug ?? ''],
-        0.70,
-        0.55,
-      ] as unknown as number,
-    },
-  };
-}
+// Static fill — no expressions — to debug rendering
+const STATIC_FILL_LAYER: Omit<FillLayerSpecification, 'source'> & { id: string } = {
+  id: 'area-fill',
+  type: 'fill' as const,
+  paint: {
+    'fill-color': '#ff0000',
+    'fill-opacity': 0.8,
+  },
+};
 
 const lineLayer: Omit<LineLayerSpecification, 'source'> & { id: string } = {
   id: 'area-line',
   type: 'line' as const,
   paint: {
-    'line-color': 'rgba(255,248,230,0.45)',
-    'line-width': 1.5,
+    'line-color': '#ffffff',
+    'line-width': 2,
     'line-opacity': 1,
   },
 };
@@ -485,7 +474,7 @@ export default function AreaMap({
   // Memoize fill layer (depends on hovered + selected slug)
   // -----------------------------------------------------------------------
   const fillLayer = useMemo(
-    () => makeFillLayer(hoveredSlug, cardOpen ? selectedSlug : null),
+    () => STATIC_FILL_LAYER,
     [hoveredSlug, selectedSlug, cardOpen],
   );
 
