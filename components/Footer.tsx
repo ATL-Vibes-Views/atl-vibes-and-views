@@ -46,12 +46,27 @@ export function Footer() {
   const [email, setEmail] = useState("");
   const [submitted, setSubmitted] = useState(false);
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!email.trim()) return;
-    // TODO: Connect to newsletter service (Mailchimp, ConvertKit, etc.)
-    setSubmitted(true);
-    setTimeout(() => { setSubmitted(false); setEmail(""); }, 3000);
+    try {
+      const res = await fetch(
+        "https://api.hsforms.com/submissions/v3/integration/submit/244168309/941b343b-f6b8-4614-8c14-01e60e3da35d",
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            fields: [{ name: "email", value: email }],
+          }),
+        }
+      );
+      if (res.ok) {
+        setSubmitted(true);
+        setTimeout(() => { setSubmitted(false); setEmail(""); }, 3000);
+      }
+    } catch {
+      // Silently fail — user can retry
+    }
   };
 
   return (

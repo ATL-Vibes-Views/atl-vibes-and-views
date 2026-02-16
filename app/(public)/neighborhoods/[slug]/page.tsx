@@ -1,3 +1,4 @@
+import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import {
   LocationDetailContent,
@@ -11,6 +12,35 @@ import {
   getCategoryBySlug,
   getMediaItems,
 } from "@/lib/queries";
+
+export async function generateMetadata({
+  params,
+}: {
+  params: Promise<{ slug: string }>;
+}): Promise<Metadata> {
+  const { slug } = await params;
+  const neighborhood = await getNeighborhoodBySlug(slug).catch(() => null);
+  if (!neighborhood) return { title: "Neighborhood Not Found" };
+
+  const areaName = neighborhood.areas?.name || "Atlanta";
+  const title = `${neighborhood.name} — ${areaName}`;
+  const description =
+    neighborhood.tagline ||
+    `Explore ${neighborhood.name} in ${areaName} — restaurants, events, stories, and things to do.`;
+
+  return {
+    title,
+    description,
+    openGraph: {
+      title: `${neighborhood.name} | ATL Vibes & Views`,
+      description,
+      url: `https://atlvibesandviews.com/neighborhoods/${slug}`,
+      ...(neighborhood.hero_image_url
+        ? { images: [{ url: neighborhood.hero_image_url }] }
+        : {}),
+    },
+  };
+}
 
 /* ============================================================
    NEIGHBORHOOD DETAIL PAGE — /neighborhoods/[slug]

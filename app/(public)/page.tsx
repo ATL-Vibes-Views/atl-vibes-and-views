@@ -1,3 +1,4 @@
+import type { Metadata } from "next";
 import Link from "next/link";
 import Image from "next/image";
 import { MapPin, ArrowRight, Play, CalendarPlus, Store } from "lucide-react";
@@ -23,6 +24,18 @@ import {
   getFeaturedSlot,
   getCategoryBySlug,
 } from "@/lib/queries";
+
+export const metadata: Metadata = {
+  title: "ATL Vibes & Views — The City. The Culture. The Conversation.",
+  description:
+    "Discover Atlanta's neighborhoods, businesses, events, and culture. Your guide to the city's best stories, eats, and things to do.",
+  openGraph: {
+    title: "ATL Vibes & Views — The City. The Culture. The Conversation.",
+    description:
+      "Discover Atlanta's neighborhoods, businesses, events, and culture.",
+    url: "https://atlvibesandviews.com",
+  },
+};
 
 /* ============================================================
    HOMEPAGE — Server Component — LOCKED SECTION ORDER

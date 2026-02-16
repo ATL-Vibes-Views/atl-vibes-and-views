@@ -256,6 +256,7 @@ export function Header({ exploreData = [] }: HeaderProps) {
 
           <NavLink href="/city-watch">City Watch</NavLink>
           <NavLink href="/media">Media</NavLink>
+          <NavLink href="/dashboard">Client Portal</NavLink>
         </nav>
 
         <Link href="/submit" className="hidden md:inline-flex items-center px-5 py-2 bg-[#e6c46d] text-black text-xs font-semibold uppercase tracking-eyebrow rounded-full hover:bg-black hover:text-[#fee198] transition-colors">Submit Listing</Link>
@@ -407,6 +408,7 @@ export function Header({ exploreData = [] }: HeaderProps) {
 
                 <MobileNavLink href="/city-watch" onClick={closeDrawer}>City Watch</MobileNavLink>
                 <MobileNavLink href="/media" onClick={closeDrawer}>Media</MobileNavLink>
+                <MobileNavLink href="/dashboard" onClick={closeDrawer}>Client Portal</MobileNavLink>
               </nav>
             </div>
 

@@ -1,3 +1,4 @@
+import type { Metadata } from "next";
 import Link from "next/link";
 import Image from "next/image";
 import { ChevronRight } from "lucide-react";
@@ -8,6 +9,18 @@ import {
   getNeighborhoodIdsForArea,
   getNeighborhoodsByPopularity,
 } from "@/lib/queries";
+
+export const metadata: Metadata = {
+  title: "Events in Atlanta",
+  description:
+    "Concerts, food festivals, art walks, and everything happening across Atlanta. Find your next experience.",
+  openGraph: {
+    title: "Events in Atlanta | ATL Vibes & Views",
+    description:
+      "Concerts, food festivals, art walks, and everything happening across Atlanta.",
+    url: "https://atlvibesandviews.com/hub/events",
+  },
+};
 import {
   SubmitEventCTA,
   SidebarWidget,
