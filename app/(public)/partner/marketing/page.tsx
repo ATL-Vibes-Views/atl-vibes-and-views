@@ -8,6 +8,10 @@ export const metadata: Metadata = {
   title: "Marketing Services",
   description:
     "Full-service marketing for Atlanta businesses. SEO, website design, social media management, and paid advertising that actually drives results.",
+  openGraph: {
+    title: "Marketing Services",
+    description: "Full-service marketing for Atlanta businesses. SEO, website design, social media management, and paid advertising that actually drives results.",
+  },
 };
 
 /* ============================================================

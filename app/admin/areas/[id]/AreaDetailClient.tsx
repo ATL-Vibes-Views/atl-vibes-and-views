@@ -76,7 +76,7 @@ export function AreaDetailClient({ area, isNew, neighborhoods, cities }: AreaDet
             <FormGroup label="Hero Image URL"><FormInput defaultValue={field(area, "hero_image_url")} /></FormGroup>
             {field(area, "hero_image_url") && (
               <div className="w-full max-w-[400px] aspect-[16/9] border border-[#e5e5e5] overflow-hidden">
-                <img src={field(area, "hero_image_url")} alt="" className="w-full h-full object-cover" />
+                <img src={field(area, "hero_image_url")} alt={`${field(area, "name", "Area")} hero image`} className="w-full h-full object-cover" />
               </div>
             )}
             <FormRow columns={2}>

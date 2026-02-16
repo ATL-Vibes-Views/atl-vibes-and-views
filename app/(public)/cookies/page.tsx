@@ -7,6 +7,10 @@ export const metadata: Metadata = {
   description:
     "How ATL Vibes & Views uses cookies and similar tracking technologies.",
   robots: { index: true, follow: true },
+  openGraph: {
+    title: "Cookie Policy",
+    description: "How ATL Vibes & Views uses cookies and similar tracking technologies.",
+  },
 };
 
 export default function CookiePolicyPage() {

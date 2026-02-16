@@ -1,3 +1,6 @@
+"use client";
+
+import { useState } from "react";
 import Image from "next/image";
 
 /* ============================================================
@@ -6,6 +9,8 @@ import Image from "next/image";
    variant="split"   → Hub pages: 2-col grid (image left, text right)
    variant="overlay"  → Detail pages: full-width image with gradient overlay
    ============================================================ */
+
+const FALLBACK_SRC = "/images/default-hero.png";
 
 interface HeroSectionProps {
   backgroundImage: string;
@@ -24,17 +29,31 @@ export function HeroSection({
   variant = "split",
   className = "",
 }: HeroSectionProps) {
+  const [overlayLoaded, setOverlayLoaded] = useState(false);
+  const [overlaySrc, setOverlaySrc] = useState(backgroundImage);
+
+  const [desktopLoaded, setDesktopLoaded] = useState(false);
+  const [desktopSrc, setDesktopSrc] = useState(backgroundImage);
+
+  const [mobileLoaded, setMobileLoaded] = useState(false);
+  const [mobileSrc, setMobileSrc] = useState(backgroundImage);
+
   if (variant === "overlay") {
     return (
       <section className={`relative w-full ${className}`}>
         <div className="relative w-full h-[52vh] sm:h-[58vh] md:h-[65vh] min-h-[340px] max-h-[640px] overflow-hidden">
+          {/* Loading skeleton */}
+          {!overlayLoaded && (
+            <div className="absolute inset-0 bg-gray-200 animate-pulse" />
+          )}
           <Image
-            src={backgroundImage}
+            src={overlaySrc}
             alt={title}
             fill
-            unoptimized
             className="object-cover"
             priority
+            onLoad={() => setOverlayLoaded(true)}
+            onError={() => setOverlaySrc(FALLBACK_SRC)}
           />
           <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/40 to-transparent" />
         </div>
@@ -62,12 +81,18 @@ export function HeroSection({
       <section className={`hidden lg:block bg-black ${className}`}>
         <div className="grid grid-cols-2 min-h-[480px]">
           <div className="relative overflow-hidden bg-[#111]">
+            {/* Loading skeleton */}
+            {!desktopLoaded && (
+              <div className="absolute inset-0 bg-gray-200 animate-pulse" />
+            )}
             <Image
-              src={backgroundImage}
+              src={desktopSrc}
               alt={title}
               fill
               className="object-cover"
               priority
+              onLoad={() => setDesktopLoaded(true)}
+              onError={() => setDesktopSrc(FALLBACK_SRC)}
             />
           </div>
           <div className="flex flex-col justify-center px-16">
@@ -89,12 +114,18 @@ export function HeroSection({
       {/* Mobile hero */}
       <section className={`lg:hidden bg-black ${className}`}>
         <div className="relative w-full" style={{ aspectRatio: "16/10" }}>
+          {/* Loading skeleton */}
+          {!mobileLoaded && (
+            <div className="absolute inset-0 bg-gray-200 animate-pulse" />
+          )}
           <Image
-            src={backgroundImage}
+            src={mobileSrc}
             alt={title}
             fill
             className="object-cover"
             priority
+            onLoad={() => setMobileLoaded(true)}
+            onError={() => setMobileSrc(FALLBACK_SRC)}
           />
           <div
             className="absolute bottom-0 left-0 right-0 p-6"

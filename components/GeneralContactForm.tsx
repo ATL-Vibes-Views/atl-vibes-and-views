@@ -101,10 +101,11 @@ export function GeneralContactForm() {
       {/* Name row */}
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
         <div>
-          <label className="block text-sm font-semibold text-black mb-1.5">
+          <label htmlFor="contact-firstname" className="block text-sm font-semibold text-black mb-1.5">
             First Name
           </label>
           <input
+            id="contact-firstname"
             type="text"
             value={form.firstname}
             onChange={update("firstname")}
@@ -113,10 +114,11 @@ export function GeneralContactForm() {
           />
         </div>
         <div>
-          <label className="block text-sm font-semibold text-black mb-1.5">
+          <label htmlFor="contact-lastname" className="block text-sm font-semibold text-black mb-1.5">
             Last Name
           </label>
           <input
+            id="contact-lastname"
             type="text"
             value={form.lastname}
             onChange={update("lastname")}
@@ -128,10 +130,11 @@ export function GeneralContactForm() {
 
       {/* Email */}
       <div>
-        <label className="block text-sm font-semibold text-black mb-1.5">
+        <label htmlFor="contact-email" className="block text-sm font-semibold text-black mb-1.5">
           Email <span className="text-[#c1121f]">*</span>
         </label>
         <input
+          id="contact-email"
           type="email"
           required
           value={form.email}
@@ -143,10 +146,11 @@ export function GeneralContactForm() {
 
       {/* Subject Dropdown */}
       <div>
-        <label className="block text-sm font-semibold text-black mb-1.5">
+        <label htmlFor="contact-subject" className="block text-sm font-semibold text-black mb-1.5">
           Subject <span className="text-[#c1121f]">*</span>
         </label>
         <select
+          id="contact-subject"
           required
           value={form.subject_dropdown}
           onChange={update("subject_dropdown")}
@@ -165,10 +169,11 @@ export function GeneralContactForm() {
 
       {/* Message */}
       <div>
-        <label className="block text-sm font-semibold text-black mb-1.5">
+        <label htmlFor="contact-message" className="block text-sm font-semibold text-black mb-1.5">
           Message
         </label>
         <textarea
+          id="contact-message"
           rows={5}
           value={form.message}
           onChange={update("message")}

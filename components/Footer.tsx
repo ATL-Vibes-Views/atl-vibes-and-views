@@ -77,7 +77,7 @@ export function Footer() {
 
           {/* Column 1 — Brand + Social + Newsletter */}
           <div className="lg:col-span-1">
-            <Link href="/" className="block mb-5">
+            <Link href="/" className="block mb-5 focus-visible:ring-2 focus-visible:ring-[#e6c46d] focus-visible:ring-offset-2 focus-visible:ring-offset-[#1a1a1a] rounded">
               <div className="font-logo text-xl font-bold tracking-wide text-white">ATL VIBES &amp; VIEWS</div>
               <div className="text-[10px] tracking-[0.15em] text-white/50 mt-1 uppercase">The City. The Culture. The Conversation.</div>
             </Link>
@@ -85,7 +85,7 @@ export function Footer() {
             {/* Social Icons */}
             <div className="flex items-center gap-4 mb-8">
               {SOCIAL_LINKS.map(({ icon: Icon, label, href }) => (
-                <a key={label} href={href} target="_blank" rel="noopener noreferrer" className="text-white/40 hover:text-gold-light transition-colors" aria-label={label}>
+                <a key={label} href={href} target="_blank" rel="noopener noreferrer" className="text-white/60 hover:text-gold-light transition-colors" aria-label={label}>
                   <Icon size={18} />
                 </a>
               ))}
@@ -105,7 +105,7 @@ export function Footer() {
                     placeholder="Your email"
                     required
                     aria-label="Email address"
-                    className="flex-1 min-w-0 px-4 py-3 bg-white/10 border border-white/10 text-sm text-white placeholder:text-white/30 outline-none focus:border-gold-light/50 transition-colors rounded-l-full"
+                    className="flex-1 min-w-0 px-4 py-3 bg-white/10 border border-white/10 text-sm text-white placeholder:text-white/50 outline-none focus:border-gold-light/50 transition-colors rounded-l-full"
                   />
                   <button
                     type="submit"
@@ -121,11 +121,11 @@ export function Footer() {
 
           {/* Column 2 — Neighborhoods */}
           <div>
-            <h4 className="text-xs font-semibold uppercase tracking-eyebrow text-white/40 mb-6">Neighborhoods</h4>
+            <h4 className="text-xs font-semibold uppercase tracking-eyebrow text-white/60 mb-6">Neighborhoods</h4>
             <ul className="space-y-3.5">
               {NEIGHBORHOOD_LINKS.map((link) => (
                 <li key={link.name}>
-                  <Link href={link.href} className="text-sm text-white/70 hover:text-gold-light transition-colors">{link.name}</Link>
+                  <Link href={link.href} className="text-sm text-white/70 hover:text-gold-light transition-colors focus-visible:ring-2 focus-visible:ring-[#e6c46d] rounded">{link.name}</Link>
                 </li>
               ))}
             </ul>
@@ -133,7 +133,7 @@ export function Footer() {
 
           {/* Column 3 — Explore */}
           <div>
-            <h4 className="text-xs font-semibold uppercase tracking-eyebrow text-white/40 mb-6">Explore</h4>
+            <h4 className="text-xs font-semibold uppercase tracking-eyebrow text-white/60 mb-6">Explore</h4>
             <ul className="space-y-3.5">
               {EXPLORE_LINKS.map((link) => (
                 <li key={link.name}>
@@ -145,7 +145,7 @@ export function Footer() {
 
           {/* Column 4 — Company */}
           <div>
-            <h4 className="text-xs font-semibold uppercase tracking-eyebrow text-white/40 mb-6">Company</h4>
+            <h4 className="text-xs font-semibold uppercase tracking-eyebrow text-white/60 mb-6">Company</h4>
             <ul className="space-y-3.5">
               {COMPANY_LINKS.map((link) => (
                 <li key={link.name}>
@@ -160,8 +160,8 @@ export function Footer() {
       {/* Bottom bar */}
       <div className="border-t border-white/10">
         <div className="site-container py-6 flex flex-col md:flex-row items-center justify-between gap-3">
-          <p className="text-xs text-white/30">&copy; {new Date().getFullYear()} ATL Vibes &amp; Views. All rights reserved.</p>
-          <a href="https://avv-media.com" target="_blank" rel="noopener noreferrer" className="text-xs text-white/30 hover:text-gold-light transition-colors">
+          <p className="text-xs text-white/50">&copy; {new Date().getFullYear()} ATL Vibes &amp; Views. All rights reserved.</p>
+          <a href="https://avv-media.com" target="_blank" rel="noopener noreferrer" className="text-xs text-white/50 hover:text-gold-light transition-colors">
             Site by AVV Media
           </a>
         </div>

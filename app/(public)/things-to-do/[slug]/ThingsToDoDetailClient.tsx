@@ -76,7 +76,7 @@ export function QuickInfoStrip({
                   className={
                     s <= Math.round(avgRating)
                       ? "fill-[#fee198] text-[#fee198]"
-                      : "text-white/30"
+                      : "text-white/50"
                   }
                 />
               ))}

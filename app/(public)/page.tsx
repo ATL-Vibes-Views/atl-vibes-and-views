@@ -379,7 +379,7 @@ export default async function HomePage({
                 <h3 className="font-display text-xl md:text-2xl font-semibold text-white mt-3 leading-snug">
                   Video Content Coming Soon
                 </h3>
-                <p className="text-white/40 text-xs mt-3 uppercase tracking-wide">
+                <p className="text-white/60 text-xs mt-3 uppercase tracking-wide">
                   ATL Vibes &amp; Views
                 </p>
               </div>

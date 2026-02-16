@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createServerClient } from "@/lib/supabase";
+import { withCors } from "@/lib/cors";
 
 /* ============================================================
    UPLOAD API ROUTE — Server-side image upload to Supabase Storage
@@ -41,5 +42,9 @@ export async function POST(req: NextRequest) {
     .from(BUCKET)
     .getPublicUrl(fileName);
 
-  return NextResponse.json({ url: urlData.publicUrl, path: fileName });
+  return withCors(NextResponse.json({ url: urlData.publicUrl, path: fileName }), req);
+}
+
+export async function OPTIONS(req: NextRequest) {
+  return withCors(new NextResponse(null, { status: 204 }), req);
 }

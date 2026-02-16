@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import Stripe from "stripe";
+import { withCors } from "@/lib/cors";
 
 /**
  * Price lookup: maps (submission_type, tier, billing_cycle) → Stripe Price ID.
@@ -114,5 +115,9 @@ export async function POST(request: Request) {
     },
   });
 
-  return NextResponse.json({ url: session.url });
+  return withCors(NextResponse.json({ url: session.url }), request);
+}
+
+export async function OPTIONS(request: Request) {
+  return withCors(new NextResponse(null, { status: 204 }), request);
 }

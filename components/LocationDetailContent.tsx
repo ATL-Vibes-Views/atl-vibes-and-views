@@ -412,7 +412,7 @@ export function LocationDetailContent(props: LocationDetailProps) {
                       {featuredVideo.title}
                     </h3>
                     {featuredVideo.published_at && (
-                      <p className="text-white/40 text-xs mt-3">
+                      <p className="text-white/60 text-xs mt-3">
                         {formatDate(featuredVideo.published_at)}
                       </p>
                     )}
@@ -497,7 +497,7 @@ export function LocationDetailContent(props: LocationDetailProps) {
                   <h3 className="font-display text-xl md:text-2xl font-semibold text-white mt-3 leading-snug">
                     Video Content Coming Soon
                   </h3>
-                  <p className="text-white/40 text-xs mt-3 uppercase tracking-wide">
+                  <p className="text-white/60 text-xs mt-3 uppercase tracking-wide">
                     ATL Vibes &amp; Views
                   </p>
                 </div>
@@ -509,7 +509,7 @@ export function LocationDetailContent(props: LocationDetailProps) {
                 >
                   More Videos &rarr;
                 </Link>
-                <p className="text-white/30 text-sm">
+                <p className="text-white/50 text-sm">
                   More videos coming soon.
                 </p>
               </div>

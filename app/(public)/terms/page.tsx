@@ -7,6 +7,10 @@ export const metadata: Metadata = {
   description:
     "Terms and conditions for using ATL Vibes & Views, Atlanta's local media platform.",
   robots: { index: true, follow: true },
+  openGraph: {
+    title: "Terms & Conditions",
+    description: "Terms and conditions for using ATL Vibes & Views, Atlanta's local media platform.",
+  },
 };
 
 export default function TermsPage() {

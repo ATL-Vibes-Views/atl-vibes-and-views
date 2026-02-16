@@ -87,7 +87,7 @@ export function CityDetailClient({ city, isNew, businesses, areas }: CityDetailC
             <FormGroup label="Hero Image URL"><FormInput defaultValue={field(city, "hero_image_url")} /></FormGroup>
             {field(city, "hero_image_url") && (
               <div className="w-full max-w-[400px] aspect-[16/9] border border-[#e5e5e5] overflow-hidden">
-                <img src={field(city, "hero_image_url")} alt="" className="w-full h-full object-cover" />
+                <img src={field(city, "hero_image_url")} alt={`${field(city, "name", "City")} hero image`} className="w-full h-full object-cover" />
               </div>
             )}
             <FormGroup label="Logo URL"><FormInput defaultValue={field(city, "logo_url")} /></FormGroup>

@@ -57,11 +57,14 @@ export async function generateMetadata({
   const { slug } = await params;
   const city = await getCityBySlug(slug);
   if (!city) return {};
+  const title = `${city.name} — Beyond ATL | ATL Vibes & Views`;
+  const description =
+    city.description ||
+    `Explore ${city.name} — restaurants, events, stories, and more from just outside Atlanta.`;
   return {
-    title: `${city.name} — Beyond ATL | ATL Vibes & Views`,
-    description:
-      city.description ||
-      `Explore ${city.name} — restaurants, events, stories, and more from just outside Atlanta.`,
+    title,
+    description,
+    openGraph: { title, description },
   };
 }
 
