@@ -33,10 +33,10 @@ const ITEMS_PER_PAGE = 25;
 
 const statusBadgeMap: Record<string, "green" | "gray" | "blue" | "yellow" | "red"> = {
   published: "green",
-  approved: "blue",
+  draft: "gray",
+  ready_for_review: "blue",
   scheduled: "yellow",
-  archived: "gray",
-  rejected: "red",
+  archived: "red",
 };
 
 export function PostsClient({ posts, categories }: PostsClientProps) {
@@ -141,9 +141,10 @@ export function PostsClient({ posts, categories }: PostsClientProps) {
               label: "All Status",
               value: statusFilter,
               options: [
-                { value: "published", label: "Published" },
-                { value: "approved", label: "Approved" },
+                { value: "draft", label: "Draft" },
+                { value: "ready_for_review", label: "Ready for Review" },
                 { value: "scheduled", label: "Scheduled" },
+                { value: "published", label: "Published" },
                 { value: "archived", label: "Archived" },
               ],
             },

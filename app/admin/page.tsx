@@ -13,7 +13,7 @@ import { StatGrid } from "@/components/portal/StatGrid";
 import { WorkflowBanner } from "@/components/portal/WorkflowBanner";
 import { AlertCard } from "@/components/portal/AlertCard";
 import { ActivityFeed } from "@/components/portal/ActivityFeed";
-import { createServerClient } from "@/lib/supabase";
+import { createServiceRoleClient } from "@/lib/supabase";
 
 export const metadata: Metadata = {
   title: "Admin Dashboard | ATL Vibes & Views",
@@ -24,7 +24,7 @@ export const metadata: Metadata = {
 export const dynamic = 'force-dynamic';
 
 export default async function AdminDashboardPage() {
-  const supabase = createServerClient();
+  const supabase = createServiceRoleClient();
   const today = new Date().toISOString().split("T")[0];
 
   // Fetch stats in parallel
@@ -32,7 +32,7 @@ export default async function AdminDashboardPage() {
     supabase.from("blog_posts").select("*", { count: "exact", head: true }),
     supabase.from("business_listings").select("*", { count: "exact", head: true }).eq("status", "active"),
     supabase.from("events").select("*", { count: "exact", head: true }).gte("start_date", today),
-    supabase.from("reviews").select("*", { count: "exact", head: true }).eq("status", "pending"),
+    supabase.from("reviews").select("*", { count: "exact", head: true }).eq("status", "pending_review"),
     supabase.from("stories").select("*", { count: "exact", head: true }).eq("status", "new"),
     supabase.from("users").select("*", { count: "exact", head: true }),
     supabase.from("newsletters").select("*", { count: "exact", head: true }).eq("status", "sent"),

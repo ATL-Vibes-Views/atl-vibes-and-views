@@ -1,5 +1,5 @@
 import { Metadata } from "next";
-import { createServerClient } from "@/lib/supabase";
+import { createServiceRoleClient } from "@/lib/supabase";
 import { UsersClient } from "./UsersClient";
 
 export const metadata: Metadata = {
@@ -24,7 +24,7 @@ interface UserRow {
 }
 
 export default async function UsersPage() {
-  const supabase = createServerClient();
+  const supabase = createServiceRoleClient();
 
   const { data: users, error } = await supabase
     .from("users")

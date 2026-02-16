@@ -1,5 +1,5 @@
 import { Metadata } from "next";
-import { createServerClient } from "@/lib/supabase";
+import { createServiceRoleClient } from "@/lib/supabase";
 import { ScriptsClient } from "./ScriptsClient";
 
 export const metadata: Metadata = {
@@ -11,7 +11,7 @@ export const metadata: Metadata = {
 export const dynamic = 'force-dynamic';
 
 export default async function ScriptsPage() {
-  const supabase = createServerClient();
+  const supabase = createServiceRoleClient();
 
   // Filming scripts: draft/pending only — approved scripts go to Social Queue
   const { data: filmingScripts, error: scriptsErr } = (await supabase
@@ -19,7 +19,7 @@ export default async function ScriptsPage() {
     .select("*, script_batches(batch_name), stories(headline)")
     .eq("platform", "reel")
     .eq("format", "talking_head")
-    .in("status", ["draft", "pending"])
+    .in("status", ["draft"])
     .order("created_at", { ascending: false })) as {
     data: {
       id: string;
@@ -76,7 +76,7 @@ export default async function ScriptsPage() {
   };
 
   const counts = {
-    pending: (statusCounts ?? []).filter(s => s.status === "draft" || s.status === "pending").length,
+    pending: (statusCounts ?? []).filter(s => s.status === "draft").length,
     approved: (statusCounts ?? []).filter(s => s.status === "approved").length,
     published: (statusCounts ?? []).filter(s => s.status === "posted" || s.status === "published").length,
   };

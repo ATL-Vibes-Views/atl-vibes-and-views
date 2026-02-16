@@ -1,5 +1,5 @@
 import { Metadata } from "next";
-import { createServerClient } from "@/lib/supabase";
+import { createServiceRoleClient } from "@/lib/supabase";
 import { PublishingClient } from "./PublishingClient";
 
 export const metadata: Metadata = {
@@ -11,7 +11,7 @@ export const metadata: Metadata = {
 export const dynamic = 'force-dynamic';
 
 export default async function PublishingPage() {
-  const supabase = createServerClient();
+  const supabase = createServiceRoleClient();
 
   // Blog posts in draft — the publishing queue is where drafts get media + published
   const { data: posts, error: postsErr } = (await supabase

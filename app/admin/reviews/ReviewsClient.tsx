@@ -38,10 +38,10 @@ const ITEMS_PER_PAGE = 25;
 
 const statusBadgeMap: Record<string, "green" | "gold" | "gray" | "red" | "orange"> = {
   approved: "green",
-  pending: "gold",
+  pending_review: "gold",
   rejected: "red",
   flagged: "orange",
-  published: "green",
+  removed: "gray",
 };
 
 export function ReviewsClient({ reviews, businesses, users }: ReviewsClientProps) {
@@ -79,7 +79,7 @@ export function ReviewsClient({ reviews, businesses, users }: ReviewsClientProps
   const totalPages = Math.max(1, Math.ceil(filtered.length / ITEMS_PER_PAGE));
   const paginated = filtered.slice((page - 1) * ITEMS_PER_PAGE, page * ITEMS_PER_PAGE);
 
-  const pendingCount = reviews.filter((r) => r.status === "pending").length;
+  const pendingCount = reviews.filter((r) => r.status === "pending_review").length;
   const flaggedCount = reviews.filter((r) => r.auto_flagged).length;
 
   const columns = useMemo(
@@ -177,10 +177,11 @@ export function ReviewsClient({ reviews, businesses, users }: ReviewsClientProps
               label: "All Status",
               value: statusFilter,
               options: [
-                { value: "pending", label: "Pending" },
+                { value: "pending_review", label: "Pending Review" },
                 { value: "approved", label: "Approved" },
-                { value: "published", label: "Published" },
+                { value: "flagged", label: "Flagged" },
                 { value: "rejected", label: "Rejected" },
+                { value: "removed", label: "Removed" },
               ],
             },
           ]}

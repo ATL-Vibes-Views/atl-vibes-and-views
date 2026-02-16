@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { createServerClient } from "@/lib/supabase";
+import { createServiceRoleClient } from "@/lib/supabase";
 import { withCors } from "@/lib/cors";
 
 /* ============================================================
@@ -18,7 +18,7 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "No file provided" }, { status: 400 });
   }
 
-  const supabase = createServerClient();
+  const supabase = createServiceRoleClient();
 
   const ext = file.name.split(".").pop()?.toLowerCase() ?? "jpg";
   const fileName = `${folder}/${Date.now()}-${Math.random().toString(36).slice(2, 8)}.${ext}`;

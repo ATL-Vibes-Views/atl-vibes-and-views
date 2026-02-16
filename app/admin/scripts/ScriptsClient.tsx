@@ -47,8 +47,11 @@ interface ScriptsClientProps {
 const ITEMS_PER_PAGE = 10;
 
 const statusBadgeMap: Record<string, "yellow" | "green" | "red" | "blue" | "gray"> = {
-  pending: "yellow",
-  draft: "gray",
+  draft: "yellow",
+  approved: "green",
+  filmed: "blue",
+  posted: "green",
+  killed: "red",
 };
 
 const PLATFORM_ORDER = ["youtube", "instagram", "tiktok", "linkedin", "facebook", "x"];

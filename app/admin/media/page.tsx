@@ -1,5 +1,5 @@
 import { Metadata } from "next";
-import { createServerClient } from "@/lib/supabase";
+import { createServiceRoleClient } from "@/lib/supabase";
 import { MediaClient } from "./MediaClient";
 
 export const metadata: Metadata = {
@@ -11,7 +11,7 @@ export const metadata: Metadata = {
 export const dynamic = 'force-dynamic';
 
 export default async function MediaPage() {
-  const supabase = createServerClient();
+  const supabase = createServiceRoleClient();
 
   const { data: media, error: mediaErr } = (await supabase
     .from("media_items")

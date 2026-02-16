@@ -34,7 +34,7 @@ const statusBadgeMap: Record<string, "green" | "gray" | "blue" | "yellow"> = {
   published: "green",
   draft: "gray",
   scheduled: "blue",
-  pending: "yellow",
+  archived: "yellow",
 };
 
 export function MediaClient({ media }: MediaClientProps) {
@@ -159,7 +159,8 @@ export function MediaClient({ media }: MediaClientProps) {
               options: [
                 { value: "published", label: "Published" },
                 { value: "draft", label: "Draft" },
-                { value: "pending", label: "Pending" },
+                { value: "scheduled", label: "Scheduled" },
+                { value: "archived", label: "Archived" },
               ],
             },
             {

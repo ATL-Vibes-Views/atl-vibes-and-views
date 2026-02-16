@@ -29,12 +29,23 @@ interface PipelineClientProps {
 
 const ITEMS_PER_PAGE = 25;
 
+const ASSIGNED_STATUSES = ["assigned_blog", "assigned_script", "assigned_dual", "assigned_social"];
+const DRAFT_STATUSES = ["draft_script", "draft_social"];
+
 const statusBadgeMap: Record<string, "yellow" | "blue" | "gray" | "green" | "red"> = {
   new: "yellow",
-  scored: "blue",
+  reviewed: "yellow",
+  queued: "yellow",
+  assigned_blog: "blue",
+  assigned_script: "blue",
+  assigned_dual: "blue",
+  assigned_social: "blue",
+  draft_script: "blue",
+  draft_social: "blue",
   banked: "gray",
+  skipped: "gray",
   used: "green",
-  expired: "red",
+  discarded: "red",
 };
 
 const tierBadgeMap: Record<number, "green" | "blue" | "gold"> = {
@@ -51,7 +62,8 @@ export function PipelineClient({ stories, categories }: PipelineClientProps) {
 
   // Stats
   const newCount = stories.filter((s) => s.status === "new").length;
-  const scoredCount = stories.filter((s) => s.status === "scored").length;
+  const assignedCount = stories.filter((s) => ASSIGNED_STATUSES.includes(s.status)).length;
+  const inProgressCount = stories.filter((s) => DRAFT_STATUSES.includes(s.status)).length;
   const bankedCount = stories.filter((s) => s.status === "banked").length;
   const usedCount = stories.filter((s) => s.status === "used").length;
 
@@ -150,7 +162,7 @@ export function PipelineClient({ stories, categories }: PipelineClientProps) {
         </button>
       );
     }
-    if (item.status === "scored") {
+    if (ASSIGNED_STATUSES.includes(item.status)) {
       return (
         <button
           onClick={() => console.log("Activate story:", item.id)}
@@ -204,7 +216,7 @@ export function PipelineClient({ stories, categories }: PipelineClientProps) {
 
         <StatGrid columns={4}>
           <StatCard label="New (Unscored)" value={newCount} />
-          <StatCard label="Scored" value={scoredCount} />
+          <StatCard label="Assigned" value={assignedCount} />
           <StatCard label="Banked" value={bankedCount} />
           <StatCard label="Used" value={usedCount} />
         </StatGrid>
@@ -217,10 +229,16 @@ export function PipelineClient({ stories, categories }: PipelineClientProps) {
               value: statusFilter,
               options: [
                 { value: "new", label: "New" },
-                { value: "scored", label: "Scored" },
+                { value: "assigned_blog", label: "Assigned Blog" },
+                { value: "assigned_script", label: "Assigned Script" },
+                { value: "assigned_dual", label: "Assigned Dual" },
+                { value: "assigned_social", label: "Assigned Social" },
+                { value: "draft_script", label: "Draft Script" },
+                { value: "draft_social", label: "Draft Social" },
                 { value: "banked", label: "Banked" },
+                { value: "skipped", label: "Skipped" },
                 { value: "used", label: "Used" },
-                { value: "expired", label: "Expired" },
+                { value: "discarded", label: "Discarded" },
               ],
             },
             {

@@ -34,5 +34,18 @@ export function createBrowserClient() {
   return browserClient;
 }
 
+/* --- Service-role client (for admin Server Components & API routes that bypass RLS) --- */
+export function createServiceRoleClient() {
+  return createClient<Database>(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.SUPABASE_SERVICE_ROLE_KEY!,
+    {
+      auth: {
+        persistSession: false,
+      },
+    }
+  );
+}
+
 /* --- Default export for quick imports --- */
 export const supabase = createServerClient();
