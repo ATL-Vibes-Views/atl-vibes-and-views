@@ -173,7 +173,7 @@ export function AdPlacementsClient({ placements, flights }: AdPlacementsClientPr
           </button>
         }
       />
-      <div className="p-8 max-[899px]:pt-16 space-y-4">
+      <div className="p-8 space-y-4">
         <StatGrid columns={3}>
           <StatCard label="Total Placements" value={placements.length} />
           <StatCard

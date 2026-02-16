@@ -84,7 +84,7 @@ export function AutomationClient({ stats, batches, recentStories }: AutomationCl
   return (
     <>
       <PortalTopbar title="Automation" />
-      <div className="p-8 max-[899px]:pt-16 space-y-6">
+      <div className="p-8 space-y-6">
         <StatGrid columns={4}>
           <StatCard
             label="New Stories"

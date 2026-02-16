@@ -175,7 +175,7 @@ export default async function AdminDashboardPage() {
   return (
     <>
       <PortalTopbar title="Dashboard" />
-      <div className="p-8 max-[899px]:pt-16 space-y-6">
+      <div className="p-8 space-y-6">
         {/* Stats — 4-column grid */}
         <StatGrid columns={4}>
           <StatCard label="Total Posts" value={totalPosts} />

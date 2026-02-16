@@ -11,7 +11,7 @@ export default function MapsPage() {
   return (
     <>
       <PortalTopbar title="Maps" />
-      <div className="p-8 max-[899px]:pt-16">
+      <div className="p-8">
         <div className="bg-white border border-[#e5e5e5] p-12 text-center">
           <h2 className="font-display text-[20px] font-bold text-[#1a1a1a] mb-2">Maps</h2>
           <p className="text-[13px] text-[#6b7280] max-w-md mx-auto">

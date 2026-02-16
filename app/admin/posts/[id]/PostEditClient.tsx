@@ -77,7 +77,7 @@ export function PostEditClient({ post, categories, neighborhoods }: PostEditClie
   return (
     <>
       <PortalTopbar title="Edit Blog Post" />
-      <div className="p-8 max-[899px]:pt-16 space-y-6">
+      <div className="p-8 space-y-6">
         <Link href="/admin/posts" className="inline-flex items-center gap-1.5 text-[13px] text-[#6b7280] hover:text-black transition-colors">
           <ArrowLeft size={14} /> Back to Posts
         </Link>

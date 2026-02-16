@@ -139,7 +139,7 @@ export function UsersClient({ users }: { users: UserRow[] }) {
   return (
     <>
       <PortalTopbar title="Users" />
-      <div className="p-8 max-[899px]:pt-16 space-y-4">
+      <div className="p-8 space-y-4">
         <StatGrid columns={3}>
           <StatCard label="Total Users" value={users.length} />
           <StatCard label="Active" value={activeCount} />

@@ -30,6 +30,8 @@ import {
 import { PortalSidebar } from "@/components/portal/PortalSidebar";
 import { createServiceRoleClient } from "@/lib/supabase";
 
+export const dynamic = "force-dynamic";
+
 export const metadata: Metadata = {
   title: "Admin | ATL Vibes & Views",
   description: "Admin CMS for ATL Vibes & Views.",
@@ -142,7 +144,7 @@ export default async function AdminLayout({
         navGroups={navGroups}
         activePath="/admin"
       />
-      <main className="flex-1 min-[900px]:ml-[240px] max-[899px]:ml-0 overflow-y-auto">
+      <main className="flex-1 min-[900px]:ml-[240px] max-[899px]:ml-0 max-[899px]:pt-[44px] overflow-y-auto">
         {children}
       </main>
     </div>

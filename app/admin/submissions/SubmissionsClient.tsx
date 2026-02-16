@@ -135,7 +135,7 @@ export function SubmissionsClient({ submissions }: { submissions: SubmissionRow[
   return (
     <>
       <PortalTopbar title="Submissions" />
-      <div className="p-8 max-[899px]:pt-16 space-y-4">
+      <div className="p-8 space-y-4">
         <StatGrid columns={4}>
           <StatCard label="Total Submissions" value={submissions.length} />
           <StatCard

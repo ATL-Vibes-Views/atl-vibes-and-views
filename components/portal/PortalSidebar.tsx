@@ -77,7 +77,7 @@ export function PortalSidebar({
           className={mobileHeaderText}
           aria-label={mobileOpen ? "Close menu" : "Open menu"}
         >
-          {mobileOpen ? <Menu size={20} /> : <Menu size={20} />}
+          {mobileOpen ? <X size={20} /> : <Menu size={20} />}
         </button>
       </div>
 

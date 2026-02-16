@@ -121,7 +121,7 @@ export function PackagesClient({ packages, sponsors }: PackagesClientProps) {
           </div>
         }
       />
-      <div className="p-8 max-[899px]:pt-16 space-y-4">
+      <div className="p-8 space-y-4">
         {packages.length === 0 ? (
           <div className="bg-white border border-[#e5e5e5] p-10 text-center">
             <p className="text-[13px] text-[#6b7280]">No package templates yet. Create one to get started.</p>

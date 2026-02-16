@@ -34,7 +34,7 @@ export function SettingsClient() {
           </button>
         }
       />
-      <div className="p-8 max-[899px]:pt-16 space-y-6">
+      <div className="p-8 space-y-6">
         <TabNav tabs={TABS} activeTab={activeTab} onTabChange={setActiveTab} />
 
         {/* ── General Tab ── */}
