@@ -149,10 +149,10 @@ const labelLayer: Omit<SymbolLayerSpecification, 'source'> & { id: string } = {
 function InstructionPanel({ visible }: { visible: boolean }) {
   return (
     <div
-      className="absolute top-0 left-0 bottom-0 z-[5] flex w-[380px] max-md:w-full items-center pointer-events-none transition-all duration-[350ms] ease-in-out"
+      className="absolute top-0 left-0 bottom-0 z-[5] flex w-[380px] max-md:w-full items-center pointer-events-none transition-[opacity,transform] duration-[350ms] ease-in-out"
       style={{
         background:
-          'linear-gradient(to right, rgba(10,10,10,0.92) 0%, rgba(10,10,10,0.7) 70%, transparent 100%)',
+          'linear-gradient(to right, rgba(10,10,10,0.92) 0%, rgba(10,10,10,0.7) 70%, rgba(10,10,10,0) 100%)',
         opacity: visible ? 1 : 0,
         transform: visible ? 'translateX(0)' : 'translateX(-20px)',
       }}
@@ -223,7 +223,10 @@ export default function AreaMap({
   const neighborhoodByGeoKey = useMemo(() => {
     const lookup: Record<string, NeighborhoodEntry> = {};
     for (const n of neighborhoods) {
+      // Index by geojson_key first (takes precedence)
       if (n.geojson_key) lookup[n.geojson_key] = n;
+      // Also index by name as fallback when geojson_key is not populated
+      if (!lookup[n.name]) lookup[n.name] = n;
     }
     return lookup;
   }, [neighborhoods]);
@@ -263,14 +266,16 @@ export default function AreaMap({
           if (!name) continue;
 
           const nbr = neighborhoodByGeoKey[name];
-          if (!nbr) continue;
 
-          const nAreaSlug = getAreaSlug(nbr);
+          // In neighborhoods/single-neighborhood modes, skip features without a DB match
+          if (!nbr && mode !== 'areas') continue;
+
+          const nAreaSlug = nbr ? getAreaSlug(nbr) : '';
           const color = AREA_COLORS[nAreaSlug] ?? DEFAULT_AREA_COLOR;
-          const area = areaById[nbr.area_id];
+          const area = nbr ? areaById[nbr.area_id] : undefined;
 
           if (mode === 'neighborhoods' && nAreaSlug !== areaSlug) continue;
-          if (mode === 'single-neighborhood' && nbr.slug !== neighborhoodSlug)
+          if (mode === 'single-neighborhood' && nbr?.slug !== neighborhoodSlug)
             continue;
 
           enriched.push({
@@ -280,8 +285,8 @@ export default function AreaMap({
               ...(feature.properties as NeighborhoodProperties),
               areaSlug: nAreaSlug,
               areaColor: color,
-              slug: mode === 'areas' ? nAreaSlug : nbr.slug,
-              label: mode === 'areas' ? (area?.name ?? nAreaSlug) : nbr.name,
+              slug: mode === 'areas' ? (nAreaSlug || name) : (nbr?.slug ?? name),
+              label: mode === 'areas' ? (area?.name ?? nAreaSlug) : (nbr?.name ?? name),
             },
           });
 
@@ -289,13 +294,14 @@ export default function AreaMap({
             const centroid = computeCentroid(
               feature.geometry as Polygon | MultiPolygon,
             );
-            const existing = areaCentroids[nAreaSlug];
+            const centroidKey = nAreaSlug || '__unmatched__';
+            const existing = areaCentroids[centroidKey];
             if (existing) {
               existing.lngSum += centroid[0];
               existing.latSum += centroid[1];
               existing.count += 1;
             } else {
-              areaCentroids[nAreaSlug] = {
+              areaCentroids[centroidKey] = {
                 lngSum: centroid[0],
                 latSum: centroid[1],
                 count: 1,
@@ -309,7 +315,7 @@ export default function AreaMap({
             labelPoints.push({
               type: 'Feature',
               geometry: { type: 'Point', coordinates: centroid },
-              properties: { label: nbr.name },
+              properties: { label: nbr?.name ?? name },
             });
           }
         }
