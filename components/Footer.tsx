@@ -89,6 +89,7 @@ export function Footer() {
                     onChange={(e) => setEmail(e.target.value)}
                     placeholder="Your email"
                     required
+                    aria-label="Email address"
                     className="flex-1 min-w-0 px-4 py-3 bg-white/10 border border-white/10 text-sm text-white placeholder:text-white/30 outline-none focus:border-gold-light/50 transition-colors rounded-l-full"
                   />
                   <button

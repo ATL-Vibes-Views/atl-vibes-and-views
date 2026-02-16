@@ -135,8 +135,8 @@ export function Header({ exploreData = [] }: HeaderProps) {
           </Link>
 
           <div className="flex items-center gap-3 ml-auto">
-            <button onClick={() => setSearchOpen(!searchOpen)} className="p-2.5 rounded-full transition-colors duration-200 text-[#e6c46d] hover:text-black" aria-label="Search"><Search size={20} strokeWidth={1.5} /></button>
-            <Link href="/login" className="p-2.5 rounded-full transition-colors duration-200 text-[#e6c46d] hover:text-black" aria-label="Sign in"><User size={20} strokeWidth={1.5} /></Link>
+            <button onClick={() => setSearchOpen(!searchOpen)} className="p-3 rounded-full transition-colors duration-200 text-[#e6c46d] hover:text-black" aria-label="Search"><Search size={20} strokeWidth={1.5} /></button>
+            <Link href="/login" className="p-3 rounded-full transition-colors duration-200 text-[#e6c46d] hover:text-black" aria-label="Sign in"><User size={20} strokeWidth={1.5} /></Link>
           </div>
         </div>
       </div>
@@ -146,8 +146,8 @@ export function Header({ exploreData = [] }: HeaderProps) {
           <div className="site-container py-4">
             <div className="flex items-center gap-3 max-w-xl mx-auto">
               <Search size={18} className="text-gray-mid shrink-0" />
-              <input type="text" placeholder="Search stories, neighborhoods, businesses..." className="w-full bg-transparent text-sm outline-none placeholder:text-gray-mid" autoFocus />
-              <button onClick={() => setSearchOpen(false)} className="p-1 hover:bg-white rounded-full transition-colors"><X size={16} /></button>
+              <input type="text" placeholder="Search stories, neighborhoods, businesses..." className="w-full bg-transparent text-sm outline-none placeholder:text-gray-mid focus-visible:ring-2 focus-visible:ring-[#e6c46d] focus-visible:ring-offset-2 rounded" autoFocus aria-label="Search stories, neighborhoods, businesses" />
+              <button onClick={() => setSearchOpen(false)} className="p-3 hover:bg-white rounded-full transition-colors" aria-label="Close search"><X size={16} /></button>
             </div>
           </div>
         </div>
@@ -155,7 +155,7 @@ export function Header({ exploreData = [] }: HeaderProps) {
 
       {/* ROW 2 — Navigation */}
       <div className="site-container flex items-center justify-between h-[60px]">
-        <button onClick={openDrawer} className="p-2.5 -ml-2 hover:bg-gray-100 rounded-full transition-colors" aria-label="Open menu"><Menu size={22} strokeWidth={1.5} /></button>
+        <button onClick={openDrawer} className="p-3 -ml-2 hover:bg-gray-100 rounded-full transition-colors" aria-label="Open menu"><Menu size={22} strokeWidth={1.5} /></button>
 
         <nav className="hidden lg:flex items-center gap-10 absolute left-1/2 -translate-x-1/2">
           <NavLink href="/">Home</NavLink>
@@ -284,7 +284,8 @@ export function Header({ exploreData = [] }: HeaderProps) {
               </Link>
               <button
                 onClick={closeDrawer}
-                className="p-1 text-white/50 hover:text-white transition-all mt-1"
+                className="p-3 text-white/50 hover:text-white transition-all mt-1"
+                aria-label="Close menu"
                 style={{
                   transform: closeSpinning ? "rotate(90deg) scale(0.7)" : "rotate(0deg) scale(1)",
                   opacity: closeSpinning ? 0 : 1,
