@@ -19,6 +19,8 @@ import {
   AREA_COLORS,
   DEFAULT_AREA_COLOR,
 } from '@/lib/map-config';
+import MapInfoCard from './MapInfoCard';
+import type { AreaCardData, NeighborhoodCardData } from '@/lib/queries/map-card-data';
 
 // ---------------------------------------------------------------------------
 // Types
@@ -50,6 +52,11 @@ interface AreaMapProps {
   center?: { lng: number; lat: number };
   zoom?: number;
   showLabels?: boolean;
+
+  /** Pre-fetched area card data keyed by area slug (for areas mode). */
+  areaCardData?: Record<string, AreaCardData>;
+  /** Pre-fetched neighborhood card data keyed by neighborhood slug (for neighborhoods mode). */
+  neighborhoodCardData?: Record<string, NeighborhoodCardData>;
 }
 
 interface NeighborhoodProperties {
@@ -150,6 +157,8 @@ export default function AreaMap({
   center,
   zoom,
   showLabels = true,
+  areaCardData = {},
+  neighborhoodCardData = {},
 }: AreaMapProps) {
   const mapRef = useRef<MapRef>(null);
   const [geojson, setGeojson] = useState<FeatureCollection | null>(null);
@@ -158,6 +167,10 @@ export default function AreaMap({
   );
   const [hoveredSlug, setHoveredSlug] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
+
+  // Info card state
+  const [cardOpen, setCardOpen] = useState(false);
+  const [selectedSlug, setSelectedSlug] = useState<string | null>(null);
 
   // Build lookup maps (using plain objects to avoid Map/MapGL name clash)
   const areaById = useMemo(() => {
@@ -377,11 +390,20 @@ export default function AreaMap({
         layers: ['area-fill'],
       });
 
-      if (features.length === 0) return;
+      if (features.length === 0) {
+        // Clicked map background — close the card
+        setCardOpen(false);
+        return;
+      }
 
       const slug = features[0].properties?.slug as string | undefined;
       if (!slug) return;
 
+      // Open info card
+      setSelectedSlug(slug);
+      setCardOpen(true);
+
+      // Fire parent callbacks
       if (mode === 'areas') {
         onAreaClick?.(slug);
       } else if (mode === 'neighborhoods') {
@@ -390,6 +412,18 @@ export default function AreaMap({
     },
     [mode, onAreaClick, onNeighborhoodClick],
   );
+
+  const handleCardClose = useCallback(() => {
+    setCardOpen(false);
+  }, []);
+
+  // -----------------------------------------------------------------------
+  // Resolve card data from pre-fetched sets
+  // -----------------------------------------------------------------------
+  const activeAreaCard = selectedSlug ? areaCardData[selectedSlug] : undefined;
+  const activeNeighborhoodCard = selectedSlug
+    ? neighborhoodCardData[selectedSlug]
+    : undefined;
 
   // -----------------------------------------------------------------------
   // Memoize fill layer (depends on hovered slug)
@@ -412,7 +446,7 @@ export default function AreaMap({
   // Render
   // -----------------------------------------------------------------------
   return (
-    <div className="relative w-full" style={{ height }}>
+    <div className="relative w-full overflow-hidden" style={{ height }}>
       <MapGL
         ref={mapRef}
         initialViewState={initialViewState}
@@ -440,6 +474,27 @@ export default function AreaMap({
           </Source>
         )}
       </MapGL>
+
+      {/* Info card — slides in from right (desktop) or bottom (mobile) */}
+      {mode === 'areas' && activeAreaCard && (
+        <MapInfoCard
+          type="area"
+          isOpen={cardOpen}
+          onClose={handleCardClose}
+          area={activeAreaCard.area}
+          topNeighborhoods={activeAreaCard.topNeighborhoods}
+          featuredBusiness={activeAreaCard.featuredBusiness}
+        />
+      )}
+
+      {mode === 'neighborhoods' && activeNeighborhoodCard && (
+        <MapInfoCard
+          type="neighborhood"
+          isOpen={cardOpen}
+          onClose={handleCardClose}
+          neighborhood={activeNeighborhoodCard.neighborhood}
+        />
+      )}
 
       {loading && (
         <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
