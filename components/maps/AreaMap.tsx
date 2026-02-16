@@ -343,22 +343,43 @@ export default function AreaMap({
       console.log('[AreaMap] Style has', styleLayers.length, 'layers. First symbol:', firstSymbolId);
       console.log('[AreaMap] All style layer IDs:', styleLayers.map((l: { id: string }) => l.id));
 
-      // Add areas source
-      map.addSource('areas', { type: 'geojson', data });
-
-      // Add fill layer BEFORE the first symbol layer (not at the end)
-      map.addLayer(
-        {
-          id: 'area-fill',
-          type: 'fill',
-          source: 'areas',
-          paint: {
-            'fill-color': '#c4a24d',
-            'fill-opacity': 0.55,
+      // DEBUG: hardcoded test square over downtown Atlanta
+      const testData: FeatureCollection = {
+        type: 'FeatureCollection',
+        features: [
+          {
+            type: 'Feature',
+            geometry: {
+              type: 'Polygon',
+              coordinates: [[
+                [-84.42, 33.78],
+                [-84.42, 33.72],
+                [-84.36, 33.72],
+                [-84.36, 33.78],
+                [-84.42, 33.78],
+              ]],
+            },
+            properties: { slug: 'test', label: 'TEST' },
           },
+        ],
+      };
+
+      // Add source — use test data to verify rendering, real data for labels
+      map.addSource('areas', { type: 'geojson', data: testData });
+      console.log('[AreaMap] Added test source with hardcoded square');
+
+      // Add fill layer — no beforeId, goes on TOP of everything
+      map.addLayer({
+        id: 'area-fill',
+        type: 'fill',
+        source: 'areas',
+        paint: {
+          'fill-color': '#ff0000',
+          'fill-opacity': 0.8,
         },
-        firstSymbolId,
-      );
+      });
+
+      console.log('[AreaMap] area-fill layer added. Visibility:', map.getLayoutProperty('area-fill', 'visibility'));
 
       // Add line layer right after fill
       map.addLayer(
