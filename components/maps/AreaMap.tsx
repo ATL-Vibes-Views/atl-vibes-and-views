@@ -105,10 +105,10 @@ function makeFillLayer(
       'fill-opacity': [
         'case',
         ['==', ['get', 'slug'], selectedSlug ?? ''],
-        0.55,
+        0.80,
         ['==', ['get', 'slug'], hoveredSlug ?? ''],
-        0.50,
-        0.30,
+        0.70,
+        0.55,
       ] as unknown as number,
     },
   };
