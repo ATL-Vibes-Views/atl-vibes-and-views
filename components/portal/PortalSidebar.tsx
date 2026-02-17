@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useMemo } from "react";
-import { usePathname } from "next/navigation";
+import { usePathname, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { Menu, X } from "lucide-react";
 
@@ -40,7 +40,11 @@ export function PortalSidebar({
 }: PortalSidebarProps) {
   const [mobileOpen, setMobileOpen] = useState(false);
   const pathname = usePathname();
+  const searchParams = useSearchParams();
   const isLight = theme === "light";
+
+  // Allow ?from=publishing to override sidebar highlight for shared edit routes
+  const activePathOverride = searchParams.get("from") === "publishing" ? "/admin/publishing" : null;
 
   // Collect all nav paths for precise active detection
   const allNavPaths = useMemo(
@@ -146,14 +150,20 @@ export function PortalSidebar({
               )}
 
               {group.items.map((item) => {
-                // Exact match always wins. Only use startsWith if no more-specific
-                // nav item also matches (prevents double-highlight on nested routes).
-                const exactMatch = pathname === item.path;
-                const prefixMatch = pathname.startsWith(item.path + "/");
-                const moreSpecificExists = prefixMatch && allNavPaths.some(
-                  (p) => p !== item.path && p.startsWith(item.path + "/") && (pathname === p || pathname.startsWith(p + "/"))
-                );
-                const isActive = exactMatch || (prefixMatch && !moreSpecificExists);
+                // If activePathOverride is set, only that exact path is active
+                let isActive: boolean;
+                if (activePathOverride) {
+                  isActive = item.path === activePathOverride;
+                } else {
+                  // Exact match always wins. Only use startsWith if no more-specific
+                  // nav item also matches (prevents double-highlight on nested routes).
+                  const exactMatch = pathname === item.path;
+                  const prefixMatch = pathname.startsWith(item.path + "/");
+                  const moreSpecificExists = prefixMatch && allNavPaths.some(
+                    (p) => p !== item.path && p.startsWith(item.path + "/") && (pathname === p || pathname.startsWith(p + "/"))
+                  );
+                  isActive = exactMatch || (prefixMatch && !moreSpecificExists);
+                }
 
                 const itemBase = isLight
                   ? "flex items-center gap-2.5 px-3 py-2 text-[13px] font-body border-l-[3px] transition-colors"

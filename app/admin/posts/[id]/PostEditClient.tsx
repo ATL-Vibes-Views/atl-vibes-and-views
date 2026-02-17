@@ -3,7 +3,7 @@
 import { useState, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import { ArrowLeft } from "lucide-react";
+import { ArrowLeft, Upload, Loader2, X as XIcon } from "lucide-react";
 import { PortalTopbar } from "@/components/portal/PortalTopbar";
 import { FormGroup } from "@/components/portal/FormGroup";
 import { FormRow } from "@/components/portal/FormRow";
@@ -11,6 +11,7 @@ import { FormInput } from "@/components/portal/FormInput";
 import { FormTextarea } from "@/components/portal/FormTextarea";
 import { ButtonBar } from "@/components/portal/ButtonBar";
 import { updateBlogPost } from "@/app/admin/actions";
+import { uploadImage } from "@/lib/supabase-storage";
 
 function field(obj: Record<string, unknown> | null, key: string, fallback = ""): string {
   if (!obj) return fallback;
@@ -28,6 +29,7 @@ interface PostEditClientProps {
 export function PostEditClient({ post, categories, neighborhoods }: PostEditClientProps) {
   const router = useRouter();
   const [saving, setSaving] = useState(false);
+  const [saved, setSaved] = useState(false);
   const [title, setTitle] = useState(field(post, "title"));
   const [contentHtml, setContentHtml] = useState(field(post, "content_html"));
   const [excerpt, setExcerpt] = useState(field(post, "excerpt"));
@@ -38,6 +40,23 @@ export function PostEditClient({ post, categories, neighborhoods }: PostEditClie
   const [isSponsored, setIsSponsored] = useState(post?.is_sponsored === true);
   const [metaTitle, setMetaTitle] = useState(field(post, "meta_title"));
   const [metaDesc, setMetaDesc] = useState(field(post, "meta_description"));
+  const [featuredImageUrl, setFeaturedImageUrl] = useState(field(post, "featured_image_url"));
+  const [uploading, setUploading] = useState(false);
+
+  const handleImageUpload = useCallback(async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file || !post) return;
+    setUploading(true);
+    const result = await uploadImage(file, "blog-featured");
+    if ("error" in result) {
+      alert("Upload error: " + result.error);
+      setUploading(false);
+      return;
+    }
+    setFeaturedImageUrl(result.url);
+    await updateBlogPost(String(post.id), { featured_image_url: result.url });
+    setUploading(false);
+  }, [post]);
 
   const handleSave = useCallback(async () => {
     if (!post) return;
@@ -59,8 +78,21 @@ export function PostEditClient({ post, categories, neighborhoods }: PostEditClie
       alert("Error: " + result.error);
       return;
     }
-    router.refresh();
+    setSaved(true);
+    // Redirect based on post status after brief feedback
+    const status = String(post.status ?? "draft");
+    const redirectPath = (status === "draft" || status === "ready_for_review")
+      ? "/admin/publishing"
+      : "/admin/posts";
+    setTimeout(() => {
+      router.push(redirectPath);
+    }, 1200);
   }, [post, title, contentHtml, excerpt, type, contentType, categoryId, neighborhoodId, isSponsored, metaTitle, metaDesc, router]);
+
+  const postStatus = String(post?.status ?? "draft");
+  const isDraft = postStatus === "draft" || postStatus === "ready_for_review";
+  const backHref = isDraft ? "/admin/publishing" : "/admin/posts";
+  const backLabel = isDraft ? "Back to Publishing Queue" : "Back to Posts";
 
   if (!post) {
     return (
@@ -78,8 +110,8 @@ export function PostEditClient({ post, categories, neighborhoods }: PostEditClie
     <>
       <PortalTopbar title="Edit Blog Post" />
       <div className="p-8 space-y-6">
-        <Link href="/admin/posts" className="inline-flex items-center gap-1.5 text-[13px] text-[#6b7280] hover:text-black transition-colors">
-          <ArrowLeft size={14} /> Back to Posts
+        <Link href={backHref} className="inline-flex items-center gap-1.5 text-[13px] text-[#6b7280] hover:text-black transition-colors">
+          <ArrowLeft size={14} /> {backLabel}
         </Link>
 
         <div className="space-y-4 max-w-[720px]">
@@ -93,6 +125,44 @@ export function PostEditClient({ post, categories, neighborhoods }: PostEditClie
 
           <FormGroup label="Excerpt">
             <FormTextarea value={excerpt} onChange={(e) => setExcerpt(e.target.value)} rows={3} />
+          </FormGroup>
+
+          <FormGroup label="Featured Image">
+            {featuredImageUrl ? (
+              <div className="flex items-start gap-3">
+                <div className="w-[200px] h-[120px] bg-[#f5f5f5] border border-[#e5e5e5] overflow-hidden">
+                  <img src={featuredImageUrl} alt="Featured" className="w-full h-full object-cover" />
+                </div>
+                <div className="flex flex-col gap-2">
+                  <label className="inline-flex items-center px-3 py-1.5 rounded-full text-xs font-semibold border border-[#e5e5e5] text-[#374151] hover:border-[#d1d5db] transition-colors cursor-pointer">
+                    <Upload size={12} className="mr-1.5" /> Replace
+                    <input type="file" accept="image/*" onChange={handleImageUpload} className="hidden" />
+                  </label>
+                  <button
+                    type="button"
+                    onClick={async () => {
+                      setFeaturedImageUrl("");
+                      if (post) await updateBlogPost(String(post.id), { featured_image_url: null });
+                    }}
+                    className="inline-flex items-center px-3 py-1.5 rounded-full text-xs font-semibold border border-[#e5e5e5] text-[#c1121f] hover:border-[#c1121f] transition-colors"
+                  >
+                    <XIcon size={12} className="mr-1.5" /> Remove
+                  </button>
+                </div>
+              </div>
+            ) : uploading ? (
+              <div className="border-2 border-dashed border-[#e6c46d] bg-[#fefcf5] p-6 text-center">
+                <Loader2 size={20} className="mx-auto mb-2 text-[#6b7280] animate-spin" />
+                <p className="text-[12px] text-[#6b7280]">Uploading...</p>
+              </div>
+            ) : (
+              <label className="block border-2 border-dashed border-[#e5e5e5] bg-[#fafafa] p-6 text-center cursor-pointer hover:border-[#e6c46d] hover:bg-white transition-colors">
+                <Upload size={20} className="mx-auto mb-2 text-[#6b7280]" />
+                <p className="text-[12px] text-[#6b7280]">Drop featured image here or click to upload</p>
+                <p className="text-[11px] text-[#9ca3af] mt-1">PNG, JPG, WebP up to 10MB</p>
+                <input type="file" accept="image/*" onChange={handleImageUpload} className="hidden" />
+              </label>
+            )}
           </FormGroup>
 
           <FormRow columns={2}>
@@ -150,17 +220,21 @@ export function PostEditClient({ post, categories, neighborhoods }: PostEditClie
 
           <ButtonBar>
             <Link
-              href="/admin/posts"
+              href={backHref}
               className="inline-flex items-center px-6 py-2.5 rounded-full text-sm font-semibold border border-[#e5e5e5] text-[#374151] hover:border-[#d1d5db] transition-colors"
             >
               Cancel
             </Link>
             <button
               onClick={handleSave}
-              disabled={saving}
-              className="inline-flex items-center px-6 py-2.5 rounded-full text-sm font-semibold bg-[#fee198] text-[#1a1a1a] hover:bg-[#fdd870] transition-colors disabled:opacity-50"
+              disabled={saving || saved}
+              className={`inline-flex items-center px-6 py-2.5 rounded-full text-sm font-semibold transition-colors disabled:opacity-50 ${
+                saved
+                  ? "bg-[#16a34a] text-white"
+                  : "bg-[#fee198] text-[#1a1a1a] hover:bg-[#fdd870]"
+              }`}
             >
-              {saving ? "Saving..." : "Save Changes"}
+              {saved ? "Saved \u2713" : saving ? "Saving..." : "Save Changes"}
             </button>
           </ButtonBar>
         </div>

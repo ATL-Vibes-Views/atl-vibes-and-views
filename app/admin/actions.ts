@@ -81,6 +81,18 @@ export async function publishBlogPost(id: string) {
   return { success: true };
 }
 
+export async function unpublishBlogPost(postId: string) {
+  const supabase = createServiceRoleClient();
+  const { error } = await supabase
+    .from("blog_posts")
+    .update({ status: "archived", updated_at: new Date().toISOString() } as never)
+    .eq("id", postId);
+  if (error) return { error: error.message };
+  revalidatePath("/admin/posts");
+  revalidatePath("/admin/publishing");
+  return { success: true };
+}
+
 // ─── STORIES ──────────────────────────────────────────────────
 
 export async function createStory(formData: FormData) {
@@ -120,6 +132,30 @@ export async function updateStoryStatus(id: string, status: string) {
   const { error } = await supabase
     .from("stories")
     .update({ status, updated_at: new Date().toISOString() } as never)
+    .eq("id", id);
+  if (error) return { error: error.message };
+  revalidatePath("/admin/pipeline");
+  return { success: true };
+}
+
+export async function resetStoryToNew(id: string) {
+  const supabase = createServiceRoleClient();
+  const { error } = await supabase
+    .from("stories")
+    .update({
+      status: "new",
+      score: null,
+      tier: null,
+      assigned_blog: false,
+      assigned_script: false,
+      used_in_blog: false,
+      used_in_script: false,
+      used_in_blog_at: null,
+      used_in_script_at: null,
+      expires_at: null,
+      banked_at: null,
+      updated_at: new Date().toISOString(),
+    } as never)
     .eq("id", id);
   if (error) return { error: error.message };
   revalidatePath("/admin/pipeline");

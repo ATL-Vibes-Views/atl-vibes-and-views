@@ -11,7 +11,7 @@ import { StatusBadge } from "@/components/portal/StatusBadge";
 import { FilterBar } from "@/components/portal/FilterBar";
 import { AdminDataTable } from "@/components/portal/AdminDataTable";
 import { Pagination } from "@/components/portal/Pagination";
-import { updateStoryStatus } from "@/app/admin/actions";
+import { updateStoryStatus, resetStoryToNew } from "@/app/admin/actions";
 
 interface StoryRow {
   id: string;
@@ -67,7 +67,7 @@ export function PipelineClient({ stories, categories }: PipelineClientProps) {
 
   const handleActivate = useCallback(async (id: string) => {
     setActivating(id);
-    const result = await updateStoryStatus(id, "new");
+    const result = await resetStoryToNew(id);
     setActivating(null);
     if (result.error) {
       alert("Error: " + result.error);
