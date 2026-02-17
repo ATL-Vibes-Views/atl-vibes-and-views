@@ -98,6 +98,41 @@ function extractFilename(url: string): string {
   }
 }
 
+/** JSONB keys to check for each display platform (automation writes youtube_short) */
+const JSONB_KEYS: Record<string, string[]> = {
+  youtube: ["youtube_short", "youtube"],
+};
+
+/** Unwrap double-encoded JSONB (string stored inside JSONB column) */
+function parsePlatformCaptions(pc: unknown): Record<string, unknown> {
+  if (!pc) return {};
+  let parsed: unknown = pc;
+  if (typeof parsed === "string") {
+    try { parsed = JSON.parse(parsed); } catch { return {}; }
+  }
+  if (typeof parsed === "string") {
+    try { parsed = JSON.parse(parsed); } catch { return {}; }
+  }
+  if (parsed && typeof parsed === "object" && !Array.isArray(parsed)) return parsed as Record<string, unknown>;
+  return {};
+}
+
+function getPlatformData(pc: unknown, key: string): Record<string, string> {
+  const parsed = parsePlatformCaptions(pc);
+  const keysToTry = JSONB_KEYS[key] ?? [key];
+  for (const k of keysToTry) {
+    const val = parsed[k];
+    if (typeof val === "string") {
+      try {
+        const inner = JSON.parse(val);
+        if (inner && typeof inner === "object" && Object.keys(inner).length > 0) return inner as Record<string, string>;
+      } catch { /* not JSON */ }
+    }
+    if (val && typeof val === "object" && Object.keys(val as object).length > 0) return val as Record<string, string>;
+  }
+  return {};
+}
+
 function initPlatformCaptions(
   captions: CaptionRow[],
   platformCaptionsJson: Record<string, unknown> | null
@@ -105,8 +140,8 @@ function initPlatformCaptions(
   const result = {} as Record<PlatformKey, string>;
   for (const p of PLATFORM_ORDER) {
     // Prefer saved platform_captions from the script record
-    const saved = platformCaptionsJson?.[p] as Record<string, string> | undefined;
-    if (saved?.caption) {
+    const saved = getPlatformData(platformCaptionsJson, p);
+    if (saved.caption) {
       result[p] = saved.caption;
     } else {
       // Fall back to caption rows
@@ -123,8 +158,8 @@ function initPlatformHashtags(
 ): Record<PlatformKey, string> {
   const result = {} as Record<PlatformKey, string>;
   for (const p of PLATFORM_ORDER) {
-    const saved = platformCaptionsJson?.[p] as Record<string, string> | undefined;
-    if (saved?.hashtags) {
+    const saved = getPlatformData(platformCaptionsJson, p);
+    if (saved.hashtags) {
       result[p] = saved.hashtags;
     } else {
       const row = captions.find((c) => c.platform === p);
@@ -163,7 +198,7 @@ export function DistributeClient({ filmingScript, captions }: DistributeClientPr
 
   /* ── Caption state ────────────────────────────────────────── */
   const savedCaptions = filmingScript?.platform_captions ?? null;
-  const sharedSaved = savedCaptions?.shared as Record<string, string> | undefined;
+  const sharedSaved = getPlatformData(savedCaptions, "shared");
 
   const [sharedCaption, setSharedCaption] = useState(
     sharedSaved?.caption ?? captions.find((c) => c.platform === "instagram")?.caption ?? ""
@@ -410,13 +445,13 @@ export function DistributeClient({ filmingScript, captions }: DistributeClientPr
   const uploadToStorage = useCallback(async (file: File, folder: string): Promise<string | null> => {
     const supabase = createBrowserClient();
     const ext = file.name.split(".").pop() ?? "bin";
-    const path = `${folder}/${filmingScript?.id ?? "unknown"}-${Date.now()}.${ext}`;
-    const { error } = await supabase.storage.from("scripts-media").upload(path, file, { upsert: true });
+    const path = `scripts-media/${folder}/${filmingScript?.id ?? "unknown"}-${Date.now()}.${ext}`;
+    const { error } = await supabase.storage.from("site-images").upload(path, file, { upsert: true });
     if (error) {
       alert("Upload failed: " + error.message);
       return null;
     }
-    const { data: urlData } = supabase.storage.from("scripts-media").getPublicUrl(path);
+    const { data: urlData } = supabase.storage.from("site-images").getPublicUrl(path);
     return urlData.publicUrl;
   }, [filmingScript?.id]);
 

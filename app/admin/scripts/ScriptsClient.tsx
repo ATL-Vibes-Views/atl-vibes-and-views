@@ -22,26 +22,15 @@ interface FilmingScript {
   platform: string;
   format: string;
   status: string;
+  platform_captions: Record<string, unknown> | null;
   scheduled_date: string | null;
   created_at: string;
   script_batches: { batch_name: string | null } | null;
   stories: { headline: string } | null;
 }
 
-interface CaptionRow {
-  id: string;
-  story_id: string | null;
-  platform: string;
-  caption: string | null;
-  description: string | null;
-  tags: string | null;
-  hashtags: string | null;
-  status: string;
-}
-
 interface ScriptsClientProps {
   filmingScripts: FilmingScript[];
-  captions: CaptionRow[];
   batches: { id: string; batch_name: string }[];
   counts: { pending: number; approved: number; published: number };
 }
@@ -67,7 +56,53 @@ const PLATFORM_LABELS: Record<string, string> = {
   x: "X (Twitter)",
 };
 
-export function ScriptsClient({ filmingScripts, captions, batches, counts }: ScriptsClientProps) {
+/** JSONB keys to check for each display platform (automation writes youtube_short) */
+const JSONB_KEYS: Record<string, string[]> = {
+  youtube: ["youtube_short", "youtube"],
+};
+
+/** Unwrap double-encoded JSONB (string stored inside JSONB column) */
+function parsePlatformCaptions(pc: unknown): Record<string, unknown> {
+  if (!pc) return {};
+  let parsed: unknown = pc;
+  if (typeof parsed === "string") {
+    try { parsed = JSON.parse(parsed); } catch { return {}; }
+  }
+  if (typeof parsed === "string") {
+    try { parsed = JSON.parse(parsed); } catch { return {}; }
+  }
+  if (parsed && typeof parsed === "object" && !Array.isArray(parsed)) return parsed as Record<string, unknown>;
+  return {};
+}
+
+/** Read a platform's caption data from the platform_captions JSONB */
+function getCaptionData(pc: unknown, key: string): Record<string, string> {
+  const parsed = parsePlatformCaptions(pc);
+  const keysToTry = JSONB_KEYS[key] ?? [key];
+  for (const k of keysToTry) {
+    const val = parsed[k];
+    if (typeof val === "string") {
+      try {
+        const inner = JSON.parse(val);
+        if (inner && typeof inner === "object" && Object.keys(inner).length > 0) return inner as Record<string, string>;
+      } catch { /* not JSON */ }
+    }
+    if (val && typeof val === "object" && Object.keys(val as object).length > 0) return val as Record<string, string>;
+  }
+  return {};
+}
+
+/** Count how many of the 6 platforms have caption data populated */
+function countPopulatedCaptions(pc: unknown): number {
+  const parsed = parsePlatformCaptions(pc);
+  if (!Object.keys(parsed).length) return 0;
+  return PLATFORM_ORDER.filter((p) => {
+    const data = getCaptionData(parsed, p);
+    return !!data.caption || !!data.title;
+  }).length;
+}
+
+export function ScriptsClient({ filmingScripts, batches, counts }: ScriptsClientProps) {
   const router = useRouter();
   const [scripts, setScripts] = useState(filmingScripts);
   const [batchFilter, setBatchFilter] = useState("");
@@ -109,18 +144,6 @@ export function ScriptsClient({ filmingScripts, captions, batches, counts }: Scr
     );
     setEditModal(null);
   }, [editModal, editText]);
-
-  // Group captions by story_id using Map
-  const captionsByStory = useMemo(() => {
-    const map = new Map<string, CaptionRow[]>();
-    for (const cap of captions) {
-      if (!cap.story_id) continue;
-      const arr = map.get(cap.story_id) || [];
-      arr.push(cap);
-      map.set(cap.story_id, arr);
-    }
-    return map;
-  }, [captions]);
 
   const filtered = useMemo(() => {
     let items = scripts;
@@ -205,10 +228,7 @@ export function ScriptsClient({ filmingScripts, captions, batches, counts }: Scr
             </div>
           )}
           {paginated.map((script) => {
-            const scriptCaptions = captionsByStory.get(script.story_id ?? "") || [];
-            const sortedCaptions = [...scriptCaptions].sort(
-              (a, b) => PLATFORM_ORDER.indexOf(a.platform) - PLATFORM_ORDER.indexOf(b.platform)
-            );
+            const captionCount = countPopulatedCaptions(script.platform_captions);
             const isExpanded = expandedCaptions.has(script.id);
             const borderColor = "border-l-[#f59e0b]";
 
@@ -245,7 +265,7 @@ export function ScriptsClient({ filmingScripts, captions, batches, counts }: Scr
                       </span>
                     )}
                     <span className="text-[11px] text-[#6b7280]">
-                      Captions: {sortedCaptions.length}/6
+                      Captions: {captionCount}/6
                     </span>
                   </div>
 
@@ -290,30 +310,50 @@ export function ScriptsClient({ filmingScripts, captions, batches, counts }: Scr
                     </button>
                   </div>
 
-                  {/* Expanded captions section */}
+                  {/* Expanded captions section — reads from platform_captions JSONB */}
                   {isExpanded && (
                     <div className="mt-4 border-t border-[#e5e5e5] pt-4">
                       <span className="text-[12px] font-semibold text-[#374151]">
-                        Platform Captions ({sortedCaptions.length}/6)
+                        Platform Captions ({captionCount}/6)
                       </span>
-                      {sortedCaptions.length > 0 ? (
+                      {captionCount > 0 ? (
                         <div className="grid grid-cols-1 lg:grid-cols-2 gap-2 mt-2">
-                          {sortedCaptions.map((cap) => (
-                            <div key={cap.id} className="bg-[#fafafa] border border-[#e5e5e5] p-3">
-                              <span className="text-[11px] font-semibold text-[#374151]">
-                                {PLATFORM_LABELS[cap.platform] ?? cap.platform}
-                              </span>
-                              {cap.caption ? (
-                                <p className="text-[12px] text-[#6b7280] mt-1 line-clamp-2">
-                                  {cap.caption}
-                                </p>
-                              ) : (
-                                <p className="text-[12px] text-[#9ca3af] mt-1 italic">
-                                  Awaiting generation
-                                </p>
-                              )}
-                            </div>
-                          ))}
+                          {PLATFORM_ORDER.map((p) => {
+                            const data = getCaptionData(script.platform_captions, p);
+                            const isYoutube = p === "youtube";
+                            const hasContent = isYoutube ? !!data.title : !!data.caption;
+                            return (
+                              <div key={p} className="bg-[#fafafa] border border-[#e5e5e5] p-3">
+                                <span className="text-[11px] font-semibold text-[#374151]">
+                                  {PLATFORM_LABELS[p] ?? p}
+                                </span>
+                                {hasContent ? (
+                                  <div className="mt-1 space-y-1">
+                                    {isYoutube ? (
+                                      <>
+                                        <p className="text-[12px] text-[#374151] font-medium line-clamp-1">{data.title}</p>
+                                        {data.description && (
+                                          <p className="text-[12px] text-[#6b7280] line-clamp-2">{data.description}</p>
+                                        )}
+                                        {data.tags && (
+                                          <p className="text-[11px] text-[#9ca3af]">Tags: {data.tags}</p>
+                                        )}
+                                      </>
+                                    ) : (
+                                      <p className="text-[12px] text-[#6b7280] line-clamp-2">{data.caption}</p>
+                                    )}
+                                    {data.hashtags && (
+                                      <p className="text-[11px] text-[#9ca3af] line-clamp-1">{data.hashtags}</p>
+                                    )}
+                                  </div>
+                                ) : (
+                                  <p className="text-[12px] text-[#9ca3af] mt-1 italic">
+                                    Awaiting generation
+                                  </p>
+                                )}
+                              </div>
+                            );
+                          })}
                         </div>
                       ) : (
                         <p className="text-[12px] text-[#9ca3af] mt-2 italic">

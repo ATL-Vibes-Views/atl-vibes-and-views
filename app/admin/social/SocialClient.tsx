@@ -5,8 +5,9 @@ import { useRouter } from "next/navigation";
 import { PortalTopbar } from "@/components/portal/PortalTopbar";
 import { StatCard } from "@/components/portal/StatCard";
 import { StatGrid } from "@/components/portal/StatGrid";
-import { AlertTriangle, Play, Paperclip, Check } from "lucide-react";
+import { AlertTriangle, Play, Paperclip, Check, Loader2 } from "lucide-react";
 import { rejectSocialItem, savePlatformCaption, uploadScriptMedia } from "@/app/admin/actions";
+import { createBrowserClient } from "@/lib/supabase";
 
 /* ──────────────────────────────────────────────────────────────
    TYPES
@@ -61,10 +62,38 @@ const YOUTUBE_VISIBILITY = ["public", "unlisted", "private"];
    HELPERS
    ────────────────────────────────────────────────────────────── */
 
-function getCaptionData(pc: Record<string, unknown> | null, key: string): Record<string, string> {
+/** JSONB keys to check for each display platform (automation writes youtube_short) */
+const JSONB_KEYS: Record<string, string[]> = {
+  youtube: ["youtube_short", "youtube"],
+};
+
+/** Unwrap double-encoded JSONB (string stored inside JSONB column) */
+function parsePlatformCaptions(pc: unknown): Record<string, unknown> {
   if (!pc) return {};
-  const val = pc[key];
-  if (val && typeof val === "object") return val as Record<string, string>;
+  let parsed: unknown = pc;
+  if (typeof parsed === "string") {
+    try { parsed = JSON.parse(parsed); } catch { return {}; }
+  }
+  if (typeof parsed === "string") {
+    try { parsed = JSON.parse(parsed); } catch { return {}; }
+  }
+  if (parsed && typeof parsed === "object" && !Array.isArray(parsed)) return parsed as Record<string, unknown>;
+  return {};
+}
+
+function getCaptionData(pc: unknown, key: string): Record<string, string> {
+  const parsed = parsePlatformCaptions(pc);
+  const keysToTry = JSONB_KEYS[key] ?? [key];
+  for (const k of keysToTry) {
+    const val = parsed[k];
+    if (typeof val === "string") {
+      try {
+        const inner = JSON.parse(val);
+        if (inner && typeof inner === "object" && Object.keys(inner).length > 0) return inner as Record<string, string>;
+      } catch { /* not JSON */ }
+    }
+    if (val && typeof val === "object" && Object.keys(val as object).length > 0) return val as Record<string, string>;
+  }
   return {};
 }
 
@@ -92,6 +121,7 @@ export function SocialClient({ scripts }: SocialClientProps) {
   const [saving, setSaving] = useState(false);
   const [saveSuccess, setSaveSuccess] = useState<string | null>(null);
   const [rejecting, setRejecting] = useState<string | null>(null);
+  const [uploadingId, setUploadingId] = useState<string | null>(null);
 
   /* ── Stats ── */
   const totalQueue = scripts.length;
@@ -193,11 +223,27 @@ export function SocialClient({ scripts }: SocialClientProps) {
     input.onchange = async (e) => {
       const file = (e.target as HTMLInputElement).files?.[0];
       if (!file) return;
-      // For now, show alert about pending Supabase Storage integration
-      alert(`File selected: ${file.name}. Supabase Storage upload integration pending.\n\nOnce configured, this will upload to the scripts-media bucket and update the media_url.`);
+      setUploadingId(scriptId);
+      const supabase = createBrowserClient();
+      const ext = file.name.split(".").pop() ?? "bin";
+      const path = `scripts-media/videos/${scriptId}-${Date.now()}.${ext}`;
+      const { error } = await supabase.storage.from("site-images").upload(path, file, { upsert: true });
+      if (error) {
+        alert("Upload failed: " + error.message);
+        setUploadingId(null);
+        return;
+      }
+      const { data: urlData } = supabase.storage.from("site-images").getPublicUrl(path);
+      const result = await uploadScriptMedia(scriptId, "media_url", urlData.publicUrl);
+      setUploadingId(null);
+      if (result.error) {
+        alert("Failed to save media URL: " + result.error);
+      } else {
+        router.refresh();
+      }
     };
     input.click();
-  }, []);
+  }, [router]);
 
   /* ── Char count helper ── */
   const charCountClass = (len: number, limit: number) => {
@@ -355,6 +401,11 @@ export function SocialClient({ scripts }: SocialClientProps) {
                             Uploaded {new Date(script.updated_at).toLocaleDateString()}
                           </p>
                         </div>
+                      </div>
+                    ) : uploadingId === script.id ? (
+                      <div className="border-2 border-dashed border-[#e6c46d] bg-[#fefcf5] p-5 text-center">
+                        <Loader2 size={20} className="mx-auto mb-1.5 text-gray-500 animate-spin" />
+                        <p className="text-sm text-gray-600 font-medium">Uploading...</p>
                       </div>
                     ) : (
                       <div

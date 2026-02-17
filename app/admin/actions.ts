@@ -15,6 +15,27 @@ function slugify(text: string): string {
     .replace(/(^-|-$)/g, "");
 }
 
+/** Shared helper: fully reset a story back to 'new' with all assignment fields cleared */
+async function _resetStoryFull(supabase: ReturnType<typeof createServiceRoleClient>, storyId: string) {
+  return supabase
+    .from("stories")
+    .update({
+      status: "new",
+      score: null,
+      tier: null,
+      assigned_blog: false,
+      assigned_script: false,
+      used_in_blog: false,
+      used_in_script: false,
+      used_in_blog_at: null,
+      used_in_script_at: null,
+      expires_at: null,
+      banked_at: null,
+      updated_at: new Date().toISOString(),
+    } as never)
+    .eq("id", storyId);
+}
+
 // ─── BLOG POSTS ───────────────────────────────────────────────
 
 export async function createBlogPost(formData: FormData) {
@@ -81,6 +102,48 @@ export async function publishBlogPost(id: string) {
   return { success: true };
 }
 
+export async function unpublishBlogPost(postId: string) {
+  const supabase = createServiceRoleClient();
+  const { error } = await supabase
+    .from("blog_posts")
+    .update({ status: "archived", updated_at: new Date().toISOString() } as never)
+    .eq("id", postId);
+  if (error) return { error: error.message };
+  revalidatePath("/admin/posts");
+  revalidatePath("/admin/publishing");
+  return { success: true };
+}
+
+export async function rejectDraftPost(postId: string) {
+  const supabase = createServiceRoleClient();
+  const now = new Date().toISOString();
+
+  // 1. Archive the blog post
+  const { error } = await supabase
+    .from("blog_posts")
+    .update({ status: "archived", updated_at: now } as never)
+    .eq("id", postId);
+  if (error) return { error: error.message };
+
+  // 2. Find source story via post_source_stories join table
+  const { data: links } = (await supabase
+    .from("post_source_stories")
+    .select("story_id")
+    .eq("post_id", postId)) as { data: { story_id: string }[] | null };
+
+  // 3. Reset each source story back to fresh 'new'
+  if (links?.length) {
+    for (const link of links) {
+      await _resetStoryFull(supabase, link.story_id);
+    }
+  }
+
+  revalidatePath("/admin/publishing");
+  revalidatePath("/admin/pipeline");
+  revalidatePath("/admin/posts");
+  return { success: true };
+}
+
 // ─── STORIES ──────────────────────────────────────────────────
 
 export async function createStory(formData: FormData) {
@@ -121,6 +184,14 @@ export async function updateStoryStatus(id: string, status: string) {
     .from("stories")
     .update({ status, updated_at: new Date().toISOString() } as never)
     .eq("id", id);
+  if (error) return { error: error.message };
+  revalidatePath("/admin/pipeline");
+  return { success: true };
+}
+
+export async function resetStoryToNew(id: string) {
+  const supabase = createServiceRoleClient();
+  const { error } = await _resetStoryFull(supabase, id);
   if (error) return { error: error.message };
   revalidatePath("/admin/pipeline");
   return { success: true };
@@ -179,16 +250,14 @@ export async function rejectScript(id: string) {
     .eq("id", id);
   if (error) return { error: error.message };
 
-  // Reset parent story back to scored so it returns to the Pipeline
+  // Reset parent story back to fresh 'new' with all assignment fields cleared
   if (script?.story_id) {
-    await supabase
-      .from("stories")
-      .update({ status: "scored", updated_at: now } as never)
-      .eq("id", script.story_id);
+    await _resetStoryFull(supabase, script.story_id);
   }
 
   revalidatePath("/admin/scripts");
   revalidatePath("/admin/social");
+  revalidatePath("/admin/pipeline");
   return { success: true };
 }
 
@@ -531,11 +600,23 @@ export async function rejectSocialItem(id: string, kind: "script" | "story") {
   const supabase = createServiceRoleClient();
   const now = new Date().toISOString();
   if (kind === "script") {
+    // Fetch story_id before killing so we can reset the parent story
+    const { data: script } = (await supabase
+      .from("scripts")
+      .select("story_id")
+      .eq("id", id)
+      .single()) as { data: { story_id: string | null } | null };
+
     const { error } = await supabase
       .from("scripts")
       .update({ status: "killed", updated_at: now } as never)
       .eq("id", id);
     if (error) return { error: error.message };
+
+    // Reset parent story back to fresh 'new' with all assignment fields cleared
+    if (script?.story_id) {
+      await _resetStoryFull(supabase, script.story_id);
+    }
   } else {
     const { error } = await supabase
       .from("stories")
@@ -544,6 +625,7 @@ export async function rejectSocialItem(id: string, kind: "script" | "story") {
     if (error) return { error: error.message };
   }
   revalidatePath("/admin/social");
+  revalidatePath("/admin/pipeline");
   return { success: true };
 }
 

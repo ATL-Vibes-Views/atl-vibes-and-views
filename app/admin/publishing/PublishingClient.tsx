@@ -12,8 +12,9 @@ import { FilterBar } from "@/components/portal/FilterBar";
 import { UploadZone } from "@/components/portal/UploadZone";
 import { Modal } from "@/components/portal/Modal";
 import { Pagination } from "@/components/portal/Pagination";
-import { AlertTriangle } from "lucide-react";
-import { publishBlogPost } from "@/app/admin/actions";
+import { AlertTriangle, Loader2 } from "lucide-react";
+import { publishBlogPost, updateBlogPost, rejectDraftPost } from "@/app/admin/actions";
+import { uploadImage } from "@/lib/supabase-storage";
 
 interface PostRow {
   id: string;
@@ -42,6 +43,7 @@ export function PublishingClient({ posts }: PublishingClientProps) {
   const [page, setPage] = useState(1);
   const [publishModal, setPublishModal] = useState<PostRow | null>(null);
   const [publishing, setPublishing] = useState(false);
+  const [uploadingId, setUploadingId] = useState<string | null>(null);
 
   const handlePublish = useCallback(async () => {
     if (!publishModal) return;
@@ -55,6 +57,34 @@ export function PublishingClient({ posts }: PublishingClientProps) {
     setPublishModal(null);
     router.refresh();
   }, [publishModal, router]);
+
+  const handleUpload = useCallback(async (postId: string, files: FileList) => {
+    const file = files[0];
+    if (!file) return;
+    setUploadingId(postId);
+    const result = await uploadImage(file, "blog-featured");
+    if ("error" in result) {
+      alert("Upload error: " + result.error);
+      setUploadingId(null);
+      return;
+    }
+    await updateBlogPost(postId, { featured_image_url: result.url });
+    setUploadingId(null);
+    router.refresh();
+  }, [router]);
+
+  const [rejecting, setRejecting] = useState<string | null>(null);
+  const handleReject = useCallback(async (postId: string) => {
+    if (!confirm("Reject this draft? The blog post will be archived and the story will return to the Pipeline.")) return;
+    setRejecting(postId);
+    const result = await rejectDraftPost(postId);
+    setRejecting(null);
+    if (result.error) {
+      alert("Error: " + result.error);
+      return;
+    }
+    router.refresh();
+  }, [router]);
 
   // Stats — all posts here are drafts; split by whether they have media attached
   const needsMedia = posts.filter((p) => !p.featured_image_url).length;
@@ -147,7 +177,7 @@ export function PublishingClient({ posts }: PublishingClientProps) {
                 <div className="px-5 py-4">
                   <h3
                     className="font-display text-[16px] font-semibold text-black cursor-pointer hover:text-[#c1121f] transition-colors"
-                    onClick={() => router.push(`/admin/posts/${post.id}`)}
+                    onClick={() => router.push(`/admin/posts/${post.id}?from=publishing`)}
                   >
                     {post.title}
                   </h3>
@@ -168,12 +198,19 @@ export function PublishingClient({ posts }: PublishingClientProps) {
                   {/* Upload zone for items needing media */}
                   {needMedia && (
                     <div className="mt-3">
-                      <UploadZone
-                        onUpload={(files) => console.log("Upload for", post.id, files)}
-                        accept="image/*,video/*"
-                        label="Drop featured image here"
-                        hint="PNG, JPG, WebP up to 10MB"
-                      />
+                      {uploadingId === post.id ? (
+                        <div className="border-2 border-dashed border-[#e6c46d] bg-[#fefcf5] p-6 text-center">
+                          <Loader2 size={20} className="mx-auto mb-2 text-[#6b7280] animate-spin" />
+                          <p className="text-[12px] text-[#6b7280]">Uploading...</p>
+                        </div>
+                      ) : (
+                        <UploadZone
+                          onUpload={(files) => handleUpload(post.id, files)}
+                          accept="image/*"
+                          label="Drop featured image here"
+                          hint="PNG, JPG, WebP up to 10MB"
+                        />
+                      )}
                     </div>
                   )}
 
@@ -190,14 +227,7 @@ export function PublishingClient({ posts }: PublishingClientProps) {
                   {/* Actions */}
                   <div className="flex items-center gap-2 mt-4">
                     <button
-                      onClick={() => {
-                        if (post.slug) {
-                          window.open('/hub/stories/' + post.slug, '_blank');
-                        } else {
-                          const slug = post.title.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '');
-                          window.open('/hub/stories/' + slug, '_blank');
-                        }
-                      }}
+                      onClick={() => window.open(`/admin/preview/${post.id}`, '_blank')}
                       className="inline-flex items-center px-3 py-1 text-xs font-semibold rounded-full border border-[#e5e5e5] text-[#374151] hover:border-[#d1d5db] transition-colors"
                     >
                       Preview
@@ -212,6 +242,13 @@ export function PublishingClient({ posts }: PublishingClientProps) {
                       }`}
                     >
                       Publish Now
+                    </button>
+                    <button
+                      onClick={() => handleReject(post.id)}
+                      disabled={rejecting === post.id}
+                      className="inline-flex items-center px-3 py-1 text-xs font-semibold rounded-full border border-[#e5e5e5] text-[#c1121f] hover:border-[#c1121f] transition-colors disabled:opacity-50"
+                    >
+                      {rejecting === post.id ? "..." : "Reject"}
                     </button>
                   </div>
                 </div>
