@@ -13,13 +13,15 @@ import { AdminDataTable } from "@/components/portal/AdminDataTable";
 import { Pagination } from "@/components/portal/Pagination";
 import { updateStoryStatus, resetStoryToNew } from "@/app/admin/actions";
 
+const SCORABLE_STATUSES = ["new", "scored"];
+
 interface StoryRow {
   id: string;
   headline: string;
   source_name: string | null;
   status: string;
   score: number | null;
-  tier: number | null;
+  tier: string | null;
   category_id: string | null;
   created_at: string;
   categories: { name: string } | null;
@@ -37,6 +39,7 @@ const DRAFT_STATUSES = ["draft_script", "draft_social"];
 
 const statusBadgeMap: Record<string, "yellow" | "blue" | "gray" | "green" | "red"> = {
   new: "yellow",
+  scored: "yellow",
   reviewed: "yellow",
   queued: "yellow",
   assigned_blog: "blue",
@@ -51,10 +54,13 @@ const statusBadgeMap: Record<string, "yellow" | "blue" | "gray" | "green" | "red
   discarded: "red",
 };
 
-const tierBadgeMap: Record<number, "green" | "blue" | "gold"> = {
-  1: "green",
-  2: "blue",
-  3: "gold",
+const tierLabelMap: Record<string, { label: string; variant: "green" | "blue" | "gold" }> = {
+  "1": { label: "Tier 1", variant: "green" },
+  "2": { label: "Tier 2", variant: "blue" },
+  "3": { label: "Tier 3", variant: "gold" },
+  blog: { label: "Blog", variant: "green" },
+  script: { label: "Script", variant: "blue" },
+  social: { label: "Social", variant: "gold" },
 };
 
 export function PipelineClient({ stories, categories }: PipelineClientProps) {
@@ -88,7 +94,7 @@ export function PipelineClient({ stories, categories }: PipelineClientProps) {
     let items = stories;
     if (statusFilter) items = items.filter((s) => s.status === statusFilter);
     if (categoryFilter) items = items.filter((s) => s.category_id === categoryFilter);
-    if (tierFilter) items = items.filter((s) => s.tier === Number(tierFilter));
+    if (tierFilter) items = items.filter((s) => String(s.tier) === tierFilter);
     return items;
   }, [stories, statusFilter, categoryFilter, tierFilter]);
 
@@ -125,15 +131,19 @@ export function PipelineClient({ stories, categories }: PipelineClientProps) {
     {
       key: "tier",
       header: "Tier",
-      render: (item: StoryRow) => (
-        item.tier !== null ? (
-          <StatusBadge variant={tierBadgeMap[item.tier] ?? "gray"}>
-            Tier {item.tier}
+      render: (item: StoryRow) => {
+        if (item.tier === null || item.tier === undefined) {
+          return <span className="text-[13px] text-[#6b7280]">—</span>;
+        }
+        const tierInfo = tierLabelMap[String(item.tier)];
+        return tierInfo ? (
+          <StatusBadge variant={tierInfo.variant}>
+            {tierInfo.label}
           </StatusBadge>
         ) : (
-          <span className="text-[13px] text-[#6b7280]">—</span>
-        )
-      ),
+          <StatusBadge variant="gray">{item.tier}</StatusBadge>
+        );
+      },
     },
     {
       key: "score",
@@ -167,12 +177,32 @@ export function PipelineClient({ stories, categories }: PipelineClientProps) {
     },
   ];
 
+  const handleActivateNew = useCallback(async (id: string) => {
+    setActivating(id);
+    const result = await updateStoryStatus(id, "scored");
+    setActivating(null);
+    if (result.error) {
+      alert("Error: " + result.error);
+      return;
+    }
+    router.refresh();
+  }, [router]);
+
   const renderActions = (item: StoryRow) => {
-    if (item.status === "new") {
+    if (SCORABLE_STATUSES.includes(item.status)) {
       return (
-        <span className="text-[11px] text-[#6b7280]">
-          Awaiting S3 scoring
-        </span>
+        <div className="flex items-center gap-2">
+          <span className="text-[11px] text-[#6b7280]">
+            {item.status === "scored" ? "Scored — ready for S3" : "Awaiting S3"}
+          </span>
+          <button
+            onClick={() => handleActivateNew(item.id)}
+            disabled={activating === item.id}
+            className="inline-flex items-center px-3 py-1 text-xs font-semibold rounded-full bg-[#fee198] text-[#1a1a1a] hover:bg-[#e6c46d] transition-colors disabled:opacity-50"
+          >
+            {activating === item.id ? "..." : "Activate"}
+          </button>
+        </div>
       );
     }
     if (ASSIGNED_STATUSES.includes(item.status)) {
@@ -182,7 +212,7 @@ export function PipelineClient({ stories, categories }: PipelineClientProps) {
           disabled={activating === item.id}
           className="inline-flex items-center px-3 py-1 text-xs font-semibold rounded-full bg-[#fee198] text-[#1a1a1a] hover:bg-[#e6c46d] transition-colors disabled:opacity-50"
         >
-          {activating === item.id ? "Activating..." : "Activate"}
+          {activating === item.id ? "Resetting..." : "Reset to New"}
         </button>
       );
     }
@@ -244,6 +274,7 @@ export function PipelineClient({ stories, categories }: PipelineClientProps) {
               value: statusFilter,
               options: [
                 { value: "new", label: "New" },
+                { value: "scored", label: "Scored" },
                 { value: "assigned_blog", label: "Assigned Blog" },
                 { value: "assigned_script", label: "Assigned Script" },
                 { value: "assigned_dual", label: "Assigned Dual" },
@@ -261,9 +292,12 @@ export function PipelineClient({ stories, categories }: PipelineClientProps) {
               label: "All Tiers",
               value: tierFilter,
               options: [
-                { value: "1", label: "Tier 1 — Blog + Video" },
-                { value: "2", label: "Tier 2 — Blog Only" },
-                { value: "3", label: "Tier 3 — Social Only" },
+                { value: "blog", label: "Blog" },
+                { value: "script", label: "Script" },
+                { value: "social", label: "Social" },
+                { value: "1", label: "Tier 1" },
+                { value: "2", label: "Tier 2" },
+                { value: "3", label: "Tier 3" },
               ],
             },
             {
