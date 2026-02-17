@@ -13,37 +13,31 @@ export const dynamic = 'force-dynamic';
 export default async function CalendarPage() {
   const supabase = createServiceRoleClient();
 
-  // Fetch content_calendar entries with story and post joins
-  const { data: entries, error: entriesErr } = (await supabase
-    .from("content_calendar")
-    .select("*, stories(headline), blog_posts(title, slug, featured_image_url, excerpt, published_at)")
-    .order("scheduled_date", { ascending: true })) as {
+  // Fetch published blog posts directly
+  const { data: blogPosts } = (await supabase
+    .from("blog_posts")
+    .select("id, title, slug, featured_image_url, excerpt, published_at, status")
+    .eq("status", "published")
+    .not("published_at", "is", null)
+    .order("published_at", { ascending: true })) as {
     data: {
       id: string;
-      story_id: string | null;
-      post_id: string | null;
-      tier: string | null;
-      scheduled_date: string;
-      status: string | null;
-      stories: { headline: string } | null;
-      blog_posts: {
-        title: string;
-        slug: string | null;
-        featured_image_url: string | null;
-        excerpt: string | null;
-        published_at: string | null;
-      } | null;
+      title: string;
+      slug: string | null;
+      featured_image_url: string | null;
+      excerpt: string | null;
+      published_at: string;
+      status: string;
     }[] | null;
-    error: unknown;
   };
-  if (entriesErr) console.error("Failed to fetch calendar entries:", entriesErr);
 
-  // Fetch scripts with scheduled_date
+  // Fetch posted scripts only
   const { data: scripts } = (await supabase
     .from("scripts")
     .select("id, title, platform, scheduled_date, status, media_url, platform_captions, posted_at")
-    .not("scheduled_date", "is", null)
-    .order("scheduled_date", { ascending: true })) as {
+    .eq("status", "posted")
+    .not("posted_at", "is", null)
+    .order("posted_at", { ascending: true })) as {
     data: {
       id: string;
       title: string;
@@ -72,7 +66,7 @@ export default async function CalendarPage() {
 
   return (
     <CalendarClient
-      entries={entries ?? []}
+      blogPosts={blogPosts ?? []}
       scripts={scripts ?? []}
       newsletters={newsletters ?? []}
     />
