@@ -226,14 +226,14 @@ export function SocialClient({ scripts }: SocialClientProps) {
       setUploadingId(scriptId);
       const supabase = createBrowserClient();
       const ext = file.name.split(".").pop() ?? "bin";
-      const path = `videos/${scriptId}-${Date.now()}.${ext}`;
-      const { error } = await supabase.storage.from("scripts-media").upload(path, file, { upsert: true });
+      const path = `scripts-media/videos/${scriptId}-${Date.now()}.${ext}`;
+      const { error } = await supabase.storage.from("site-images").upload(path, file, { upsert: true });
       if (error) {
         alert("Upload failed: " + error.message);
         setUploadingId(null);
         return;
       }
-      const { data: urlData } = supabase.storage.from("scripts-media").getPublicUrl(path);
+      const { data: urlData } = supabase.storage.from("site-images").getPublicUrl(path);
       const result = await uploadScriptMedia(scriptId, "media_url", urlData.publicUrl);
       setUploadingId(null);
       if (result.error) {

@@ -445,13 +445,13 @@ export function DistributeClient({ filmingScript, captions }: DistributeClientPr
   const uploadToStorage = useCallback(async (file: File, folder: string): Promise<string | null> => {
     const supabase = createBrowserClient();
     const ext = file.name.split(".").pop() ?? "bin";
-    const path = `${folder}/${filmingScript?.id ?? "unknown"}-${Date.now()}.${ext}`;
-    const { error } = await supabase.storage.from("scripts-media").upload(path, file, { upsert: true });
+    const path = `scripts-media/${folder}/${filmingScript?.id ?? "unknown"}-${Date.now()}.${ext}`;
+    const { error } = await supabase.storage.from("site-images").upload(path, file, { upsert: true });
     if (error) {
       alert("Upload failed: " + error.message);
       return null;
     }
-    const { data: urlData } = supabase.storage.from("scripts-media").getPublicUrl(path);
+    const { data: urlData } = supabase.storage.from("site-images").getPublicUrl(path);
     return urlData.publicUrl;
   }, [filmingScript?.id]);
 
