@@ -541,8 +541,8 @@ export function LocationDetailContent(props: LocationDetailProps) {
                     >
                       <div className="relative aspect-[4/3] overflow-hidden mb-4">
                         <Image
-                          src={biz.logo || PH_BIZ}
-                          alt={biz.business_name}
+                          src={biz.primary_image_url || biz.logo || PH_BIZ}
+                          alt={biz.primary_image_alt || biz.business_name}
                           fill
                           unoptimized
                           className="object-cover group-hover:scale-105 transition-transform duration-500"
@@ -664,10 +664,11 @@ export function LocationDetailContent(props: LocationDetailProps) {
                         <div className="relative w-20 h-16 shrink-0 overflow-hidden bg-gray-100">
                           <Image
                             src={
+                              biz.primary_image_url ||
                               biz.logo ||
                               "https://placehold.co/200x160/1a1a1a/e6c46d?text=Biz"
                             }
-                            alt={biz.business_name}
+                            alt={biz.primary_image_alt || biz.business_name}
                             fill
                             unoptimized
                             className="object-cover group-hover:scale-105 transition-transform duration-500"

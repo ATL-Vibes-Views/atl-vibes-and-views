@@ -230,7 +230,31 @@ export async function getBusinessesByPostId(
     .eq("status", "active")
     .limit(limit);
   if (error) throw error;
-  return (data as BusinessListingWithNeighborhood[]) ?? [];
+  const businesses = (data as BusinessListingWithNeighborhood[]) ?? [];
+
+  // Fetch primary images from business_images join table
+  if (businesses.length > 0) {
+    const { data: imgData } = await sb()
+      .from("business_images")
+      .select("business_id, image_url, alt_text")
+      .in("business_id", businesses.map((b) => b.id))
+      .eq("is_primary", true);
+    if (imgData) {
+      const imageMap: Record<string, { url: string; alt: string }> = {};
+      for (const img of imgData as any[]) {
+        imageMap[img.business_id] = {
+          url: img.image_url,
+          alt: img.alt_text || "",
+        };
+      }
+      for (const biz of businesses) {
+        biz.primary_image_url = imageMap[biz.id]?.url || null;
+        biz.primary_image_alt = imageMap[biz.id]?.alt || null;
+      }
+    }
+  }
+
+  return businesses;
 }
 
 /* ============================================================
@@ -266,7 +290,32 @@ export async function getBusinesses(opts?: {
 
   const { data, error } = await q;
   if (error) throw error;
-  return (data as BusinessListingWithNeighborhood[]) ?? [];
+  const businesses = (data as BusinessListingWithNeighborhood[]) ?? [];
+
+  // Fetch primary images from business_images join table
+  const businessIds = businesses.map((b) => b.id);
+  if (businessIds.length > 0) {
+    const { data: imgData } = await sb()
+      .from("business_images")
+      .select("business_id, image_url, alt_text")
+      .in("business_id", businessIds)
+      .eq("is_primary", true);
+    if (imgData) {
+      const imageMap: Record<string, { url: string; alt: string }> = {};
+      for (const img of imgData as any[]) {
+        imageMap[img.business_id] = {
+          url: img.image_url,
+          alt: img.alt_text || "",
+        };
+      }
+      for (const biz of businesses) {
+        biz.primary_image_url = imageMap[biz.id]?.url || null;
+        biz.primary_image_alt = imageMap[biz.id]?.alt || null;
+      }
+    }
+  }
+
+  return businesses;
 }
 
 export async function getBusinessBySlug(
@@ -574,7 +623,21 @@ export async function globalSearch(query: string): Promise<SearchResult[]> {
     .limit(5)
     .returns<{ id: string; business_name: string; slug: string; tagline: string | null; logo: string | null }[]>();
 
-  if (biz) {
+  if (biz && biz.length > 0) {
+    // Fetch primary images for business search results
+    const bizIds = biz.map((b) => b.id);
+    const { data: imgData } = await sb()
+      .from("business_images")
+      .select("business_id, image_url")
+      .in("business_id", bizIds)
+      .eq("is_primary", true);
+    const bizImageMap: Record<string, string> = {};
+    if (imgData) {
+      for (const img of imgData as any[]) {
+        bizImageMap[img.business_id] = img.image_url;
+      }
+    }
+
     results.push(
       ...biz.map((b) => ({
         type: "business" as const,
@@ -582,7 +645,7 @@ export async function globalSearch(query: string): Promise<SearchResult[]> {
         title: b.business_name,
         slug: b.slug,
         excerpt: b.tagline ?? undefined,
-        image: b.logo ?? undefined,
+        image: bizImageMap[b.id] ?? b.logo ?? undefined,
         url: `/places/${b.slug}`,
       }))
     );

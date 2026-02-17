@@ -383,6 +383,8 @@ export interface BusinessListingWithNeighborhood extends BusinessListing {
   neighborhoods?: Neighborhood;
   categories?: Category;
   cities?: { name: string };
+  primary_image_url?: string | null;
+  primary_image_alt?: string | null;
 }
 
 export interface EventItemWithNeighborhood extends EventItem {

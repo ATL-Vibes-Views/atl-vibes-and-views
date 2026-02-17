@@ -462,8 +462,8 @@ function BusinessCard({
     <Link href={`/places/${business.slug}`} className="group block">
       <div className="relative aspect-[4/3] overflow-hidden bg-[#f5f5f5]">
         <Image
-          src={business.logo || PH_BIZ}
-          alt={business.business_name}
+          src={business.primary_image_url || business.logo || PH_BIZ}
+          alt={business.primary_image_alt || business.business_name}
           fill
           unoptimized
           className="object-cover group-hover:scale-105 transition-transform duration-500"
