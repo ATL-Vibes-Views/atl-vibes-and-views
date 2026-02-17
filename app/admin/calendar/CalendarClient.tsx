@@ -329,12 +329,6 @@ export function CalendarClient({ blogPosts, scripts, newsletters }: CalendarClie
     else setMonthOffset((o) => o + 1);
   }
 
-  function handleToday() {
-    setDayOffset(0);
-    setWeekOffset(0);
-    setMonthOffset(0);
-  }
-
   // --- Navigation label ---
   const navigationLabel = useMemo(() => {
     if (viewMode === "daily") {
@@ -385,12 +379,6 @@ export function CalendarClient({ blogPosts, scripts, newsletters }: CalendarClie
       <div className="p-8 space-y-4">
         {/* View Toggle + Channel Filter */}
         <div className="flex items-center gap-2 mb-4">
-          <button
-            onClick={handleToday}
-            className="inline-flex items-center px-4 py-2 rounded-full text-sm font-semibold border border-gray-200 text-[#374151] hover:border-gray-400 transition-colors"
-          >
-            Today
-          </button>
           <div className="flex border border-gray-200 rounded-full overflow-hidden">
             {(["daily", "weekly", "monthly"] as ViewMode[]).map((mode) => {
               const label = mode === "daily" ? "Day" : mode === "weekly" ? "Week" : "Month";
