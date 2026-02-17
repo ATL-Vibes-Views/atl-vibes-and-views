@@ -32,13 +32,6 @@ interface ScriptEntry {
   posted_at: string | null;
 }
 
-interface EventEntry {
-  id: string;
-  title: string;
-  start_date: string | null;
-  status: string;
-}
-
 interface NewsletterEntry {
   id: string;
   subject: string;
@@ -49,14 +42,13 @@ interface NewsletterEntry {
 interface CalendarClientProps {
   entries: CalendarEntry[];
   scripts: ScriptEntry[];
-  events: EventEntry[];
   newsletters: NewsletterEntry[];
 }
 
 type CalendarItem = {
   id: string;
   label: string;
-  type: "post" | "story" | "script" | "event" | "newsletter";
+  type: "post" | "story" | "script" | "newsletter";
   tier?: string | null;
   status?: string | null;
   platform?: string | null;
@@ -70,13 +62,12 @@ type CalendarItem = {
 };
 
 type ViewMode = "daily" | "weekly" | "monthly";
-type ChannelFilter = "" | "website" | "instagram" | "tiktok" | "youtube" | "facebook" | "linkedin" | "x";
+type ChannelFilter = "" | "website" | "newsletter" | "instagram" | "tiktok" | "youtube" | "facebook" | "linkedin" | "x";
 
 const TYPE_COLORS: Record<string, { bg: string; text: string; border: string }> = {
   post: { bg: "bg-[#dbeafe]", text: "text-[#1e40af]", border: "border-[#93c5fd]" },
   story: { bg: "bg-[#fef3c7]", text: "text-[#92400e]", border: "border-[#fcd34d]" },
   script: { bg: "bg-[#ffedd5]", text: "text-[#9a3412]", border: "border-[#fdba74]" },
-  event: { bg: "bg-[#d1fae5]", text: "text-[#065f46]", border: "border-[#6ee7b7]" },
   newsletter: { bg: "bg-[#ede9fe]", text: "text-[#5b21b6]", border: "border-[#c4b5fd]" },
 };
 
@@ -84,7 +75,6 @@ const LEGEND = [
   { type: "post", label: "Blog Post" },
   { type: "story", label: "Story" },
   { type: "script", label: "Script" },
-  { type: "event", label: "Event" },
   { type: "newsletter", label: "Newsletter" },
 ];
 
@@ -93,6 +83,7 @@ const DAY_NAMES = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
 const CHANNEL_OPTIONS: { value: ChannelFilter; label: string }[] = [
   { value: "", label: "All Channels" },
   { value: "website", label: "Website" },
+  { value: "newsletter", label: "Newsletter" },
   { value: "instagram", label: "Instagram" },
   { value: "tiktok", label: "TikTok" },
   { value: "youtube", label: "YouTube" },
@@ -138,7 +129,6 @@ function buildItemsForDates(
   dateKeys: Set<string>,
   entries: CalendarEntry[],
   scripts: ScriptEntry[],
-  events: EventEntry[],
   newsletters: NewsletterEntry[],
   channelFilter: ChannelFilter,
 ): Record<string, CalendarItem[]> {
@@ -151,10 +141,13 @@ function buildItemsForDates(
   // Channel filter logic:
   //   "" (All Channels) → show everything
   //   "website"          → blog posts only
+  //   "newsletter"       → newsletters only
   //   platform name      → scripts with that platform only
+  const isPlatformFilter = !["", "website", "newsletter"].includes(channelFilter);
   const showBlogPosts = channelFilter === "" || channelFilter === "website";
-  const showScripts = channelFilter !== "website";
-  const showOther = channelFilter === ""; // events, newsletters, stories
+  const showScripts = channelFilter === "" || isPlatformFilter;
+  const showNewsletters = channelFilter === "" || channelFilter === "newsletter";
+  const showStories = channelFilter === "";
 
   if (showBlogPosts) {
     for (const entry of entries) {
@@ -174,7 +167,7 @@ function buildItemsForDates(
           caption: entry.blog_posts.excerpt,
           postedAt: entry.blog_posts.published_at,
         });
-      } else if (showOther && entry.story_id && entry.stories) {
+      } else if (showStories && entry.story_id && entry.stories) {
         map[key].push({
           id: entry.id,
           label: entry.stories.headline,
@@ -193,7 +186,7 @@ function buildItemsForDates(
       if (!script.scheduled_date) continue;
       const key = script.scheduled_date;
       if (!map[key]) continue;
-      if (channelFilter !== "" && (script.platform ?? "").toLowerCase() !== channelFilter) {
+      if (isPlatformFilter && (script.platform ?? "").toLowerCase() !== channelFilter) {
         continue;
       }
       // Extract caption from platform_captions JSONB
@@ -215,20 +208,7 @@ function buildItemsForDates(
     }
   }
 
-  if (showOther) {
-    for (const event of events) {
-      if (!event.start_date) continue;
-      const key = event.start_date.split("T")[0];
-      if (!map[key]) continue;
-      map[key].push({
-        id: event.id,
-        label: event.title,
-        type: "event",
-        status: event.status,
-        date: key,
-      });
-    }
-
+  if (showNewsletters) {
     for (const nl of newsletters) {
       if (!nl.scheduled_send_date) continue;
       const key = nl.scheduled_send_date.split("T")[0];
@@ -246,7 +226,7 @@ function buildItemsForDates(
   return map;
 }
 
-export function CalendarClient({ entries, scripts, events, newsletters }: CalendarClientProps) {
+export function CalendarClient({ entries, scripts, newsletters }: CalendarClientProps) {
   const [viewMode, setViewMode] = useState<ViewMode>("weekly");
   const [channelFilter, setChannelFilter] = useState<ChannelFilter>("");
   const [weekOffset, setWeekOffset] = useState(0);
@@ -324,8 +304,8 @@ export function CalendarClient({ entries, scripts, events, newsletters }: Calend
       dateKeys = new Set(monthGrid.map((cell) => formatDateKey(cell.date)));
     }
 
-    return buildItemsForDates(dateKeys, entries, scripts, events, newsletters, channelFilter);
-  }, [viewMode, currentDayKey, weekDays, monthGrid, entries, scripts, events, newsletters, channelFilter]);
+    return buildItemsForDates(dateKeys, entries, scripts, newsletters, channelFilter);
+  }, [viewMode, currentDayKey, weekDays, monthGrid, entries, scripts, newsletters, channelFilter]);
 
   // --- Navigation handlers ---
   function handlePrev() {

@@ -56,19 +56,6 @@ export default async function CalendarPage() {
     }[] | null;
   };
 
-  // Fetch events for the calendar
-  const { data: events } = (await supabase
-    .from("events")
-    .select("id, title, start_date, status")
-    .order("start_date", { ascending: true })) as {
-    data: {
-      id: string;
-      title: string;
-      start_date: string | null;
-      status: string;
-    }[] | null;
-  };
-
   // Fetch newsletters for the calendar
   const { data: newsletters } = (await supabase
     .from("newsletters")
@@ -87,7 +74,6 @@ export default async function CalendarPage() {
     <CalendarClient
       entries={entries ?? []}
       scripts={scripts ?? []}
-      events={events ?? []}
       newsletters={newsletters ?? []}
     />
   );
