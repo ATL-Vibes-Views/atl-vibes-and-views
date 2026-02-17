@@ -61,9 +61,29 @@ const YOUTUBE_VISIBILITY = ["public", "unlisted", "private"];
    HELPERS
    ────────────────────────────────────────────────────────────── */
 
-function getCaptionData(pc: Record<string, unknown> | null, key: string): Record<string, string> {
+/** Unwrap double-encoded JSONB (string stored inside JSONB column) */
+function parsePlatformCaptions(pc: unknown): Record<string, unknown> {
   if (!pc) return {};
-  const val = pc[key];
+  let parsed: unknown = pc;
+  if (typeof parsed === "string") {
+    try { parsed = JSON.parse(parsed); } catch { return {}; }
+  }
+  if (typeof parsed === "string") {
+    try { parsed = JSON.parse(parsed); } catch { return {}; }
+  }
+  if (parsed && typeof parsed === "object" && !Array.isArray(parsed)) return parsed as Record<string, unknown>;
+  return {};
+}
+
+function getCaptionData(pc: unknown, key: string): Record<string, string> {
+  const parsed = parsePlatformCaptions(pc);
+  const val = parsed[key];
+  if (typeof val === "string") {
+    try {
+      const inner = JSON.parse(val);
+      if (inner && typeof inner === "object") return inner as Record<string, string>;
+    } catch { /* not JSON */ }
+  }
   if (val && typeof val === "object") return val as Record<string, string>;
   return {};
 }

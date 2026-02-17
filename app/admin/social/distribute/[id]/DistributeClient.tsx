@@ -98,6 +98,33 @@ function extractFilename(url: string): string {
   }
 }
 
+/** Unwrap double-encoded JSONB (string stored inside JSONB column) */
+function parsePlatformCaptions(pc: unknown): Record<string, unknown> {
+  if (!pc) return {};
+  let parsed: unknown = pc;
+  if (typeof parsed === "string") {
+    try { parsed = JSON.parse(parsed); } catch { return {}; }
+  }
+  if (typeof parsed === "string") {
+    try { parsed = JSON.parse(parsed); } catch { return {}; }
+  }
+  if (parsed && typeof parsed === "object" && !Array.isArray(parsed)) return parsed as Record<string, unknown>;
+  return {};
+}
+
+function getPlatformData(pc: unknown, key: string): Record<string, string> {
+  const parsed = parsePlatformCaptions(pc);
+  const val = parsed[key];
+  if (typeof val === "string") {
+    try {
+      const inner = JSON.parse(val);
+      if (inner && typeof inner === "object") return inner as Record<string, string>;
+    } catch { /* not JSON */ }
+  }
+  if (val && typeof val === "object") return val as Record<string, string>;
+  return {};
+}
+
 function initPlatformCaptions(
   captions: CaptionRow[],
   platformCaptionsJson: Record<string, unknown> | null
@@ -105,8 +132,8 @@ function initPlatformCaptions(
   const result = {} as Record<PlatformKey, string>;
   for (const p of PLATFORM_ORDER) {
     // Prefer saved platform_captions from the script record
-    const saved = platformCaptionsJson?.[p] as Record<string, string> | undefined;
-    if (saved?.caption) {
+    const saved = getPlatformData(platformCaptionsJson, p);
+    if (saved.caption) {
       result[p] = saved.caption;
     } else {
       // Fall back to caption rows
@@ -123,8 +150,8 @@ function initPlatformHashtags(
 ): Record<PlatformKey, string> {
   const result = {} as Record<PlatformKey, string>;
   for (const p of PLATFORM_ORDER) {
-    const saved = platformCaptionsJson?.[p] as Record<string, string> | undefined;
-    if (saved?.hashtags) {
+    const saved = getPlatformData(platformCaptionsJson, p);
+    if (saved.hashtags) {
       result[p] = saved.hashtags;
     } else {
       const row = captions.find((c) => c.platform === p);
@@ -163,7 +190,7 @@ export function DistributeClient({ filmingScript, captions }: DistributeClientPr
 
   /* ── Caption state ────────────────────────────────────────── */
   const savedCaptions = filmingScript?.platform_captions ?? null;
-  const sharedSaved = savedCaptions?.shared as Record<string, string> | undefined;
+  const sharedSaved = getPlatformData(savedCaptions, "shared");
 
   const [sharedCaption, setSharedCaption] = useState(
     sharedSaved?.caption ?? captions.find((c) => c.platform === "instagram")?.caption ?? ""

@@ -13,9 +13,11 @@ export const dynamic = 'force-dynamic';
 export default async function PipelinePage() {
   const supabase = createServiceRoleClient();
 
+  // Exclude terminal statuses — used/discarded stories have no actions left
   const { data: stories, error: storiesErr } = (await supabase
     .from("stories")
     .select("*, categories(name)")
+    .not("status", "in", '("used","discarded")')
     .order("created_at", { ascending: false })) as {
     data: {
       id: string;
