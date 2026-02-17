@@ -16,7 +16,7 @@ export default async function CalendarPage() {
   // Fetch content_calendar entries with story and post joins
   const { data: entries, error: entriesErr } = (await supabase
     .from("content_calendar")
-    .select("*, stories(headline), blog_posts(title)")
+    .select("*, stories(headline), blog_posts(title, slug)")
     .order("scheduled_date", { ascending: true })) as {
     data: {
       id: string;
@@ -26,7 +26,7 @@ export default async function CalendarPage() {
       scheduled_date: string;
       status: string | null;
       stories: { headline: string } | null;
-      blog_posts: { title: string } | null;
+      blog_posts: { title: string; slug: string | null } | null;
     }[] | null;
     error: unknown;
   };

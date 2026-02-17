@@ -12,7 +12,7 @@ interface CalendarEntry {
   scheduled_date: string;
   status: string | null;
   stories: { headline: string } | null;
-  blog_posts: { title: string } | null;
+  blog_posts: { title: string; slug: string | null } | null;
 }
 
 interface ScriptEntry {
@@ -51,6 +51,10 @@ type CalendarItem = {
   tier?: string | null;
   status?: string | null;
   platform?: string | null;
+  date?: string;
+  slug?: string | null;
+  postId?: string | null;
+  storyId?: string | null;
 };
 
 type ViewMode = "daily" | "weekly" | "monthly";
@@ -145,6 +149,9 @@ function buildItemsForDates(
           type: "post",
           tier: entry.tier,
           status: entry.status,
+          date: key,
+          slug: entry.blog_posts.slug,
+          postId: entry.post_id,
         });
       } else if (entry.story_id && entry.stories) {
         map[key].push({
@@ -153,6 +160,8 @@ function buildItemsForDates(
           type: "story",
           tier: entry.tier,
           status: entry.status,
+          date: key,
+          storyId: entry.story_id,
         });
       }
     }
@@ -171,6 +180,7 @@ function buildItemsForDates(
       type: "script",
       status: script.status,
       platform: script.platform,
+      date: key,
     });
   }
 
@@ -184,6 +194,7 @@ function buildItemsForDates(
         label: event.title,
         type: "event",
         status: event.status,
+        date: key,
       });
     }
 
@@ -196,6 +207,7 @@ function buildItemsForDates(
         label: nl.subject,
         type: "newsletter",
         status: nl.status,
+        date: key,
       });
     }
   }
@@ -209,6 +221,8 @@ export function CalendarClient({ entries, scripts, events, newsletters }: Calend
   const [weekOffset, setWeekOffset] = useState(0);
   const [dayOffset, setDayOffset] = useState(0);
   const [monthOffset, setMonthOffset] = useState(0);
+
+  const [selectedItem, setSelectedItem] = useState<CalendarItem | null>(null);
 
   const todayKey = formatDateKey(new Date());
 
@@ -325,54 +339,36 @@ export function CalendarClient({ entries, scripts, events, newsletters }: Calend
         key={`${item.type}-${item.id}`}
         className={`px-1.5 py-1 text-[10px] font-semibold border ${colors.border} ${colors.bg} ${colors.text} cursor-pointer truncate`}
         title={item.label}
-        onClick={() => console.log("Open:", item.type, item.id)}
+        onClick={(e) => { e.stopPropagation(); setSelectedItem(item); }}
       >
         {item.label}
       </div>
     );
   }
 
-  // --- View mode toggle button ---
-  function renderViewModeButton(mode: ViewMode, label: string) {
-    const isActive = viewMode === mode;
-    return (
-      <button
-        key={mode}
-        onClick={() => setViewMode(mode)}
-        className={`px-3 py-1 text-[11px] font-semibold transition-colors ${
-          isActive
-            ? "bg-black text-white"
-            : "text-[#374151] hover:bg-[#f3f4f6]"
-        }`}
-      >
-        {label}
-      </button>
-    );
+  // --- View Post link for popup ---
+  function getViewPostUrl(item: CalendarItem): string | null {
+    if (item.type === "post" && item.slug) {
+      return "/hub/stories/" + item.slug;
+    }
+    if (item.type === "script") {
+      return "/admin/social/distribute/" + item.id;
+    }
+    return null;
   }
 
   return (
     <>
-      <PortalTopbar
-        title="Content Calendar"
-        actions={
-          <div className="flex items-center gap-3">
-            <button
-              onClick={handleToday}
-              className="inline-flex items-center px-4 py-1.5 rounded-full text-xs font-semibold border border-[#e5e5e5] text-[#374151] hover:border-[#d1d5db] transition-colors"
-            >
-              Today
-            </button>
-            <div className="inline-flex items-center rounded-full border border-[#e5e5e5] overflow-hidden">
-              {renderViewModeButton("daily", "Day")}
-              {renderViewModeButton("weekly", "Week")}
-              {renderViewModeButton("monthly", "Month")}
-            </div>
-          </div>
-        }
-      />
+      <PortalTopbar title="Content Calendar" />
       <div className="p-8 space-y-4">
         {/* View Toggle + Channel Filter */}
         <div className="flex items-center gap-2 mb-4">
+          <button
+            onClick={handleToday}
+            className="inline-flex items-center px-4 py-2 rounded-full text-sm font-semibold border border-gray-200 text-[#374151] hover:border-gray-400 transition-colors"
+          >
+            Today
+          </button>
           <div className="flex border border-gray-200 rounded-full overflow-hidden">
             {(["daily", "weekly", "monthly"] as ViewMode[]).map((mode) => {
               const label = mode === "daily" ? "Day" : mode === "weekly" ? "Week" : "Month";
@@ -473,7 +469,7 @@ export function CalendarClient({ entries, scripts, events, newsletters }: Calend
                       <div
                         key={`${item.type}-${item.id}`}
                         className={`flex items-start gap-3 px-4 py-3 border ${colors.border} ${colors.bg} cursor-pointer transition-colors`}
-                        onClick={() => console.log("Open:", item.type, item.id)}
+                        onClick={() => setSelectedItem(item)}
                       >
                         <div className="flex-1 min-w-0">
                           <p className={`text-[13px] font-semibold ${colors.text}`}>
@@ -638,6 +634,86 @@ export function CalendarClient({ entries, scripts, events, newsletters }: Calend
           </div>
         )}
       </div>
+
+      {/* ── Item Detail Popup ── */}
+      {selectedItem && (
+        <>
+          <div
+            className="fixed inset-0 z-[90] bg-black/40"
+            onClick={() => setSelectedItem(null)}
+          />
+          <div className="fixed z-[100] top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-full max-w-sm bg-white border border-gray-200 shadow-lg">
+            <div className="px-5 py-4">
+              {/* Type badge */}
+              {(() => {
+                const colors = TYPE_COLORS[selectedItem.type];
+                return (
+                  <span className={`inline-block px-2 py-0.5 text-[10px] font-semibold border ${colors.border} ${colors.bg} ${colors.text} mb-2`}>
+                    {selectedItem.type.charAt(0).toUpperCase() + selectedItem.type.slice(1)}
+                  </span>
+                );
+              })()}
+
+              <h3 className="font-display text-[16px] font-semibold text-black">
+                {selectedItem.label}
+              </h3>
+
+              <div className="mt-3 space-y-1.5 text-[13px] text-[#374151]">
+                {selectedItem.date && (
+                  <p>
+                    <span className="text-[#6b7280] font-medium">Date:</span>{" "}
+                    {new Date(selectedItem.date + "T00:00:00").toLocaleDateString("en-US", {
+                      weekday: "short",
+                      month: "long",
+                      day: "numeric",
+                      year: "numeric",
+                    })}
+                  </p>
+                )}
+                {selectedItem.platform && (
+                  <p>
+                    <span className="text-[#6b7280] font-medium">Platform:</span>{" "}
+                    {selectedItem.platform}
+                  </p>
+                )}
+                {selectedItem.status && (
+                  <p>
+                    <span className="text-[#6b7280] font-medium">Status:</span>{" "}
+                    {selectedItem.status}
+                  </p>
+                )}
+                {selectedItem.tier && (
+                  <p>
+                    <span className="text-[#6b7280] font-medium">Tier:</span>{" "}
+                    {selectedItem.tier}
+                  </p>
+                )}
+              </div>
+
+              <div className="flex items-center gap-2 mt-4">
+                {(() => {
+                  const url = getViewPostUrl(selectedItem);
+                  if (!url) return null;
+                  return (
+                    <button
+                      onClick={() => window.open(url, "_blank")}
+                      className="inline-flex items-center px-4 py-1.5 text-xs font-semibold rounded-full bg-[#16a34a] text-white hover:bg-[#15803d] transition-colors"
+                    >
+                      View Post
+                    </button>
+                  );
+                })()}
+                <button
+                  onClick={() => setSelectedItem(null)}
+                  className="inline-flex items-center px-4 py-1.5 text-xs font-semibold rounded-full border border-gray-200 text-[#374151] hover:border-gray-400 transition-colors"
+                >
+                  Close
+                </button>
+              </div>
+            </div>
+          </div>
+        </>
+      )}
     </>
   );
 }
