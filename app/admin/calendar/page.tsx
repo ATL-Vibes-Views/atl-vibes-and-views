@@ -50,10 +50,11 @@ export default async function CalendarPage() {
     }[] | null;
   };
 
-  // Fetch newsletters for the calendar
+  // Fetch sent newsletters for the calendar
   const { data: newsletters } = (await supabase
     .from("newsletters")
     .select("id, subject, scheduled_send_date, status")
+    .eq("status", "sent")
     .not("scheduled_send_date", "is", null)
     .order("scheduled_send_date", { ascending: true })) as {
     data: {

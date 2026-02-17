@@ -38,10 +38,12 @@ interface CalendarClientProps {
   newsletters: NewsletterEntry[];
 }
 
+type ContentType = "post" | "newsletter" | "instagram" | "tiktok" | "youtube" | "facebook" | "linkedin" | "x";
+
 type CalendarItem = {
   id: string;
   label: string;
-  type: "post" | "script" | "newsletter";
+  type: ContentType;
   tier?: string | null;
   status?: string | null;
   platform?: string | null;
@@ -58,16 +60,26 @@ type ViewMode = "daily" | "weekly" | "monthly";
 type ChannelFilter = "" | "website" | "newsletter" | "instagram" | "tiktok" | "youtube" | "facebook" | "linkedin" | "x";
 
 const TYPE_COLORS: Record<string, { bg: string; text: string; border: string }> = {
-  post: { bg: "bg-[#dbeafe]", text: "text-[#1e40af]", border: "border-[#93c5fd]" },
-  script: { bg: "bg-[#ffedd5]", text: "text-[#9a3412]", border: "border-[#fdba74]" },
+  post:       { bg: "bg-[#dbeafe]", text: "text-[#1e40af]", border: "border-[#93c5fd]" },
   newsletter: { bg: "bg-[#ede9fe]", text: "text-[#5b21b6]", border: "border-[#c4b5fd]" },
+  instagram:  { bg: "bg-[#fce7f3]", text: "text-[#9d174d]", border: "border-[#f9a8d4]" },
+  tiktok:     { bg: "bg-[#f3f4f6]", text: "text-[#111827]", border: "border-[#9ca3af]" },
+  youtube:    { bg: "bg-[#fee2e2]", text: "text-[#991b1b]", border: "border-[#fca5a5]" },
+  facebook:   { bg: "bg-[#dbeafe]", text: "text-[#1e3a8a]", border: "border-[#60a5fa]" },
+  linkedin:   { bg: "bg-[#e0f2fe]", text: "text-[#075985]", border: "border-[#7dd3fc]" },
+  x:          { bg: "bg-[#e5e7eb]", text: "text-[#1f2937]", border: "border-[#6b7280]" },
 };
 
-const LEGEND = [
-  { type: "post", label: "Blog Post" },
-  { type: "script", label: "Script" },
-  { type: "newsletter", label: "Newsletter" },
-];
+const TYPE_LABELS: Record<string, string> = {
+  post: "Blog Post",
+  newsletter: "Newsletter",
+  instagram: "Instagram",
+  tiktok: "TikTok",
+  youtube: "YouTube",
+  facebook: "Facebook",
+  linkedin: "LinkedIn",
+  x: "X",
+};
 
 const DAY_NAMES = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
 
@@ -165,18 +177,24 @@ function buildItemsForDates(
       if (!rawDate) continue;
       const key = rawDate.split("T")[0];
       if (!map[key]) continue;
-      if (isPlatformFilter && (script.platform ?? "").toLowerCase() !== channelFilter) {
+      const platformKey = (script.platform ?? "").toLowerCase();
+      if (isPlatformFilter && platformKey !== channelFilter) {
         continue;
       }
       // Extract caption from platform_captions JSONB
       const pc = script.platform_captions;
-      const platformKey = (script.platform ?? "").toLowerCase();
       const pcData = pc && typeof pc[platformKey] === "object" ? (pc[platformKey] as Record<string, string>) : null;
+
+      // Map platform to a content type; fall back to "x" for unknown platforms
+      const SOCIAL_PLATFORMS = new Set(["instagram", "tiktok", "youtube", "facebook", "linkedin", "x"]);
+      const contentType: ContentType = SOCIAL_PLATFORMS.has(platformKey)
+        ? (platformKey as ContentType)
+        : "x";
 
       map[key].push({
         id: script.id,
         label: script.title,
-        type: "script",
+        type: contentType,
         status: script.status,
         platform: script.platform,
         date: key,
@@ -286,6 +304,18 @@ export function CalendarClient({ blogPosts, scripts, newsletters }: CalendarClie
     return buildItemsForDates(dateKeys, blogPosts, scripts, newsletters, channelFilter);
   }, [viewMode, currentDayKey, weekDays, monthGrid, blogPosts, scripts, newsletters, channelFilter]);
 
+  // Build dynamic legend — only types with items in the current view
+  const activeLegend = useMemo(() => {
+    const typesPresent = new Set<string>();
+    for (const items of Object.values(dayMap)) {
+      for (const item of items) {
+        typesPresent.add(item.type);
+      }
+    }
+    const ORDER: ContentType[] = ["post", "newsletter", "instagram", "tiktok", "youtube", "facebook", "linkedin", "x"];
+    return ORDER.filter((t) => typesPresent.has(t));
+  }, [dayMap]);
+
   // --- Navigation handlers ---
   function handlePrev() {
     if (viewMode === "daily") setDayOffset((o) => o - 1);
@@ -337,11 +367,13 @@ export function CalendarClient({ blogPosts, scripts, newsletters }: CalendarClie
   }
 
   // --- View Post link for popup ---
+  const SOCIAL_TYPES: ReadonlySet<string> = new Set(["instagram", "tiktok", "youtube", "facebook", "linkedin", "x"]);
+
   function getViewPostUrl(item: CalendarItem): string | null {
     if (item.type === "post" && item.slug) {
       return "/hub/stories/" + item.slug;
     }
-    if (item.type === "script") {
+    if (SOCIAL_TYPES.has(item.type)) {
       return "/admin/social/distribute/" + item.id;
     }
     return null;
@@ -391,18 +423,20 @@ export function CalendarClient({ blogPosts, scripts, newsletters }: CalendarClie
           </select>
         </div>
 
-        {/* Legend */}
-        <div className="flex flex-wrap items-center gap-3">
-          {LEGEND.map((item) => {
-            const colors = TYPE_COLORS[item.type];
-            return (
-              <div key={item.type} className="flex items-center gap-1.5">
-                <span className={`w-3 h-3 rounded-full ${colors.bg} border ${colors.border}`} />
-                <span className="text-[11px] text-[#6b7280]">{item.label}</span>
-              </div>
-            );
-          })}
-        </div>
+        {/* Legend — only types with items in the current view */}
+        {activeLegend.length > 0 && (
+          <div className="flex flex-wrap items-center gap-3">
+            {activeLegend.map((type) => {
+              const colors = TYPE_COLORS[type];
+              return (
+                <div key={type} className="flex items-center gap-1.5">
+                  <span className={`w-3 h-3 rounded-full ${colors.bg} border ${colors.border}`} />
+                  <span className="text-[11px] text-[#6b7280]">{TYPE_LABELS[type]}</span>
+                </div>
+              );
+            })}
+          </div>
+        )}
 
         {/* Navigation */}
         <div className="flex items-center justify-between">
@@ -467,23 +501,8 @@ export function CalendarClient({ blogPosts, scripts, newsletters }: CalendarClie
                           </p>
                           <div className="flex items-center gap-2 mt-1">
                             <span className="text-[10px] font-semibold uppercase text-[#6b7280]">
-                              {item.type}
+                              {TYPE_LABELS[item.type] ?? item.type}
                             </span>
-                            {item.platform && (
-                              <span className="text-[10px] text-[#6b7280]">
-                                {item.platform}
-                              </span>
-                            )}
-                            {item.status && (
-                              <span className="text-[10px] text-[#6b7280]">
-                                {item.status}
-                              </span>
-                            )}
-                            {item.tier && (
-                              <span className="text-[10px] text-[#6b7280]">
-                                Tier {item.tier}
-                              </span>
-                            )}
                           </div>
                         </div>
                       </div>
@@ -660,17 +679,16 @@ export function CalendarClient({ blogPosts, scripts, newsletters }: CalendarClie
                 </p>
               )}
 
-              {/* Platform badge + Date */}
+              {/* Content type badge + Date */}
               <div className="flex flex-wrap items-center gap-2 mt-3">
-                {selectedItem.type === "script" && selectedItem.platform ? (
-                  <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-[11px] font-semibold bg-[#1a1a1a] text-white">
-                    {selectedItem.platform.charAt(0).toUpperCase() + selectedItem.platform.slice(1)}
-                  </span>
-                ) : selectedItem.type === "post" ? (
-                  <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-[11px] font-semibold bg-[#dbeafe] text-[#1e40af] border border-[#93c5fd]">
-                    Website
-                  </span>
-                ) : null}
+                {(() => {
+                  const colors = TYPE_COLORS[selectedItem.type];
+                  return (
+                    <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-[11px] font-semibold ${colors.bg} ${colors.text} border ${colors.border}`}>
+                      {TYPE_LABELS[selectedItem.type] ?? selectedItem.type}
+                    </span>
+                  );
+                })()}
 
                 {(selectedItem.postedAt || selectedItem.date) && (
                   <span className="text-[12px] text-[#6b7280]">
