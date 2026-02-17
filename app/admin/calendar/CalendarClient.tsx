@@ -304,17 +304,19 @@ export function CalendarClient({ blogPosts, scripts, newsletters }: CalendarClie
     return buildItemsForDates(dateKeys, blogPosts, scripts, newsletters, channelFilter);
   }, [viewMode, currentDayKey, weekDays, monthGrid, blogPosts, scripts, newsletters, channelFilter]);
 
-  // Build dynamic legend — only types with items in the current view
+  // Build legend from full dataset (not just current view)
   const activeLegend = useMemo(() => {
     const typesPresent = new Set<string>();
-    for (const items of Object.values(dayMap)) {
-      for (const item of items) {
-        typesPresent.add(item.type);
-      }
+    if (blogPosts.length > 0) typesPresent.add("post");
+    if (newsletters.length > 0) typesPresent.add("newsletter");
+    for (const s of scripts) {
+      const p = (s.platform ?? "").toLowerCase();
+      const SOCIAL_PLATFORMS = new Set(["instagram", "tiktok", "youtube", "facebook", "linkedin", "x"]);
+      typesPresent.add(SOCIAL_PLATFORMS.has(p) ? p : "x");
     }
     const ORDER: ContentType[] = ["post", "newsletter", "instagram", "tiktok", "youtube", "facebook", "linkedin", "x"];
     return ORDER.filter((t) => typesPresent.has(t));
-  }, [dayMap]);
+  }, [blogPosts, scripts, newsletters]);
 
   // --- Navigation handlers ---
   function handlePrev() {
