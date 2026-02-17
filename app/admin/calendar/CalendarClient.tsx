@@ -371,23 +371,31 @@ export function CalendarClient({ entries, scripts, events, newsletters }: Calend
         }
       />
       <div className="p-8 space-y-4">
-        {/* Filter controls and legend */}
-        <div className="flex flex-wrap items-center justify-between gap-3">
-          <div className="flex flex-wrap items-center gap-3">
-            {LEGEND.map((item) => {
-              const colors = TYPE_COLORS[item.type];
+        {/* View Toggle + Channel Filter */}
+        <div className="flex items-center gap-2 mb-4">
+          <div className="flex border border-gray-200 rounded-full overflow-hidden">
+            {(["daily", "weekly", "monthly"] as ViewMode[]).map((mode) => {
+              const label = mode === "daily" ? "Day" : mode === "weekly" ? "Week" : "Month";
               return (
-                <div key={item.type} className="flex items-center gap-1.5">
-                  <span className={`w-3 h-3 rounded-full ${colors.bg} border ${colors.border}`} />
-                  <span className="text-[11px] text-[#6b7280]">{item.label}</span>
-                </div>
+                <button
+                  key={mode}
+                  onClick={() => setViewMode(mode)}
+                  className={`px-4 py-2 text-sm font-medium transition-colors ${
+                    viewMode === mode
+                      ? "bg-[#1a1a1a] text-white"
+                      : "bg-white text-gray-600 hover:bg-gray-50"
+                  }`}
+                >
+                  {label}
+                </button>
               );
             })}
           </div>
+
           <select
             value={channelFilter}
             onChange={(e) => setChannelFilter(e.target.value as ChannelFilter)}
-            className="px-3 py-1.5 text-xs font-semibold border border-[#e5e5e5] text-[#374151] bg-white rounded-full hover:border-[#d1d5db] transition-colors focus:outline-none focus:ring-1 focus:ring-[#d1d5db]"
+            className="ml-4 px-3 py-2 border border-gray-200 text-sm bg-white text-[#374151] focus:outline-none focus:border-[#1a1a1a]"
           >
             {CHANNEL_OPTIONS.map((opt) => (
               <option key={opt.value} value={opt.value}>
@@ -395,6 +403,19 @@ export function CalendarClient({ entries, scripts, events, newsletters }: Calend
               </option>
             ))}
           </select>
+        </div>
+
+        {/* Legend */}
+        <div className="flex flex-wrap items-center gap-3">
+          {LEGEND.map((item) => {
+            const colors = TYPE_COLORS[item.type];
+            return (
+              <div key={item.type} className="flex items-center gap-1.5">
+                <span className={`w-3 h-3 rounded-full ${colors.bg} border ${colors.border}`} />
+                <span className="text-[11px] text-[#6b7280]">{item.label}</span>
+              </div>
+            );
+          })}
         </div>
 
         {/* Navigation */}

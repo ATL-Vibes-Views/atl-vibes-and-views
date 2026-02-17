@@ -519,6 +519,39 @@ export async function uploadScriptMedia(
   return { success: true };
 }
 
+// ─── PLATFORM CAPTIONS (inline save from Social Queue) ────────
+
+export async function savePlatformCaption(
+  scriptId: string,
+  platformKey: string,
+  captionData: Record<string, unknown>
+) {
+  const supabase = createServiceRoleClient();
+  const now = new Date().toISOString();
+
+  // Fetch existing platform_captions
+  const { data: script, error: fetchErr } = (await supabase
+    .from("scripts")
+    .select("platform_captions")
+    .eq("id", scriptId)
+    .single()) as {
+    data: { platform_captions: Record<string, unknown> | null } | null;
+    error: unknown;
+  };
+  if (fetchErr) return { error: String(fetchErr) };
+
+  const existing = (script?.platform_captions ?? {}) as Record<string, unknown>;
+  const merged = { ...existing, [platformKey]: captionData };
+
+  const { error } = await supabase
+    .from("scripts")
+    .update({ platform_captions: merged, updated_at: now } as never)
+    .eq("id", scriptId);
+  if (error) return { error: error.message };
+  revalidatePath("/admin/social");
+  return { success: true };
+}
+
 // ─── AD CREATIVES ─────────────────────────────────────────────
 
 export async function updateAdCreative(id: string, data: Record<string, unknown>) {

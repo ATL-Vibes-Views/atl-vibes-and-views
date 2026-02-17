@@ -21,10 +21,8 @@ interface MediaRow {
   thumbnail_url: string | null;
   status: string;
   is_featured: boolean;
-  neighborhood_id: string | null;
   published_at: string | null;
   created_at: string;
-  neighborhoods: { name: string } | null;
 }
 
 interface MediaClientProps {
@@ -127,13 +125,6 @@ export function MediaClient({ media }: MediaClientProps) {
       header: "Source",
       render: (item: MediaRow) => (
         <span className="text-[13px]">{item.source_type}</span>
-      ),
-    },
-    {
-      key: "neighborhood",
-      header: "Neighborhood",
-      render: (item: MediaRow) => (
-        <span className="text-[13px]">{item.neighborhoods?.name ?? "—"}</span>
       ),
     },
     {

@@ -9,6 +9,7 @@ import { StatusBadge } from "@/components/portal/StatusBadge";
 import { ToggleSwitch } from "@/components/portal/ToggleSwitch";
 import { Modal } from "@/components/portal/Modal";
 import { distributeScript, saveDraftDistribution, uploadScriptMedia } from "@/app/admin/actions";
+import { createBrowserClient } from "@/lib/supabase";
 
 /* ──────────────────────────────────────────────────────────────
    TYPES
@@ -405,6 +406,20 @@ export function DistributeClient({ filmingScript, captions }: DistributeClientPr
     }
   }, [filmingScript, scheduleMode, scheduleDate, scheduleTime, buildPlatformCaptions, router]);
 
+  /* ── Upload file to Supabase Storage ─────────────────────── */
+  const uploadToStorage = useCallback(async (file: File, folder: string): Promise<string | null> => {
+    const supabase = createBrowserClient();
+    const ext = file.name.split(".").pop() ?? "bin";
+    const path = `${folder}/${filmingScript?.id ?? "unknown"}-${Date.now()}.${ext}`;
+    const { error } = await supabase.storage.from("scripts-media").upload(path, file, { upsert: true });
+    if (error) {
+      alert("Upload failed: " + error.message);
+      return null;
+    }
+    const { data: urlData } = supabase.storage.from("scripts-media").getPublicUrl(path);
+    return urlData.publicUrl;
+  }, [filmingScript?.id]);
+
   /* ── Replace Video handler ────────────────────────────────── */
   const handleReplaceVideo = useCallback(() => {
     const input = document.createElement("input");
@@ -413,12 +428,18 @@ export function DistributeClient({ filmingScript, captions }: DistributeClientPr
     input.onchange = async (e) => {
       const file = (e.target as HTMLInputElement).files?.[0];
       if (!file || !filmingScript) return;
-      const objectUrl = URL.createObjectURL(file);
-      void objectUrl;
-      alert("File selected: " + file.name + ". Supabase Storage upload integration pending.");
+      const publicUrl = await uploadToStorage(file, "videos");
+      if (publicUrl) {
+        const result = await uploadScriptMedia(filmingScript.id, "media_url", publicUrl);
+        if (result.error) {
+          alert("Failed to save video URL: " + result.error);
+        } else {
+          router.refresh();
+        }
+      }
     };
     input.click();
-  }, [filmingScript]);
+  }, [filmingScript, uploadToStorage, router]);
 
   /* ── Add Thumbnail handler ────────────────────────────────── */
   const handleAddThumbnail = useCallback(() => {
@@ -428,12 +449,18 @@ export function DistributeClient({ filmingScript, captions }: DistributeClientPr
     input.onchange = async (e) => {
       const file = (e.target as HTMLInputElement).files?.[0];
       if (!file || !filmingScript) return;
-      const objectUrl = URL.createObjectURL(file);
-      void objectUrl;
-      alert("File selected: " + file.name + ". Supabase Storage upload integration pending.");
+      const publicUrl = await uploadToStorage(file, "thumbnails");
+      if (publicUrl) {
+        const result = await uploadScriptMedia(filmingScript.id, "thumbnail_url", publicUrl);
+        if (result.error) {
+          alert("Failed to save thumbnail URL: " + result.error);
+        } else {
+          router.refresh();
+        }
+      }
     };
     input.click();
-  }, [filmingScript]);
+  }, [filmingScript, uploadToStorage, router]);
 
   /* ── Copy to clipboard ────────────────────────────────────── */
   const copyToClipboard = useCallback((text: string) => {
@@ -873,40 +900,34 @@ export function DistributeClient({ filmingScript, captions }: DistributeClientPr
             <div className="bg-white border border-[#e5e5e5] p-5">
               <h3 className="font-display text-[18px] font-semibold text-black mb-4">Media</h3>
 
-              {filmingScript.media_url ? (
-                <div className="space-y-3">
-                  <div
-                    className={`bg-[#000] flex items-center justify-center overflow-hidden ${
-                      isVerticalFormat ? "" : "w-full"
-                    }`}
-                    style={
+              <div className="w-full max-w-2xl mx-auto mb-3">
+                {filmingScript.media_url ? (
+                  <div className="space-y-3">
+                    <div className={`relative w-full ${
                       isVerticalFormat
-                        ? { maxWidth: 280, aspectRatio: "9/16" }
-                        : { width: "100%", aspectRatio: "16/9" }
-                    }
-                  >
-                    <video
-                      controls
-                      className="w-full h-full object-contain"
-                      src={filmingScript.media_url}
-                      {...(filmingScript.thumbnail_url ? { poster: filmingScript.thumbnail_url } : {})}
-                    />
+                        ? 'aspect-[9/16] max-w-sm mx-auto'
+                        : 'aspect-video'
+                    }`}>
+                      <video
+                        src={filmingScript.media_url}
+                        controls
+                        className="absolute inset-0 w-full h-full object-contain bg-black rounded"
+                        poster={filmingScript.thumbnail_url || undefined}
+                      />
+                    </div>
+                    <p className="text-[12px] text-[#6b7280]">
+                      {extractFilename(filmingScript.media_url)}
+                    </p>
                   </div>
-                  <p className="text-[12px] text-[#6b7280]">
-                    {extractFilename(filmingScript.media_url)}
-                  </p>
-                </div>
-              ) : (
-                <div className="flex gap-4 items-start bg-[#f5f5f5] border border-[#e5e5e5] p-4">
-                  <div className="w-[200px] h-[112px] bg-[#e2d5c3] flex items-center justify-center flex-shrink-0">
-                    <Play size={32} className="text-[#6b7280]" />
+                ) : (
+                  <div className="aspect-video bg-gray-100 border-2 border-dashed border-gray-300 flex items-center justify-center">
+                    <div className="text-center">
+                      <Play size={32} className="mx-auto text-gray-400 mb-2" />
+                      <p className="text-gray-400">No video uploaded</p>
+                    </div>
                   </div>
-                  <div>
-                    <p className="text-[13px] font-semibold text-[#374151]">Video file pending</p>
-                    <p className="text-[12px] text-[#6b7280] mt-1">Upload video to continue</p>
-                  </div>
-                </div>
-              )}
+                )}
+              </div>
 
               <div className="flex gap-2 mt-3">
                 <button
@@ -1266,9 +1287,9 @@ export function DistributeClient({ filmingScript, captions }: DistributeClientPr
             </div>
             <div>
               <p className="text-[14px] font-semibold text-[#1a1a1a]">
-                This will post to {activePlatformCount} active platform{activePlatformCount !== 1 ? "s" : ""}.
+                ⚠ This will post to {activePlatformCount} active platform{activePlatformCount !== 1 ? "s" : ""}. This cannot be undone.
               </p>
-              <p className="text-[13px] text-[#6b7280] mt-1">This cannot be undone.</p>
+              <p className="text-[13px] text-[#6b7280] mt-1">Continue?</p>
             </div>
           </div>
 

@@ -15,7 +15,7 @@ export default async function MediaPage() {
 
   const { data: media, error: mediaErr } = (await supabase
     .from("media_items")
-    .select("*, neighborhoods(name)")
+    .select("*")
     .order("created_at", { ascending: false })) as {
     data: {
       id: string;
@@ -27,10 +27,8 @@ export default async function MediaPage() {
       thumbnail_url: string | null;
       status: string;
       is_featured: boolean;
-      neighborhood_id: string | null;
       published_at: string | null;
       created_at: string;
-      neighborhoods: { name: string } | null;
     }[] | null;
     error: unknown;
   };
