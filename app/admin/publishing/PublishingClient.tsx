@@ -190,7 +190,14 @@ export function PublishingClient({ posts }: PublishingClientProps) {
                   {/* Actions */}
                   <div className="flex items-center gap-2 mt-4">
                     <button
-                      onClick={() => window.open(`/hub/stories/${post.slug}`, "_blank")}
+                      onClick={() => {
+                        if (post.slug) {
+                          window.open('/hub/stories/' + post.slug, '_blank');
+                        } else {
+                          const slug = post.title.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '');
+                          window.open('/hub/stories/' + slug, '_blank');
+                        }
+                      }}
                       className="inline-flex items-center px-3 py-1 text-xs font-semibold rounded-full border border-[#e5e5e5] text-[#374151] hover:border-[#d1d5db] transition-colors"
                     >
                       Preview

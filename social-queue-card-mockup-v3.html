@@ -1,0 +1,523 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Social Queue — Card Design Reference v3 FINAL</title>
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@400;600;700&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { font-family: 'Inter', sans-serif; background: #f5f5f5; padding: 32px; color: #1a1a1a; }
+  
+  .page-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 24px; }
+  .page-header h1 { font-family: 'Cormorant Garamond', serif; font-size: 28px; font-weight: 700; }
+  .view-site { color: #c1121f; font-size: 14px; font-weight: 600; text-decoration: none; }
+
+  /* ===== STAT CARDS ===== */
+  .stats-row { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; margin-bottom: 24px; }
+  .stat-card { background: #fff; border: 1px solid #e5e5e5; padding: 16px; }
+  .stat-card .stat-label { font-size: 12px; color: #666; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 4px; }
+  .stat-card .stat-value { font-family: 'Cormorant Garamond', serif; font-size: 32px; font-weight: 700; }
+
+  /* ===== FILTER ROW ===== */
+  .filter-row { display: flex; gap: 12px; margin-bottom: 24px; align-items: center; }
+  .filter-select { padding: 8px 12px; border: 1px solid #e5e5e5; font-size: 14px; font-family: 'Inter', sans-serif; background: #fff; }
+  .filter-search { padding: 8px 12px; border: 1px solid #e5e5e5; font-size: 14px; font-family: 'Inter', sans-serif; flex: 1; max-width: 300px; }
+
+  /* ===== QUEUE CARDS ===== */
+  .card { background: #fff; border: 1px solid #e5e5e5; margin-bottom: 16px; }
+  .card-inner { border-left: 4px solid #16a34a; padding: 20px; }
+
+  /* ===== CARD HEADER ROW ===== */
+  .card-header { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 4px; }
+  .card-title { font-family: 'Cormorant Garamond', serif; font-size: 20px; font-weight: 600; line-height: 1.3; }
+  .card-actions { display: flex; gap: 8px; align-items: center; flex-shrink: 0; margin-left: 16px; }
+
+  /* ===== BADGES + META ROW ===== */
+  .card-meta { display: flex; align-items: center; gap: 8px; margin-bottom: 12px; flex-wrap: wrap; }
+  .badge { display: inline-block; padding: 2px 10px; font-size: 12px; font-weight: 600; border-radius: 9999px; }
+  .badge-script { background: #dcfce7; color: #166534; }
+  .meta-text { font-size: 13px; color: #666; }
+  .status-badge { font-size: 12px; font-weight: 600; }
+  .status-badge.media-required { color: #c1121f; }
+  .status-badge.media-attached { color: #16a34a; }
+
+  /* ===== MEDIA SECTION ===== */
+  .media-section { margin-bottom: 12px; }
+
+  /* Upload zone */
+  .upload-zone { border: 2px dashed #d4d4d4; padding: 32px; text-align: center; background: #fafafa; cursor: pointer; }
+  .upload-zone:hover { border-color: #999; background: #f0f0f0; }
+  .upload-zone .upload-icon { font-size: 28px; color: #999; margin-bottom: 8px; }
+  .upload-zone .upload-title { font-size: 15px; font-weight: 600; color: #333; margin-bottom: 4px; }
+  .upload-zone .upload-subtitle { font-size: 13px; color: #888; margin-bottom: 8px; }
+  .upload-zone .upload-warning { font-size: 12px; color: #c1121f; }
+
+  /* Media attached */
+  .media-attached { display: flex; gap: 16px; align-items: flex-start; }
+  .media-thumb { width: 120px; height: 80px; background: #2a2a2a; flex-shrink: 0; position: relative; overflow: hidden; }
+  .media-thumb .play-icon { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); width: 32px; height: 32px; background: rgba(0,0,0,0.6); border-radius: 50%; display: flex; align-items: center; justify-content: center; }
+  .play-icon::after { content: ''; width: 0; height: 0; border-top: 6px solid transparent; border-bottom: 6px solid transparent; border-left: 10px solid #fff; margin-left: 2px; }
+  .media-details { font-size: 13px; color: #555; line-height: 1.6; }
+  .media-details .filename { font-weight: 600; color: #1a1a1a; }
+  .media-details .publishing-to { font-weight: 600; color: #1a1a1a; margin-top: 2px; }
+
+  /* ===== PLATFORM TAGS (Interactive — replaces Edit Captions button) ===== */
+  .platform-tags-section { margin-top: 12px; }
+  .platform-tags-label { font-size: 13px; font-weight: 600; color: #555; margin-bottom: 6px; }
+  .platform-tags { display: flex; gap: 6px; flex-wrap: wrap; }
+  .platform-tag { display: inline-block; padding: 4px 12px; font-size: 12px; font-weight: 500; border-radius: 4px; border: 1px solid #d4d4d4; color: #555; background: #fff; cursor: pointer; transition: all 0.15s ease; user-select: none; }
+  .platform-tag:hover { border-color: #999; background: #f5f5f5; }
+  .platform-tag.active { background: #1a1a1a; color: #fff; border-color: #1a1a1a; }
+
+  /* ===== INLINE CAPTION EDITOR (appears when platform tag is clicked) ===== */
+  .caption-editor { margin-top: 12px; padding: 16px; background: #fafafa; border: 1px solid #e5e5e5; }
+  .caption-editor-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; }
+  .caption-editor-platform { font-size: 13px; font-weight: 600; color: #1a1a1a; }
+  .caption-char-count { font-size: 11px; color: #888; }
+  .caption-textarea { width: 100%; min-height: 80px; padding: 10px; border: 1px solid #d4d4d4; font-family: 'Inter', sans-serif; font-size: 13px; line-height: 1.5; resize: vertical; color: #1a1a1a; background: #fff; }
+  .caption-textarea:focus { outline: none; border-color: #16a34a; }
+  .caption-hashtags-label { font-size: 11px; font-weight: 600; color: #888; margin-top: 8px; margin-bottom: 4px; text-transform: uppercase; letter-spacing: 0.3px; }
+  .caption-hashtags { width: 100%; padding: 8px 10px; border: 1px solid #d4d4d4; font-family: 'Inter', sans-serif; font-size: 12px; color: #666; background: #fff; }
+  .caption-hashtags:focus { outline: none; border-color: #16a34a; }
+  .caption-save-row { display: flex; justify-content: flex-end; gap: 8px; margin-top: 10px; }
+  .caption-empty { font-size: 13px; color: #999; font-style: italic; padding: 12px 0; }
+
+  /* YouTube special fields */
+  .yt-field-row { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-top: 8px; }
+  .yt-field label { font-size: 11px; font-weight: 600; color: #888; text-transform: uppercase; letter-spacing: 0.3px; display: block; margin-bottom: 4px; }
+  .yt-field input, .yt-field select { width: 100%; padding: 8px 10px; border: 1px solid #d4d4d4; font-family: 'Inter', sans-serif; font-size: 12px; color: #666; background: #fff; }
+
+  /* ===== BUTTONS ===== */
+  .btn { display: inline-flex; align-items: center; gap: 6px; padding: 8px 18px; font-size: 13px; font-weight: 600; font-family: 'Inter', sans-serif; border-radius: 9999px; cursor: pointer; text-decoration: none; border: none; white-space: nowrap; }
+  .btn-outline { background: #fff; border: 1px solid #d4d4d4; color: #1a1a1a; }
+  .btn-outline:hover { background: #f5f5f5; }
+  .btn-distribute { background: #16a34a; color: #fff; }
+  .btn-distribute:hover { background: #15803d; }
+  .btn-reject { color: #c1121f; background: none; border: none; font-size: 13px; font-weight: 600; cursor: pointer; padding: 8px 12px; }
+  .btn-reject:hover { text-decoration: underline; }
+  .btn-save { background: #16a34a; color: #fff; font-size: 12px; padding: 6px 16px; border-radius: 9999px; border: none; cursor: pointer; font-weight: 600; font-family: 'Inter', sans-serif; }
+  .btn-save:hover { background: #15803d; }
+  .btn-cancel-sm { background: none; border: 1px solid #d4d4d4; color: #666; font-size: 12px; padding: 6px 16px; border-radius: 9999px; cursor: pointer; font-weight: 500; font-family: 'Inter', sans-serif; }
+
+  /* ===== DESIGN NOTES ===== */
+  .design-note { background: #fffbeb; border: 1px solid #fbbf24; padding: 16px; margin-bottom: 24px; font-size: 13px; line-height: 1.8; }
+  .design-note strong { color: #92400e; }
+  .design-note code { background: #fef3c7; padding: 1px 5px; border-radius: 3px; font-size: 12px; }
+  hr.section-divider { border: none; border-top: 2px solid #c1121f; margin: 40px 0 24px; }
+  .label { display: inline-block; background: #eee; color: #555; font-size: 11px; font-weight: 600; padding: 2px 8px; border-radius: 3px; margin-bottom: 8px; text-transform: uppercase; letter-spacing: 0.5px; }
+</style>
+</head>
+<body>
+
+<!-- ===== MASTER SPEC NOTES ===== -->
+<div class="design-note">
+  <strong>SOCIAL QUEUE — FINAL CARD REFERENCE v3 — For Claude Code</strong><br><br>
+  
+  <strong>PAGE:</strong> <code>/admin/social</code> (SocialClient.tsx)<br><br>
+  
+  <strong>DATA SOURCE:</strong> <code>scripts WHERE status = 'approved'</code> — ONE source only. No stories. No blog posts.<br><br>
+  
+  <strong>CAPTION STORAGE:</strong> <code>scripts.platform_captions</code> JSONB column. Structure:<br>
+  <code>{ "instagram": { "caption": "...", "hashtags": "..." }, "tiktok": {...}, "youtube": { "title": "...", "description": "...", "tags": "..." }, "facebook": {...}, "linkedin": {...}, "x": {...} }</code><br><br>
+  
+  <strong>WORKFLOW:</strong> S5 → scripts (draft) → Scripts Page → Approve → status='approved' → <strong>Social Queue</strong> → Distribute → Distribution Page → Post/Schedule/Draft → Content Calendar<br><br>
+  
+  <strong>BUTTONS ON ALL CARDS:</strong> Preview (outline pill) + × Reject (red text)<br>
+  <strong>ADDITIONAL BUTTON WHEN media_url IS NOT NULL:</strong> 🚀 Distribute (green pill)<br>
+  <strong>NO "Edit Captions" button</strong> — platform tags handle caption editing inline<br><br>
+
+  <strong>PLATFORM TAG INTERACTION:</strong><br>
+  • Tags default to none selected — no caption area visible<br>
+  • Click tag → tag goes active (dark bg), inline caption editor appears below<br>
+  • Click different tag → previous deselects, new one activates<br>
+  • Click same active tag → deselects, caption editor hides<br>
+  • Caption is editable: textarea + hashtags + Save button<br>
+  • Save writes updated caption back to <code>platform_captions</code> JSONB<br>
+  • If no caption exists for that platform → show "Awaiting caption generation" (italic, gray)
+</div>
+
+<!-- ===== PAGE HEADER ===== -->
+<div class="page-header">
+  <h1>Social Queue</h1>
+  <a href="#" class="view-site">VIEW SITE →</a>
+</div>
+
+<!-- ===== STAT CARDS ===== -->
+<div class="stats-row">
+  <div class="stat-card">
+    <div class="stat-label">Total Queue</div>
+    <div class="stat-value">4</div>
+  </div>
+  <div class="stat-card">
+    <div class="stat-label">Ready to Distribute</div>
+    <div class="stat-value">2</div>
+  </div>
+  <div class="stat-card">
+    <div class="stat-label">Needs Media</div>
+    <div class="stat-value">2</div>
+  </div>
+</div>
+
+<!-- ===== FILTER ROW ===== -->
+<div class="filter-row">
+  <select class="filter-select">
+    <option>All</option>
+    <option>Needs Media</option>
+    <option>Ready to Distribute</option>
+  </select>
+  <input type="text" class="filter-search" placeholder="Search queue...">
+</div>
+
+
+<!-- ============================================= -->
+<span class="label">Card A — No Media, No Tag Selected (Default State)</span>
+<!-- ============================================= -->
+<div class="card">
+  <div class="card-inner">
+    <div class="card-header">
+      <div class="card-title">5 West End Restaurants That Deserve More Hype</div>
+      <div class="card-actions">
+        <button class="btn btn-outline">Preview</button>
+        <span class="btn-reject">× Reject</span>
+      </div>
+    </div>
+    <div class="card-meta">
+      <span class="badge badge-script">Script</span>
+      <span class="meta-text">Batch #6 · Approved Feb 10</span>
+      <span class="status-badge media-required">⚠ Media Required</span>
+    </div>
+    <div class="media-section">
+      <div class="upload-zone">
+        <div class="upload-icon">📎</div>
+        <div class="upload-title">Upload Video or Images</div>
+        <div class="upload-subtitle">Drag & drop or click to browse · MP4, MOV, JPG, PNG</div>
+        <div class="upload-warning">⚠ Required before distributing</div>
+      </div>
+    </div>
+    <div class="platform-tags-section">
+      <div class="platform-tags-label">Captions:</div>
+      <div class="platform-tags">
+        <span class="platform-tag">YouTube</span>
+        <span class="platform-tag">Instagram</span>
+        <span class="platform-tag">TikTok</span>
+        <span class="platform-tag">Facebook</span>
+        <span class="platform-tag">LinkedIn</span>
+        <span class="platform-tag">X</span>
+      </div>
+      <!-- No caption editor visible — no tag selected -->
+    </div>
+  </div>
+</div>
+
+
+<!-- ============================================= -->
+<span class="label">Card B — No Media, Instagram Tag Clicked (Editor Open)</span>
+<!-- ============================================= -->
+<div class="card">
+  <div class="card-inner">
+    <div class="card-header">
+      <div class="card-title">Buckhead Village Gets New Rooftop Lounge This Spring</div>
+      <div class="card-actions">
+        <button class="btn btn-outline">Preview</button>
+        <span class="btn-reject">× Reject</span>
+      </div>
+    </div>
+    <div class="card-meta">
+      <span class="badge badge-script">Script</span>
+      <span class="meta-text">Batch #6 · Approved Feb 10</span>
+      <span class="status-badge media-required">⚠ Media Required</span>
+    </div>
+    <div class="media-section">
+      <div class="upload-zone">
+        <div class="upload-icon">📎</div>
+        <div class="upload-title">Upload Video or Images</div>
+        <div class="upload-subtitle">Drag & drop or click to browse · MP4, MOV, JPG, PNG</div>
+        <div class="upload-warning">⚠ Required before distributing</div>
+      </div>
+    </div>
+    <div class="platform-tags-section">
+      <div class="platform-tags-label">Captions:</div>
+      <div class="platform-tags">
+        <span class="platform-tag">YouTube</span>
+        <span class="platform-tag active">Instagram</span>
+        <span class="platform-tag">TikTok</span>
+        <span class="platform-tag">Facebook</span>
+        <span class="platform-tag">LinkedIn</span>
+        <span class="platform-tag">X</span>
+      </div>
+      <!-- Caption editor — Instagram selected -->
+      <div class="caption-editor" style="display:block;">
+        <div class="caption-editor-header">
+          <span class="caption-editor-platform">Instagram Caption</span>
+          <span class="caption-char-count">142 / 2,200</span>
+        </div>
+        <textarea class="caption-textarea">🍸 Buckhead's rooftop game is about to change. New lounge opening this spring with skyline views and craft cocktails. Who's pulling up?</textarea>
+        <div class="caption-hashtags-label">Hashtags</div>
+        <input class="caption-hashtags" value="#atlanta #buckhead #atlnightlife #rooftopbar #buckheadvillage #atlvibes" />
+        <div class="caption-save-row">
+          <button class="btn-cancel-sm">Cancel</button>
+          <button class="btn-save">Save</button>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+
+<!-- ============================================= -->
+<span class="label">Card C — Video Attached, No Tag Selected</span>
+<!-- ============================================= -->
+<div class="card">
+  <div class="card-inner">
+    <div class="card-header">
+      <div class="card-title">Midtown Food Hall Announcement — Quick Take</div>
+      <div class="card-actions">
+        <button class="btn btn-outline">Preview</button>
+        <button class="btn btn-distribute">🚀 Distribute</button>
+        <span class="btn-reject">× Reject</span>
+      </div>
+    </div>
+    <div class="card-meta">
+      <span class="badge badge-script">Script</span>
+      <span class="meta-text">Batch #7 · Approved today</span>
+      <span class="status-badge media-attached">✓ Video Attached (1:23)</span>
+    </div>
+    <div class="media-section">
+      <div class="media-attached">
+        <div class="media-thumb">
+          <div class="play-icon"></div>
+        </div>
+        <div class="media-details">
+          <span class="filename">midtown-food-hall-take.mp4</span> · 42 MB · 1:23<br>
+          Uploaded today at 2:15 PM
+        </div>
+      </div>
+    </div>
+    <div class="platform-tags-section">
+      <div class="platform-tags-label">Captions:</div>
+      <div class="platform-tags">
+        <span class="platform-tag">YouTube</span>
+        <span class="platform-tag">Instagram</span>
+        <span class="platform-tag">TikTok</span>
+        <span class="platform-tag">Facebook</span>
+        <span class="platform-tag">LinkedIn</span>
+        <span class="platform-tag">X</span>
+      </div>
+    </div>
+  </div>
+</div>
+
+
+<!-- ============================================= -->
+<span class="label">Card D — Video Attached, YouTube Tag Clicked (Extra Fields)</span>
+<!-- ============================================= -->
+<div class="card">
+  <div class="card-inner">
+    <div class="card-header">
+      <div class="card-title">BeltLine Eastside Trail Extension Opens Next Month</div>
+      <div class="card-actions">
+        <button class="btn btn-outline">Preview</button>
+        <button class="btn btn-distribute">🚀 Distribute</button>
+        <span class="btn-reject">× Reject</span>
+      </div>
+    </div>
+    <div class="card-meta">
+      <span class="badge badge-script">Script</span>
+      <span class="meta-text">Batch #7 · Approved today</span>
+      <span class="status-badge media-attached">✓ Video Attached (2:45)</span>
+    </div>
+    <div class="media-section">
+      <div class="media-attached">
+        <div class="media-thumb">
+          <div style="background:linear-gradient(135deg,#4a7c59,#8fbc8f);width:100%;height:100%;"></div>
+          <div class="play-icon"></div>
+        </div>
+        <div class="media-details">
+          <span class="filename">beltline-extension-take.mp4</span> · 78 MB · 2:45<br>
+          Uploaded today at 3:30 PM
+        </div>
+      </div>
+    </div>
+    <div class="platform-tags-section">
+      <div class="platform-tags-label">Captions:</div>
+      <div class="platform-tags">
+        <span class="platform-tag active">YouTube</span>
+        <span class="platform-tag">Instagram</span>
+        <span class="platform-tag">TikTok</span>
+        <span class="platform-tag">Facebook</span>
+        <span class="platform-tag">LinkedIn</span>
+        <span class="platform-tag">X</span>
+      </div>
+      <!-- Caption editor — YouTube selected (has extra fields: title, description, tags) -->
+      <div class="caption-editor" style="display:block;">
+        <div class="caption-editor-header">
+          <span class="caption-editor-platform">YouTube</span>
+          <span class="caption-char-count">Description: 187 / 5,000</span>
+        </div>
+        <div class="yt-field-row">
+          <div class="yt-field">
+            <label>Title</label>
+            <input type="text" value="BeltLine Eastside Trail Extension — What You Need to Know" />
+          </div>
+          <div class="yt-field">
+            <label>Category</label>
+            <select>
+              <option>News & Politics</option>
+              <option selected>People & Blogs</option>
+              <option>Travel & Events</option>
+            </select>
+          </div>
+        </div>
+        <div style="margin-top: 8px;">
+          <label style="font-size:11px;font-weight:600;color:#888;text-transform:uppercase;letter-spacing:0.3px;display:block;margin-bottom:4px;">Description</label>
+          <textarea class="caption-textarea">The BeltLine Eastside Trail extension is finally opening next month, connecting more of Atlanta's neighborhoods. Here's everything you need to know about the new section, what's coming to the corridor, and how it changes getting around the city.
+
+📍 Atlanta, GA
+🔗 Full story: atlvibesandviews.com
+
+#atlanta #beltline #atlbeltline #eastsidetrail #atlantadevelopment</textarea>
+        </div>
+        <div class="yt-field-row" style="margin-top: 8px;">
+          <div class="yt-field">
+            <label>Tags</label>
+            <input type="text" value="atlanta, beltline, eastside trail, atlanta development, atl" />
+          </div>
+          <div class="yt-field">
+            <label>Visibility</label>
+            <select>
+              <option selected>Public</option>
+              <option>Unlisted</option>
+              <option>Private</option>
+            </select>
+          </div>
+        </div>
+        <div class="caption-save-row">
+          <button class="btn-cancel-sm">Cancel</button>
+          <button class="btn-save">Save</button>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+
+<!-- ============================================= -->
+<span class="label">Card E — No Captions Yet (Awaiting Generation)</span>
+<!-- ============================================= -->
+<div class="card">
+  <div class="card-inner">
+    <div class="card-header">
+      <div class="card-title">Sandy Springs Mixed-Use Development Breaks Ground</div>
+      <div class="card-actions">
+        <button class="btn btn-outline">Preview</button>
+        <span class="btn-reject">× Reject</span>
+      </div>
+    </div>
+    <div class="card-meta">
+      <span class="badge badge-script">Script</span>
+      <span class="meta-text">Batch #8 · Approved today</span>
+      <span class="status-badge media-required">⚠ Media Required</span>
+    </div>
+    <div class="media-section">
+      <div class="upload-zone">
+        <div class="upload-icon">📎</div>
+        <div class="upload-title">Upload Video or Images</div>
+        <div class="upload-subtitle">Drag & drop or click to browse · MP4, MOV, JPG, PNG</div>
+        <div class="upload-warning">⚠ Required before distributing</div>
+      </div>
+    </div>
+    <div class="platform-tags-section">
+      <div class="platform-tags-label">Captions:</div>
+      <div class="platform-tags">
+        <span class="platform-tag active">Instagram</span>
+        <span class="platform-tag">TikTok</span>
+        <span class="platform-tag">Facebook</span>
+        <span class="platform-tag">LinkedIn</span>
+        <span class="platform-tag">X</span>
+        <span class="platform-tag">YouTube</span>
+      </div>
+      <!-- Caption editor — empty state -->
+      <div class="caption-editor" style="display:block;">
+        <div class="caption-editor-header">
+          <span class="caption-editor-platform">Instagram Caption</span>
+        </div>
+        <div class="caption-empty">Awaiting caption generation — S5 has not populated captions for this script yet.</div>
+        <textarea class="caption-textarea" placeholder="Write a caption manually, or wait for S5 automation to generate one..."></textarea>
+        <div class="caption-hashtags-label">Hashtags</div>
+        <input class="caption-hashtags" placeholder="#atlanta #atlvibes" />
+        <div class="caption-save-row">
+          <button class="btn-cancel-sm">Cancel</button>
+          <button class="btn-save">Save</button>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+
+<hr class="section-divider">
+
+<!-- ===== COMPLETE IMPLEMENTATION SPEC ===== -->
+<div class="design-note">
+  <strong>COMPLETE IMPLEMENTATION SPEC FOR CLAUDE CODE</strong><br><br>
+  
+  <strong>1. DATA SOURCE</strong><br>
+  <code>scripts WHERE status = 'approved'</code> sorted by <code>created_at DESC</code><br>
+  One source only. No stories table. No blog_posts.<br><br>
+
+  <strong>2. CAPTION STORAGE</strong><br>
+  <code>scripts.platform_captions</code> (JSONB column). Structure:<br>
+  <code>{</code><br>
+  <code>&nbsp;&nbsp;"instagram": { "caption": "...", "hashtags": "..." },</code><br>
+  <code>&nbsp;&nbsp;"tiktok": { "caption": "...", "hashtags": "..." },</code><br>
+  <code>&nbsp;&nbsp;"facebook": { "caption": "...", "hashtags": "..." },</code><br>
+  <code>&nbsp;&nbsp;"linkedin": { "caption": "...", "hashtags": "..." },</code><br>
+  <code>&nbsp;&nbsp;"x": { "caption": "...", "hashtags": "..." },</code><br>
+  <code>&nbsp;&nbsp;"youtube": { "title": "...", "description": "...", "tags": "...", "category": "...", "visibility": "public" }</code><br>
+  <code>}</code><br><br>
+
+  <strong>3. CARD BUTTONS</strong><br>
+  • <strong>Preview</strong> (outline pill) → ALL cards → <code>window.open(previewUrl, '_blank')</code><br>
+  • <strong>🚀 Distribute</strong> (green pill) → ONLY when <code>media_url IS NOT NULL</code> → <code>router.push('/admin/social/distribute/' + item.id + '?mode=distribute')</code><br>
+  • <strong>× Reject</strong> (red text, no bg) → ALL cards → <code>UPDATE scripts SET status='killed' WHERE id=item.id</code><br>
+  • <strong>NO "Edit Captions" button</strong> — platform tags handle this<br><br>
+
+  <strong>4. PLATFORM TAG INTERACTION</strong><br>
+  • 6 tags always visible: YouTube, Instagram, TikTok, Facebook, LinkedIn, X<br>
+  • Default: none selected, no editor visible<br>
+  • Click tag → goes active (bg: #1a1a1a, text: #fff) → inline caption editor appears<br>
+  • Click different tag → previous deselects, new activates, editor switches<br>
+  • Click same active tag → deselects, editor hides<br>
+  • One active at a time only<br><br>
+
+  <strong>5. CAPTION EDITOR</strong><br>
+  • Standard platforms (Instagram, TikTok, Facebook, LinkedIn, X): caption textarea + hashtags input + Save/Cancel<br>
+  • YouTube: title input + description textarea + tags input + category dropdown + visibility dropdown + Save/Cancel<br>
+  • Character count display (platform limits: Instagram 2200, TikTok 4000, Facebook 63206, LinkedIn 3000, X 280, YouTube desc 5000)<br>
+  • If <code>platform_captions</code> is NULL or missing key → show "Awaiting caption generation" message + empty editable fields<br>
+  • Save button → read current JSONB → merge updated platform key → <code>UPDATE scripts SET platform_captions = merged WHERE id = script.id</code><br><br>
+
+  <strong>6. STAT CARDS (3)</strong><br>
+  • Total Queue: <code>COUNT(*) FROM scripts WHERE status='approved'</code><br>
+  • Ready to Distribute: <code>COUNT(*) FROM scripts WHERE status='approved' AND media_url IS NOT NULL</code><br>
+  • Needs Media: <code>COUNT(*) FROM scripts WHERE status='approved' AND media_url IS NULL</code><br><br>
+
+  <strong>7. FILTER DROPDOWN</strong><br>
+  • All (default) / Needs Media / Ready to Distribute<br><br>
+
+  <strong>8. STYLING RULES</strong><br>
+  • Cormorant Garamond for card titles, Inter for everything else<br>
+  • ALL buttons: <code>rounded-full</code> (pill shape)<br>
+  • Cards: sharp edges, NO rounded corners, <code>border: 1px solid #e5e5e5</code>, NO shadows<br>
+  • Left border: <code>4px solid #16a34a</code> on ALL cards<br>
+  • Distribute: <code>bg-[#16a34a] text-white</code><br>
+  • Reject: <code>text-[#c1121f]</code> no bg, no border<br>
+  • Upload zone: <code>border: 2px dashed #d4d4d4; background: #fafafa</code><br>
+  • Active platform tag: <code>bg: #1a1a1a; color: #fff</code><br>
+  • Caption editor bg: <code>#fafafa</code> with <code>1px solid #e5e5e5</code> border<br>
+  • Save button: green pill <code>#16a34a</code>, Cancel: outline pill
+</div>
+
+</body>
+</html>

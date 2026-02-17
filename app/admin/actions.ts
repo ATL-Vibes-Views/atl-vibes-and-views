@@ -164,12 +164,55 @@ export async function updateScript(id: string, data: Record<string, unknown>) {
 
 export async function rejectScript(id: string) {
   const supabase = createServiceRoleClient();
+  const now = new Date().toISOString();
+
+  // Fetch story_id before killing so we can reset the parent story
+  const { data: script } = (await supabase
+    .from("scripts")
+    .select("story_id")
+    .eq("id", id)
+    .single()) as { data: { story_id: string | null } | null };
+
   const { error } = await supabase
     .from("scripts")
-    .update({ status: "killed", updated_at: new Date().toISOString() } as never)
+    .update({ status: "killed", updated_at: now } as never)
     .eq("id", id);
   if (error) return { error: error.message };
+
+  // Reset parent story back to scored so it returns to the Pipeline
+  if (script?.story_id) {
+    await supabase
+      .from("stories")
+      .update({ status: "scored", updated_at: now } as never)
+      .eq("id", script.story_id);
+  }
+
   revalidatePath("/admin/scripts");
+  revalidatePath("/admin/social");
+  return { success: true };
+}
+
+export async function approveScript(id: string, storyId: string | null) {
+  const supabase = createServiceRoleClient();
+  const now = new Date().toISOString();
+
+  // Update this script's status to approved
+  const { error } = await supabase
+    .from("scripts")
+    .update({ status: "approved", updated_at: now } as never)
+    .eq("id", id);
+  if (error) return { error: error.message };
+
+  // Also approve all caption rows for the same story
+  if (storyId) {
+    await supabase
+      .from("scripts")
+      .update({ status: "approved", updated_at: now } as never)
+      .eq("story_id", storyId);
+  }
+
+  revalidatePath("/admin/scripts");
+  revalidatePath("/admin/social");
   return { success: true };
 }
 
@@ -394,6 +437,161 @@ export async function createAdPlacement(formData: FormData) {
 
   if (error) return { error: error.message };
   revalidatePath("/admin/ad-placements");
+  return { success: true };
+}
+
+// ─── DISTRIBUTION ────────────────────────────────────────────
+
+export async function distributeScript(
+  scriptId: string,
+  data: {
+    platformCaptions: Record<string, unknown>;
+    platforms: string[];
+    scheduleMode: "now" | "later";
+    scheduledDate?: string;
+    storyId?: string | null;
+  }
+) {
+  const supabase = createServiceRoleClient();
+  const now = new Date().toISOString();
+
+  // Save platform captions to the filming script record
+  const updateData: Record<string, unknown> = {
+    platform_captions: data.platformCaptions,
+    updated_at: now,
+  };
+
+  if (data.scheduleMode === "now") {
+    updateData.status = "posted";
+    updateData.posted_at = now;
+  } else {
+    updateData.status = "scheduled";
+    if (data.scheduledDate) updateData.scheduled_date = data.scheduledDate;
+  }
+
+  const { error: scriptErr } = await supabase
+    .from("scripts")
+    .update(updateData as never)
+    .eq("id", scriptId);
+  if (scriptErr) return { error: scriptErr.message };
+
+  // Insert published_content for each active platform (publish now only)
+  if (data.scheduleMode === "now") {
+    for (const platform of data.platforms) {
+      await supabase.from("published_content").insert({
+        source_story_id: data.storyId || null,
+        platform,
+        content_format: "reel",
+        published_at: now,
+      } as never);
+    }
+  }
+
+  // Insert into content_calendar
+  const calendarStatus = data.scheduleMode === "now" ? "published" : "scheduled";
+  const calendarDate = data.scheduleMode === "now"
+    ? now.split("T")[0]
+    : data.scheduledDate ?? now.split("T")[0];
+  await supabase.from("content_calendar").insert({
+    story_id: data.storyId || null,
+    tier: "script",
+    scheduled_date: calendarDate,
+    status: calendarStatus,
+  } as never);
+
+  revalidatePath("/admin/social");
+  revalidatePath("/admin/calendar");
+  return { success: true };
+}
+
+export async function saveDraftDistribution(
+  scriptId: string,
+  data: {
+    platformCaptions: Record<string, unknown>;
+    scheduledDate?: string;
+  }
+) {
+  const supabase = createServiceRoleClient();
+  const updateData: Record<string, unknown> = {
+    platform_captions: data.platformCaptions,
+    updated_at: new Date().toISOString(),
+  };
+  if (data.scheduledDate) updateData.scheduled_date = data.scheduledDate;
+
+  const { error } = await supabase
+    .from("scripts")
+    .update(updateData as never)
+    .eq("id", scriptId);
+  if (error) return { error: error.message };
+  revalidatePath("/admin/social");
+  return { success: true };
+}
+
+export async function rejectSocialItem(id: string, kind: "script" | "story") {
+  const supabase = createServiceRoleClient();
+  const now = new Date().toISOString();
+  if (kind === "script") {
+    const { error } = await supabase
+      .from("scripts")
+      .update({ status: "killed", updated_at: now } as never)
+      .eq("id", id);
+    if (error) return { error: error.message };
+  } else {
+    const { error } = await supabase
+      .from("stories")
+      .update({ status: "discarded", updated_at: now } as never)
+      .eq("id", id);
+    if (error) return { error: error.message };
+  }
+  revalidatePath("/admin/social");
+  return { success: true };
+}
+
+export async function uploadScriptMedia(
+  scriptId: string,
+  field: "media_url" | "thumbnail_url",
+  publicUrl: string
+) {
+  const supabase = createServiceRoleClient();
+  const { error } = await supabase
+    .from("scripts")
+    .update({ [field]: publicUrl, updated_at: new Date().toISOString() } as never)
+    .eq("id", scriptId);
+  if (error) return { error: error.message };
+  revalidatePath("/admin/social");
+  return { success: true };
+}
+
+// ─── PLATFORM CAPTIONS (inline save from Social Queue) ────────
+
+export async function savePlatformCaption(
+  scriptId: string,
+  platformKey: string,
+  captionData: Record<string, unknown>
+) {
+  const supabase = createServiceRoleClient();
+  const now = new Date().toISOString();
+
+  // Fetch existing platform_captions
+  const { data: script, error: fetchErr } = (await supabase
+    .from("scripts")
+    .select("platform_captions")
+    .eq("id", scriptId)
+    .single()) as {
+    data: { platform_captions: Record<string, unknown> | null } | null;
+    error: unknown;
+  };
+  if (fetchErr) return { error: String(fetchErr) };
+
+  const existing = (script?.platform_captions ?? {}) as Record<string, unknown>;
+  const merged = { ...existing, [platformKey]: captionData };
+
+  const { error } = await supabase
+    .from("scripts")
+    .update({ platform_captions: merged, updated_at: now } as never)
+    .eq("id", scriptId);
+  if (error) return { error: error.message };
+  revalidatePath("/admin/social");
   return { success: true };
 }
 

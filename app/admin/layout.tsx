@@ -50,7 +50,7 @@ export default async function AdminLayout({
     supabase.from("blog_posts").select("*", { count: "exact", head: true }).eq("status", "scheduled"),
     supabase.from("blog_posts").select("*", { count: "exact", head: true }).eq("status", "draft"),
     supabase.from("scripts").select("*", { count: "exact", head: true }).eq("status", "draft").eq("platform", "reel"),
-    supabase.from("scripts").select("*", { count: "exact", head: true }).eq("status", "approved").eq("platform", "reel"),
+    supabase.from("scripts").select("*", { count: "exact", head: true }).eq("status", "approved"),
     supabase.from("stories").select("*", { count: "exact", head: true }).eq("tier", "social").in("status", ["assigned_blog", "assigned_script", "assigned_dual", "assigned_social"]),
     supabase.from("media_items").select("*", { count: "exact", head: true }),
     supabase.from("stories").select("*", { count: "exact", head: true }).in("status", ["draft_script", "draft_social"]),
@@ -65,7 +65,7 @@ export default async function AdminLayout({
   const draftScripts = counts[2].count ?? 0;
   const approvedScripts = counts[3].count ?? 0;
   const tier3Stories = counts[4].count ?? 0;
-  const socialQueue = approvedScripts + tier3Stories;
+  const socialQueue = approvedScripts;
   const mediaCount = counts[5].count ?? 0;
   const pipelineCount = counts[6].count ?? 0;
   const businessCount = counts[7].count ?? 0;

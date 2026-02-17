@@ -10,9 +10,8 @@ import { StatusBadge } from "@/components/portal/StatusBadge";
 import { FilterBar } from "@/components/portal/FilterBar";
 import { Modal } from "@/components/portal/Modal";
 import { Pagination } from "@/components/portal/Pagination";
-import { createBrowserClient } from "@/lib/supabase";
 import { ChevronDown, ChevronUp } from "lucide-react";
-import { rejectScript, updateScript } from "@/app/admin/actions";
+import { rejectScript, approveScript, updateScript } from "@/app/admin/actions";
 
 interface FilmingScript {
   id: string;
@@ -148,38 +147,14 @@ export function ScriptsClient({ filmingScripts, captions, batches, counts }: Scr
 
   const handleApprove = useCallback(async (script: FilmingScript) => {
     setApproving(script.id);
-    try {
-      const supabase = createBrowserClient();
-
-      // Update this script's status to approved
-      const { error: scriptErr } = await supabase
-        .from("scripts")
-        .update({ status: "approved" } as never)
-        .eq("id", script.id);
-
-      if (scriptErr) {
-        console.error("Failed to approve script:", scriptErr);
-        setApproving(null);
-        return;
-      }
-
-      // Also approve all caption rows for the same story
-      if (script.story_id) {
-        const { error: captionErr } = await supabase
-          .from("scripts")
-          .update({ status: "approved" } as never)
-          .eq("story_id", script.story_id);
-
-        if (captionErr) {
-          console.error("Failed to approve captions:", captionErr);
-        }
-      }
-
-      // Remove from local list — approved scripts belong in Social Queue now
-      setScripts((prev) => prev.filter((s) => s.id !== script.id));
-    } finally {
-      setApproving(null);
+    const result = await approveScript(script.id, script.story_id);
+    setApproving(null);
+    if (result.error) {
+      alert("Error: " + result.error);
+      return;
     }
+    // Remove from local list — approved scripts belong in Social Queue now
+    setScripts((prev) => prev.filter((s) => s.id !== script.id));
   }, []);
 
   return (
@@ -300,18 +275,18 @@ export function ScriptsClient({ filmingScripts, captions, batches, counts }: Scr
                       Edit
                     </button>
                     <button
-                      onClick={() => handleReject(script.id)}
-                      disabled={rejecting === script.id}
-                      className="inline-flex items-center px-3 py-1 text-xs font-semibold rounded-full border border-[#c1121f] text-[#c1121f] hover:bg-[#fee2e2] transition-colors disabled:opacity-50"
-                    >
-                      {rejecting === script.id ? "Rejecting..." : "Reject"}
-                    </button>
-                    <button
                       onClick={() => handleApprove(script)}
                       disabled={approving === script.id}
-                      className="inline-flex items-center px-3 py-1 text-xs font-semibold rounded-full bg-[#fee198] text-[#1a1a1a] hover:bg-[#fdd870] transition-colors disabled:opacity-50"
+                      className="inline-flex items-center px-3 py-1 text-xs font-semibold rounded-full bg-[#16a34a] text-white hover:bg-[#15803d] transition-colors disabled:opacity-50"
                     >
                       {approving === script.id ? "Approving..." : "Approve"}
+                    </button>
+                    <button
+                      onClick={() => handleReject(script.id)}
+                      disabled={rejecting === script.id}
+                      className="inline-flex items-center px-3 py-1 text-xs font-semibold rounded-full text-[#c1121f] hover:bg-[#fee2e2] transition-colors disabled:opacity-50"
+                    >
+                      {rejecting === script.id ? "Rejecting..." : "× Reject"}
                     </button>
                   </div>
 
