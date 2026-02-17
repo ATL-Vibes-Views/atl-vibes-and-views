@@ -13,19 +13,21 @@ export const dynamic = 'force-dynamic';
 export default async function SocialPage() {
   const supabase = createServiceRoleClient();
 
-  // Approved/scheduled/posted filming scripts (ready for social distribution)
+  // Approved scripts ready for social distribution
   const { data: scripts, error: scriptsErr } = (await supabase
     .from("scripts")
     .select("*, script_batches(batch_name), stories(headline, tier)")
-    .eq("platform", "reel")
-    .eq("format", "talking_head")
-    .in("status", ["approved", "scheduled", "posted"])
+    .eq("status", "approved")
     .order("created_at", { ascending: false })) as {
     data: {
       id: string;
       title: string;
       story_id: string | null;
       status: string;
+      platform: string | null;
+      format: string | null;
+      media_url: string | null;
+      thumbnail_url: string | null;
       scheduled_date: string | null;
       created_at: string;
       script_batches: { batch_name: string | null } | null;
@@ -35,13 +37,11 @@ export default async function SocialPage() {
   };
   if (scriptsErr) console.error("Failed to fetch social scripts:", scriptsErr);
 
-  // Social-tier scored stories (social-only, no blog post)
-  // tier is TEXT column — value is "social"
+  // Social-tier stories (assigned_social only)
   const { data: socialStories, error: storiesErr } = (await supabase
     .from("stories")
     .select("*, categories(name)")
-    .eq("tier", "social")
-    .in("status", ["assigned_blog", "assigned_script", "assigned_dual", "assigned_social"])
+    .eq("status", "assigned_social")
     .order("created_at", { ascending: false })) as {
     data: {
       id: string;
@@ -58,16 +58,16 @@ export default async function SocialPage() {
   };
   if (storiesErr) console.error("Failed to fetch social stories:", storiesErr);
 
-  // Fetch one IG caption per story for preview
+  // Fetch caption script rows for preview (non-reel scripts linked to same stories)
   const storyIds = (scripts ?? []).map(s => s.story_id).filter(Boolean) as string[];
-  let captionPreviews: { story_id: string; caption: string | null }[] = [];
+  let captionPreviews: { story_id: string; platform: string; caption: string | null }[] = [];
   if (storyIds.length > 0) {
     const { data: caps } = (await supabase
       .from("scripts")
-      .select("story_id, caption")
-      .eq("platform", "instagram")
+      .select("story_id, platform, caption")
+      .neq("platform", "reel")
       .in("story_id", storyIds)) as {
-      data: { story_id: string; caption: string | null }[] | null;
+      data: { story_id: string; platform: string; caption: string | null }[] | null;
     };
     captionPreviews = caps ?? [];
   }

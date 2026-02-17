@@ -50,7 +50,11 @@ type CalendarItem = {
   type: "post" | "story" | "script" | "event" | "newsletter";
   tier?: string | null;
   status?: string | null;
+  platform?: string | null;
 };
+
+type ViewMode = "daily" | "weekly" | "monthly";
+type ChannelFilter = "" | "instagram" | "tiktok" | "youtube" | "facebook" | "linkedin" | "x";
 
 const TYPE_COLORS: Record<string, { bg: string; text: string; border: string }> = {
   post: { bg: "bg-[#dbeafe]", text: "text-[#1e40af]", border: "border-[#93c5fd]" },
@@ -70,6 +74,16 @@ const LEGEND = [
 
 const DAY_NAMES = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
 
+const CHANNEL_OPTIONS: { value: ChannelFilter; label: string }[] = [
+  { value: "", label: "All Channels" },
+  { value: "instagram", label: "Instagram" },
+  { value: "tiktok", label: "TikTok" },
+  { value: "youtube", label: "YouTube" },
+  { value: "facebook", label: "Facebook" },
+  { value: "linkedin", label: "LinkedIn" },
+  { value: "x", label: "X" },
+];
+
 function getWeekStart(date: Date): Date {
   const d = new Date(date);
   const day = d.getDay();
@@ -77,6 +91,10 @@ function getWeekStart(date: Date): Date {
   d.setDate(diff);
   d.setHours(0, 0, 0, 0);
   return d;
+}
+
+function getMonthStart(date: Date): Date {
+  return new Date(date.getFullYear(), date.getMonth(), 1);
 }
 
 function formatDateKey(date: Date): string {
@@ -89,27 +107,34 @@ function addDays(date: Date, days: number): Date {
   return d;
 }
 
-export function CalendarClient({ entries, scripts, events, newsletters }: CalendarClientProps) {
-  const [weekOffset, setWeekOffset] = useState(0);
+function addMonths(date: Date, months: number): Date {
+  const d = new Date(date);
+  d.setMonth(d.getMonth() + months);
+  return d;
+}
 
-  const weekStart = useMemo(() => {
-    const today = new Date();
-    const start = getWeekStart(today);
-    return addDays(start, weekOffset * 7);
-  }, [weekOffset]);
+function getDaysInMonth(year: number, month: number): number {
+  return new Date(year, month + 1, 0).getDate();
+}
 
-  const weekDays = useMemo(() => {
-    return Array.from({ length: 7 }, (_, i) => addDays(weekStart, i));
-  }, [weekStart]);
+function buildItemsForDates(
+  dateKeys: Set<string>,
+  entries: CalendarEntry[],
+  scripts: ScriptEntry[],
+  events: EventEntry[],
+  newsletters: NewsletterEntry[],
+  channelFilter: ChannelFilter,
+): Record<string, CalendarItem[]> {
+  const map: Record<string, CalendarItem[]> = {};
 
-  // Build a map of date → items
-  const dayMap = useMemo(() => {
-    const map: Record<string, CalendarItem[]> = {};
+  for (const key of dateKeys) {
+    map[key] = [];
+  }
 
-    for (const day of weekDays) {
-      map[formatDateKey(day)] = [];
-    }
+  // When a specific channel is selected, hide non-platform content types
+  const showNonPlatformContent = channelFilter === "";
 
+  if (showNonPlatformContent) {
     for (const entry of entries) {
       const key = entry.scheduled_date;
       if (!map[key]) continue;
@@ -131,19 +156,25 @@ export function CalendarClient({ entries, scripts, events, newsletters }: Calend
         });
       }
     }
+  }
 
-    for (const script of scripts) {
-      if (!script.scheduled_date) continue;
-      const key = script.scheduled_date;
-      if (!map[key]) continue;
-      map[key].push({
-        id: script.id,
-        label: script.title,
-        type: "script",
-        status: script.status,
-      });
+  for (const script of scripts) {
+    if (!script.scheduled_date) continue;
+    const key = script.scheduled_date;
+    if (!map[key]) continue;
+    if (channelFilter !== "" && (script.platform ?? "").toLowerCase() !== channelFilter) {
+      continue;
     }
+    map[key].push({
+      id: script.id,
+      label: script.title,
+      type: "script",
+      status: script.status,
+      platform: script.platform,
+    });
+  }
 
+  if (showNonPlatformContent) {
     for (const event of events) {
       if (!event.start_date) continue;
       const key = event.start_date.split("T")[0];
@@ -167,112 +198,424 @@ export function CalendarClient({ entries, scripts, events, newsletters }: Calend
         status: nl.status,
       });
     }
+  }
 
-    return map;
-  }, [entries, scripts, events, newsletters, weekDays]);
+  return map;
+}
 
-  const weekLabel = `${weekDays[0].toLocaleDateString("en-US", { month: "short", day: "numeric" })} — ${weekDays[6].toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })}`;
+export function CalendarClient({ entries, scripts, events, newsletters }: CalendarClientProps) {
+  const [viewMode, setViewMode] = useState<ViewMode>("weekly");
+  const [channelFilter, setChannelFilter] = useState<ChannelFilter>("");
+  const [weekOffset, setWeekOffset] = useState(0);
+  const [dayOffset, setDayOffset] = useState(0);
+  const [monthOffset, setMonthOffset] = useState(0);
 
   const todayKey = formatDateKey(new Date());
+
+  // --- Daily computations ---
+  const currentDay = useMemo(() => {
+    return addDays(new Date(), dayOffset);
+  }, [dayOffset]);
+
+  const currentDayKey = useMemo(() => formatDateKey(currentDay), [currentDay]);
+
+  // --- Weekly computations ---
+  const weekStart = useMemo(() => {
+    const today = new Date();
+    const start = getWeekStart(today);
+    return addDays(start, weekOffset * 7);
+  }, [weekOffset]);
+
+  const weekDays = useMemo(() => {
+    return Array.from({ length: 7 }, (_, i) => addDays(weekStart, i));
+  }, [weekStart]);
+
+  // --- Monthly computations ---
+  const monthAnchor = useMemo(() => {
+    return addMonths(getMonthStart(new Date()), monthOffset);
+  }, [monthOffset]);
+
+  const monthGrid = useMemo(() => {
+    const year = monthAnchor.getFullYear();
+    const month = monthAnchor.getMonth();
+    const firstDay = new Date(year, month, 1);
+    // getDay() returns 0=Sun, we want Mon=0
+    let startDow = firstDay.getDay() - 1;
+    if (startDow < 0) startDow = 6;
+    const daysInMonth = getDaysInMonth(year, month);
+    const daysInPrevMonth = getDaysInMonth(year, month - 1);
+
+    const cells: { date: Date; inMonth: boolean }[] = [];
+
+    // Previous month trailing days
+    for (let i = startDow - 1; i >= 0; i--) {
+      const day = daysInPrevMonth - i;
+      cells.push({ date: new Date(year, month - 1, day), inMonth: false });
+    }
+
+    // Current month days
+    for (let d = 1; d <= daysInMonth; d++) {
+      cells.push({ date: new Date(year, month, d), inMonth: true });
+    }
+
+    // Next month leading days (fill to complete rows of 7)
+    const remaining = cells.length % 7 === 0 ? 0 : 7 - (cells.length % 7);
+    for (let d = 1; d <= remaining; d++) {
+      cells.push({ date: new Date(year, month + 1, d), inMonth: false });
+    }
+
+    return cells;
+  }, [monthAnchor]);
+
+  // --- Build item maps based on view mode ---
+  const dayMap = useMemo(() => {
+    let dateKeys: Set<string>;
+
+    if (viewMode === "daily") {
+      dateKeys = new Set([currentDayKey]);
+    } else if (viewMode === "weekly") {
+      dateKeys = new Set(weekDays.map((d) => formatDateKey(d)));
+    } else {
+      dateKeys = new Set(monthGrid.map((cell) => formatDateKey(cell.date)));
+    }
+
+    return buildItemsForDates(dateKeys, entries, scripts, events, newsletters, channelFilter);
+  }, [viewMode, currentDayKey, weekDays, monthGrid, entries, scripts, events, newsletters, channelFilter]);
+
+  // --- Navigation handlers ---
+  function handlePrev() {
+    if (viewMode === "daily") setDayOffset((o) => o - 1);
+    else if (viewMode === "weekly") setWeekOffset((o) => o - 1);
+    else setMonthOffset((o) => o - 1);
+  }
+
+  function handleNext() {
+    if (viewMode === "daily") setDayOffset((o) => o + 1);
+    else if (viewMode === "weekly") setWeekOffset((o) => o + 1);
+    else setMonthOffset((o) => o + 1);
+  }
+
+  function handleToday() {
+    setDayOffset(0);
+    setWeekOffset(0);
+    setMonthOffset(0);
+  }
+
+  // --- Navigation label ---
+  const navigationLabel = useMemo(() => {
+    if (viewMode === "daily") {
+      return currentDay.toLocaleDateString("en-US", {
+        weekday: "long",
+        month: "long",
+        day: "numeric",
+        year: "numeric",
+      });
+    } else if (viewMode === "weekly") {
+      return `${weekDays[0].toLocaleDateString("en-US", { month: "short", day: "numeric" })} — ${weekDays[6].toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })}`;
+    } else {
+      return monthAnchor.toLocaleDateString("en-US", { month: "long", year: "numeric" });
+    }
+  }, [viewMode, currentDay, weekDays, monthAnchor]);
+
+  // --- Render a single item badge ---
+  function renderItemBadge(item: CalendarItem) {
+    const colors = TYPE_COLORS[item.type];
+    return (
+      <div
+        key={`${item.type}-${item.id}`}
+        className={`px-1.5 py-1 text-[10px] font-semibold border ${colors.border} ${colors.bg} ${colors.text} cursor-pointer truncate`}
+        title={item.label}
+        onClick={() => console.log("Open:", item.type, item.id)}
+      >
+        {item.label}
+      </div>
+    );
+  }
+
+  // --- View mode toggle button ---
+  function renderViewModeButton(mode: ViewMode, label: string) {
+    const isActive = viewMode === mode;
+    return (
+      <button
+        key={mode}
+        onClick={() => setViewMode(mode)}
+        className={`px-3 py-1 text-[11px] font-semibold transition-colors ${
+          isActive
+            ? "bg-black text-white"
+            : "text-[#374151] hover:bg-[#f3f4f6]"
+        }`}
+      >
+        {label}
+      </button>
+    );
+  }
 
   return (
     <>
       <PortalTopbar
         title="Content Calendar"
         actions={
-          <button
-            onClick={() => setWeekOffset(0)}
-            className="inline-flex items-center px-4 py-1.5 rounded-full text-xs font-semibold border border-[#e5e5e5] text-[#374151] hover:border-[#d1d5db] transition-colors"
-          >
-            Today
-          </button>
+          <div className="flex items-center gap-3">
+            <button
+              onClick={handleToday}
+              className="inline-flex items-center px-4 py-1.5 rounded-full text-xs font-semibold border border-[#e5e5e5] text-[#374151] hover:border-[#d1d5db] transition-colors"
+            >
+              Today
+            </button>
+            <div className="inline-flex items-center rounded-full border border-[#e5e5e5] overflow-hidden">
+              {renderViewModeButton("daily", "Day")}
+              {renderViewModeButton("weekly", "Week")}
+              {renderViewModeButton("monthly", "Month")}
+            </div>
+          </div>
         }
       />
       <div className="p-8 space-y-4">
-        {/* Week navigation */}
+        {/* Filter controls and legend */}
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <div className="flex flex-wrap items-center gap-3">
+            {LEGEND.map((item) => {
+              const colors = TYPE_COLORS[item.type];
+              return (
+                <div key={item.type} className="flex items-center gap-1.5">
+                  <span className={`w-3 h-3 rounded-full ${colors.bg} border ${colors.border}`} />
+                  <span className="text-[11px] text-[#6b7280]">{item.label}</span>
+                </div>
+              );
+            })}
+          </div>
+          <select
+            value={channelFilter}
+            onChange={(e) => setChannelFilter(e.target.value as ChannelFilter)}
+            className="px-3 py-1.5 text-xs font-semibold border border-[#e5e5e5] text-[#374151] bg-white rounded-full hover:border-[#d1d5db] transition-colors focus:outline-none focus:ring-1 focus:ring-[#d1d5db]"
+          >
+            {CHANNEL_OPTIONS.map((opt) => (
+              <option key={opt.value} value={opt.value}>
+                {opt.label}
+              </option>
+            ))}
+          </select>
+        </div>
+
+        {/* Navigation */}
         <div className="flex items-center justify-between">
           <button
-            onClick={() => setWeekOffset((o) => o - 1)}
+            onClick={handlePrev}
             className="inline-flex items-center justify-center w-8 h-8 border border-[#e5e5e5] text-[#374151] hover:border-[#d1d5db] transition-colors"
           >
             <ChevronLeft size={16} />
           </button>
           <h2 className="font-display text-[18px] font-semibold text-black">
-            {weekLabel}
+            {navigationLabel}
           </h2>
           <button
-            onClick={() => setWeekOffset((o) => o + 1)}
+            onClick={handleNext}
             className="inline-flex items-center justify-center w-8 h-8 border border-[#e5e5e5] text-[#374151] hover:border-[#d1d5db] transition-colors"
           >
             <ChevronRight size={16} />
           </button>
         </div>
 
-        {/* Color legend */}
-        <div className="flex flex-wrap items-center gap-3">
-          {LEGEND.map((item) => {
-            const colors = TYPE_COLORS[item.type];
-            return (
-              <div key={item.type} className="flex items-center gap-1.5">
-                <span className={`w-3 h-3 rounded-full ${colors.bg} border ${colors.border}`} />
-                <span className="text-[11px] text-[#6b7280]">{item.label}</span>
-              </div>
-            );
-          })}
-        </div>
-
-        {/* 7-column grid */}
-        <div className="grid grid-cols-7 border border-[#e5e5e5]">
-          {/* Day headers */}
-          {weekDays.map((day, i) => {
-            const key = formatDateKey(day);
-            const isToday = key === todayKey;
-            return (
-              <div
-                key={`header-${i}`}
-                className={`px-2 py-2 text-center border-b border-[#e5e5e5] ${i > 0 ? "border-l border-[#e5e5e5]" : ""} ${isToday ? "bg-[#fef3c7]" : "bg-[#f9fafb]"}`}
+        {/* =================== DAILY VIEW =================== */}
+        {viewMode === "daily" && (
+          <div className="border border-[#e5e5e5] bg-white">
+            <div
+              className={`px-4 py-3 border-b border-[#e5e5e5] ${
+                currentDayKey === todayKey ? "bg-[#fef3c7]" : "bg-[#f9fafb]"
+              }`}
+            >
+              <span className="text-[11px] font-semibold text-[#6b7280]">
+                {currentDay.toLocaleDateString("en-US", { weekday: "long" })}
+              </span>
+              <span
+                className={`ml-2 text-[14px] font-semibold ${
+                  currentDayKey === todayKey ? "text-[#c1121f]" : "text-black"
+                }`}
               >
-                <span className="text-[11px] font-semibold text-[#6b7280]">{DAY_NAMES[i]}</span>
-                <br />
-                <span className={`text-[14px] font-semibold ${isToday ? "text-[#c1121f]" : "text-black"}`}>
-                  {day.getDate()}
+                {currentDay.toLocaleDateString("en-US", {
+                  month: "long",
+                  day: "numeric",
+                  year: "numeric",
+                })}
+              </span>
+            </div>
+            <div className="px-4 py-4 min-h-[200px]">
+              {(dayMap[currentDayKey] ?? []).length === 0 ? (
+                <span className="text-[13px] text-[#d1d5db] block text-center mt-12">
+                  No items scheduled
                 </span>
-              </div>
-            );
-          })}
-
-          {/* Day cells */}
-          {weekDays.map((day, i) => {
-            const key = formatDateKey(day);
-            const items = dayMap[key] ?? [];
-            const isToday = key === todayKey;
-            return (
-              <div
-                key={`cell-${i}`}
-                className={`min-h-[140px] px-1.5 py-2 ${i > 0 ? "border-l border-[#e5e5e5]" : ""} ${isToday ? "bg-[#fffef5]" : "bg-white"}`}
-              >
-                {items.length === 0 && (
-                  <span className="text-[10px] text-[#d1d5db] block text-center mt-8">—</span>
-                )}
-                <div className="space-y-1">
-                  {items.map((item) => {
+              ) : (
+                <div className="space-y-2">
+                  {(dayMap[currentDayKey] ?? []).map((item) => {
                     const colors = TYPE_COLORS[item.type];
                     return (
                       <div
                         key={`${item.type}-${item.id}`}
-                        className={`px-1.5 py-1 text-[10px] font-semibold border ${colors.border} ${colors.bg} ${colors.text} cursor-pointer truncate`}
-                        title={item.label}
+                        className={`flex items-start gap-3 px-4 py-3 border ${colors.border} ${colors.bg} cursor-pointer transition-colors`}
                         onClick={() => console.log("Open:", item.type, item.id)}
                       >
-                        {item.label}
+                        <div className="flex-1 min-w-0">
+                          <p className={`text-[13px] font-semibold ${colors.text}`}>
+                            {item.label}
+                          </p>
+                          <div className="flex items-center gap-2 mt-1">
+                            <span className="text-[10px] font-semibold uppercase text-[#6b7280]">
+                              {item.type}
+                            </span>
+                            {item.platform && (
+                              <span className="text-[10px] text-[#6b7280]">
+                                {item.platform}
+                              </span>
+                            )}
+                            {item.status && (
+                              <span className="text-[10px] text-[#6b7280]">
+                                {item.status}
+                              </span>
+                            )}
+                            {item.tier && (
+                              <span className="text-[10px] text-[#6b7280]">
+                                Tier {item.tier}
+                              </span>
+                            )}
+                          </div>
+                        </div>
                       </div>
                     );
                   })}
                 </div>
-              </div>
-            );
-          })}
-        </div>
+              )}
+            </div>
+          </div>
+        )}
+
+        {/* =================== WEEKLY VIEW =================== */}
+        {viewMode === "weekly" && (
+          <div className="grid grid-cols-7 border border-[#e5e5e5]">
+            {/* Day headers */}
+            {weekDays.map((day, i) => {
+              const key = formatDateKey(day);
+              const isToday = key === todayKey;
+              return (
+                <div
+                  key={`header-${i}`}
+                  className={`px-2 py-2 text-center border-b border-[#e5e5e5] ${
+                    i > 0 ? "border-l border-[#e5e5e5]" : ""
+                  } ${isToday ? "bg-[#fef3c7]" : "bg-[#f9fafb]"}`}
+                >
+                  <span className="text-[11px] font-semibold text-[#6b7280]">
+                    {DAY_NAMES[i]}
+                  </span>
+                  <br />
+                  <span
+                    className={`text-[14px] font-semibold ${
+                      isToday ? "text-[#c1121f]" : "text-black"
+                    }`}
+                  >
+                    {day.getDate()}
+                  </span>
+                </div>
+              );
+            })}
+
+            {/* Day cells */}
+            {weekDays.map((day, i) => {
+              const key = formatDateKey(day);
+              const items = dayMap[key] ?? [];
+              const isToday = key === todayKey;
+              return (
+                <div
+                  key={`cell-${i}`}
+                  className={`min-h-[140px] px-1.5 py-2 ${
+                    i > 0 ? "border-l border-[#e5e5e5]" : ""
+                  } ${isToday ? "bg-[#fffef5]" : "bg-white"}`}
+                >
+                  {items.length === 0 && (
+                    <span className="text-[10px] text-[#d1d5db] block text-center mt-8">
+                      —
+                    </span>
+                  )}
+                  <div className="space-y-1">{items.map(renderItemBadge)}</div>
+                </div>
+              );
+            })}
+          </div>
+        )}
+
+        {/* =================== MONTHLY VIEW =================== */}
+        {viewMode === "monthly" && (
+          <div className="border border-[#e5e5e5]">
+            {/* Day name headers */}
+            <div className="grid grid-cols-7">
+              {DAY_NAMES.map((name, i) => (
+                <div
+                  key={`month-header-${i}`}
+                  className={`px-2 py-2 text-center bg-[#f9fafb] border-b border-[#e5e5e5] ${
+                    i > 0 ? "border-l border-[#e5e5e5]" : ""
+                  }`}
+                >
+                  <span className="text-[11px] font-semibold text-[#6b7280]">
+                    {name}
+                  </span>
+                </div>
+              ))}
+            </div>
+
+            {/* Month grid rows */}
+            {Array.from(
+              { length: Math.ceil(monthGrid.length / 7) },
+              (_, rowIdx) => {
+                const rowCells = monthGrid.slice(rowIdx * 7, rowIdx * 7 + 7);
+                return (
+                  <div key={`month-row-${rowIdx}`} className="grid grid-cols-7">
+                    {rowCells.map((cell, colIdx) => {
+                      const key = formatDateKey(cell.date);
+                      const items = dayMap[key] ?? [];
+                      const isToday = key === todayKey;
+                      const MAX_VISIBLE = 3;
+                      const visibleItems = items.slice(0, MAX_VISIBLE);
+                      const hiddenCount = items.length - MAX_VISIBLE;
+
+                      return (
+                        <div
+                          key={`month-cell-${rowIdx}-${colIdx}`}
+                          className={`min-h-[100px] px-1.5 py-1.5 border-b border-[#e5e5e5] ${
+                            colIdx > 0 ? "border-l border-[#e5e5e5]" : ""
+                          } ${
+                            !cell.inMonth
+                              ? "bg-[#f9fafb]"
+                              : isToday
+                                ? "bg-[#fffef5]"
+                                : "bg-white"
+                          }`}
+                        >
+                          <span
+                            className={`text-[12px] font-semibold block mb-1 ${
+                              !cell.inMonth
+                                ? "text-[#d1d5db]"
+                                : isToday
+                                  ? "text-[#c1121f]"
+                                  : "text-[#374151]"
+                            }`}
+                          >
+                            {cell.date.getDate()}
+                          </span>
+                          <div className="space-y-0.5">
+                            {visibleItems.map(renderItemBadge)}
+                            {hiddenCount > 0 && (
+                              <span className="text-[9px] font-semibold text-[#6b7280] block px-1">
+                                +{hiddenCount} more
+                              </span>
+                            )}
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                );
+              },
+            )}
+          </div>
+        )}
       </div>
     </>
   );

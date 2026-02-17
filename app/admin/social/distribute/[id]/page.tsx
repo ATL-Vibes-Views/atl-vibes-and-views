@@ -36,6 +36,9 @@ export default async function DistributePage({
       hashtags: string | null;
       call_to_action: string | null;
       scheduled_date: string | null;
+      media_url: string | null;
+      thumbnail_url: string | null;
+      platform_captions: Record<string, unknown> | null;
       created_at: string;
       script_batches: { batch_name: string | null } | null;
       stories: {
