@@ -61,6 +61,11 @@ const YOUTUBE_VISIBILITY = ["public", "unlisted", "private"];
    HELPERS
    ────────────────────────────────────────────────────────────── */
 
+/** JSONB keys to check for each display platform (automation writes youtube_short) */
+const JSONB_KEYS: Record<string, string[]> = {
+  youtube: ["youtube_short", "youtube"],
+};
+
 /** Unwrap double-encoded JSONB (string stored inside JSONB column) */
 function parsePlatformCaptions(pc: unknown): Record<string, unknown> {
   if (!pc) return {};
@@ -77,14 +82,17 @@ function parsePlatformCaptions(pc: unknown): Record<string, unknown> {
 
 function getCaptionData(pc: unknown, key: string): Record<string, string> {
   const parsed = parsePlatformCaptions(pc);
-  const val = parsed[key];
-  if (typeof val === "string") {
-    try {
-      const inner = JSON.parse(val);
-      if (inner && typeof inner === "object") return inner as Record<string, string>;
-    } catch { /* not JSON */ }
+  const keysToTry = JSONB_KEYS[key] ?? [key];
+  for (const k of keysToTry) {
+    const val = parsed[k];
+    if (typeof val === "string") {
+      try {
+        const inner = JSON.parse(val);
+        if (inner && typeof inner === "object" && Object.keys(inner).length > 0) return inner as Record<string, string>;
+      } catch { /* not JSON */ }
+    }
+    if (val && typeof val === "object" && Object.keys(val as object).length > 0) return val as Record<string, string>;
   }
-  if (val && typeof val === "object") return val as Record<string, string>;
   return {};
 }
 

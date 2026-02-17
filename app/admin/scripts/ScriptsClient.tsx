@@ -56,6 +56,11 @@ const PLATFORM_LABELS: Record<string, string> = {
   x: "X (Twitter)",
 };
 
+/** JSONB keys to check for each display platform (automation writes youtube_short) */
+const JSONB_KEYS: Record<string, string[]> = {
+  youtube: ["youtube_short", "youtube"],
+};
+
 /** Unwrap double-encoded JSONB (string stored inside JSONB column) */
 function parsePlatformCaptions(pc: unknown): Record<string, unknown> {
   if (!pc) return {};
@@ -73,14 +78,17 @@ function parsePlatformCaptions(pc: unknown): Record<string, unknown> {
 /** Read a platform's caption data from the platform_captions JSONB */
 function getCaptionData(pc: unknown, key: string): Record<string, string> {
   const parsed = parsePlatformCaptions(pc);
-  const val = parsed[key];
-  if (typeof val === "string") {
-    try {
-      const inner = JSON.parse(val);
-      if (inner && typeof inner === "object") return inner as Record<string, string>;
-    } catch { /* not JSON */ }
+  const keysToTry = JSONB_KEYS[key] ?? [key];
+  for (const k of keysToTry) {
+    const val = parsed[k];
+    if (typeof val === "string") {
+      try {
+        const inner = JSON.parse(val);
+        if (inner && typeof inner === "object" && Object.keys(inner).length > 0) return inner as Record<string, string>;
+      } catch { /* not JSON */ }
+    }
+    if (val && typeof val === "object" && Object.keys(val as object).length > 0) return val as Record<string, string>;
   }
-  if (val && typeof val === "object") return val as Record<string, string>;
   return {};
 }
 
@@ -90,7 +98,7 @@ function countPopulatedCaptions(pc: unknown): number {
   if (!Object.keys(parsed).length) return 0;
   return PLATFORM_ORDER.filter((p) => {
     const data = getCaptionData(parsed, p);
-    return !!data.caption || !!data.title; // youtube uses title, others use caption
+    return !!data.caption || !!data.title;
   }).length;
 }
 
@@ -312,16 +320,32 @@ export function ScriptsClient({ filmingScripts, batches, counts }: ScriptsClient
                         <div className="grid grid-cols-1 lg:grid-cols-2 gap-2 mt-2">
                           {PLATFORM_ORDER.map((p) => {
                             const data = getCaptionData(script.platform_captions, p);
-                            const text = p === "youtube" ? data.title : data.caption;
+                            const isYoutube = p === "youtube";
+                            const hasContent = isYoutube ? !!data.title : !!data.caption;
                             return (
                               <div key={p} className="bg-[#fafafa] border border-[#e5e5e5] p-3">
                                 <span className="text-[11px] font-semibold text-[#374151]">
                                   {PLATFORM_LABELS[p] ?? p}
                                 </span>
-                                {text ? (
-                                  <p className="text-[12px] text-[#6b7280] mt-1 line-clamp-2">
-                                    {text}
-                                  </p>
+                                {hasContent ? (
+                                  <div className="mt-1 space-y-1">
+                                    {isYoutube ? (
+                                      <>
+                                        <p className="text-[12px] text-[#374151] font-medium line-clamp-1">{data.title}</p>
+                                        {data.description && (
+                                          <p className="text-[12px] text-[#6b7280] line-clamp-2">{data.description}</p>
+                                        )}
+                                        {data.tags && (
+                                          <p className="text-[11px] text-[#9ca3af]">Tags: {data.tags}</p>
+                                        )}
+                                      </>
+                                    ) : (
+                                      <p className="text-[12px] text-[#6b7280] line-clamp-2">{data.caption}</p>
+                                    )}
+                                    {data.hashtags && (
+                                      <p className="text-[11px] text-[#9ca3af] line-clamp-1">{data.hashtags}</p>
+                                    )}
+                                  </div>
                                 ) : (
                                   <p className="text-[12px] text-[#9ca3af] mt-1 italic">
                                     Awaiting generation
