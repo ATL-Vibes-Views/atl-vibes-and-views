@@ -164,12 +164,55 @@ export async function updateScript(id: string, data: Record<string, unknown>) {
 
 export async function rejectScript(id: string) {
   const supabase = createServiceRoleClient();
+  const now = new Date().toISOString();
+
+  // Fetch story_id before killing so we can reset the parent story
+  const { data: script } = (await supabase
+    .from("scripts")
+    .select("story_id")
+    .eq("id", id)
+    .single()) as { data: { story_id: string | null } | null };
+
   const { error } = await supabase
     .from("scripts")
-    .update({ status: "killed", updated_at: new Date().toISOString() } as never)
+    .update({ status: "killed", updated_at: now } as never)
     .eq("id", id);
   if (error) return { error: error.message };
+
+  // Reset parent story back to scored so it returns to the Pipeline
+  if (script?.story_id) {
+    await supabase
+      .from("stories")
+      .update({ status: "scored", updated_at: now } as never)
+      .eq("id", script.story_id);
+  }
+
   revalidatePath("/admin/scripts");
+  revalidatePath("/admin/social");
+  return { success: true };
+}
+
+export async function approveScript(id: string, storyId: string | null) {
+  const supabase = createServiceRoleClient();
+  const now = new Date().toISOString();
+
+  // Update this script's status to approved
+  const { error } = await supabase
+    .from("scripts")
+    .update({ status: "approved", updated_at: now } as never)
+    .eq("id", id);
+  if (error) return { error: error.message };
+
+  // Also approve all caption rows for the same story
+  if (storyId) {
+    await supabase
+      .from("scripts")
+      .update({ status: "approved", updated_at: now } as never)
+      .eq("story_id", storyId);
+  }
+
+  revalidatePath("/admin/scripts");
+  revalidatePath("/admin/social");
   return { success: true };
 }
 
