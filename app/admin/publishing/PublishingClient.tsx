@@ -13,7 +13,7 @@ import { UploadZone } from "@/components/portal/UploadZone";
 import { Modal } from "@/components/portal/Modal";
 import { Pagination } from "@/components/portal/Pagination";
 import { AlertTriangle, Loader2 } from "lucide-react";
-import { publishBlogPost, updateBlogPost } from "@/app/admin/actions";
+import { publishBlogPost, updateBlogPost, rejectDraftPost } from "@/app/admin/actions";
 import { uploadImage } from "@/lib/supabase-storage";
 
 interface PostRow {
@@ -70,6 +70,19 @@ export function PublishingClient({ posts }: PublishingClientProps) {
     }
     await updateBlogPost(postId, { featured_image_url: result.url });
     setUploadingId(null);
+    router.refresh();
+  }, [router]);
+
+  const [rejecting, setRejecting] = useState<string | null>(null);
+  const handleReject = useCallback(async (postId: string) => {
+    if (!confirm("Reject this draft? The blog post will be archived and the story will return to the Pipeline.")) return;
+    setRejecting(postId);
+    const result = await rejectDraftPost(postId);
+    setRejecting(null);
+    if (result.error) {
+      alert("Error: " + result.error);
+      return;
+    }
     router.refresh();
   }, [router]);
 
@@ -229,6 +242,13 @@ export function PublishingClient({ posts }: PublishingClientProps) {
                       }`}
                     >
                       Publish Now
+                    </button>
+                    <button
+                      onClick={() => handleReject(post.id)}
+                      disabled={rejecting === post.id}
+                      className="inline-flex items-center px-3 py-1 text-xs font-semibold rounded-full border border-[#e5e5e5] text-[#c1121f] hover:border-[#c1121f] transition-colors disabled:opacity-50"
+                    >
+                      {rejecting === post.id ? "..." : "Reject"}
                     </button>
                   </div>
                 </div>
