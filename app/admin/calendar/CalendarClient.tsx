@@ -12,7 +12,13 @@ interface CalendarEntry {
   scheduled_date: string;
   status: string | null;
   stories: { headline: string } | null;
-  blog_posts: { title: string; slug: string | null } | null;
+  blog_posts: {
+    title: string;
+    slug: string | null;
+    featured_image_url: string | null;
+    excerpt: string | null;
+    published_at: string | null;
+  } | null;
 }
 
 interface ScriptEntry {
@@ -21,6 +27,9 @@ interface ScriptEntry {
   platform: string | null;
   scheduled_date: string | null;
   status: string;
+  media_url: string | null;
+  platform_captions: Record<string, unknown> | null;
+  posted_at: string | null;
 }
 
 interface EventEntry {
@@ -55,10 +64,13 @@ type CalendarItem = {
   slug?: string | null;
   postId?: string | null;
   storyId?: string | null;
+  imageUrl?: string | null;
+  caption?: string | null;
+  postedAt?: string | null;
 };
 
 type ViewMode = "daily" | "weekly" | "monthly";
-type ChannelFilter = "" | "instagram" | "tiktok" | "youtube" | "facebook" | "linkedin" | "x";
+type ChannelFilter = "" | "website" | "instagram" | "tiktok" | "youtube" | "facebook" | "linkedin" | "x";
 
 const TYPE_COLORS: Record<string, { bg: string; text: string; border: string }> = {
   post: { bg: "bg-[#dbeafe]", text: "text-[#1e40af]", border: "border-[#93c5fd]" },
@@ -80,6 +92,7 @@ const DAY_NAMES = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
 
 const CHANNEL_OPTIONS: { value: ChannelFilter; label: string }[] = [
   { value: "", label: "All Channels" },
+  { value: "website", label: "Website" },
   { value: "instagram", label: "Instagram" },
   { value: "tiktok", label: "TikTok" },
   { value: "youtube", label: "YouTube" },
@@ -135,10 +148,15 @@ function buildItemsForDates(
     map[key] = [];
   }
 
-  // When a specific channel is selected, hide non-platform content types
-  const showNonPlatformContent = channelFilter === "";
+  // Channel filter logic:
+  //   "" (All Channels) → show everything
+  //   "website"          → blog posts only
+  //   platform name      → scripts with that platform only
+  const showBlogPosts = channelFilter === "" || channelFilter === "website";
+  const showScripts = channelFilter !== "website";
+  const showOther = channelFilter === ""; // events, newsletters, stories
 
-  if (showNonPlatformContent) {
+  if (showBlogPosts) {
     for (const entry of entries) {
       const key = entry.scheduled_date;
       if (!map[key]) continue;
@@ -152,8 +170,11 @@ function buildItemsForDates(
           date: key,
           slug: entry.blog_posts.slug,
           postId: entry.post_id,
+          imageUrl: entry.blog_posts.featured_image_url,
+          caption: entry.blog_posts.excerpt,
+          postedAt: entry.blog_posts.published_at,
         });
-      } else if (entry.story_id && entry.stories) {
+      } else if (showOther && entry.story_id && entry.stories) {
         map[key].push({
           id: entry.id,
           label: entry.stories.headline,
@@ -167,24 +188,34 @@ function buildItemsForDates(
     }
   }
 
-  for (const script of scripts) {
-    if (!script.scheduled_date) continue;
-    const key = script.scheduled_date;
-    if (!map[key]) continue;
-    if (channelFilter !== "" && (script.platform ?? "").toLowerCase() !== channelFilter) {
-      continue;
+  if (showScripts) {
+    for (const script of scripts) {
+      if (!script.scheduled_date) continue;
+      const key = script.scheduled_date;
+      if (!map[key]) continue;
+      if (channelFilter !== "" && (script.platform ?? "").toLowerCase() !== channelFilter) {
+        continue;
+      }
+      // Extract caption from platform_captions JSONB
+      const pc = script.platform_captions;
+      const platformKey = (script.platform ?? "").toLowerCase();
+      const pcData = pc && typeof pc[platformKey] === "object" ? (pc[platformKey] as Record<string, string>) : null;
+
+      map[key].push({
+        id: script.id,
+        label: script.title,
+        type: "script",
+        status: script.status,
+        platform: script.platform,
+        date: key,
+        imageUrl: script.media_url,
+        caption: pcData?.caption ?? pcData?.description ?? null,
+        postedAt: script.posted_at,
+      });
     }
-    map[key].push({
-      id: script.id,
-      label: script.title,
-      type: "script",
-      status: script.status,
-      platform: script.platform,
-      date: key,
-    });
   }
 
-  if (showNonPlatformContent) {
+  if (showOther) {
     for (const event of events) {
       if (!event.start_date) continue;
       const key = event.start_date.split("T")[0];
@@ -643,53 +674,60 @@ export function CalendarClient({ entries, scripts, events, newsletters }: Calend
             onClick={() => setSelectedItem(null)}
           />
           <div className="fixed z-[100] top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-full max-w-sm bg-white border border-gray-200 shadow-lg">
-            <div className="px-5 py-4">
-              {/* Type badge */}
-              {(() => {
-                const colors = TYPE_COLORS[selectedItem.type];
-                return (
-                  <span className={`inline-block px-2 py-0.5 text-[10px] font-semibold border ${colors.border} ${colors.bg} ${colors.text} mb-2`}>
-                    {selectedItem.type.charAt(0).toUpperCase() + selectedItem.type.slice(1)}
-                  </span>
-                );
-              })()}
+            {/* Image */}
+            {selectedItem.imageUrl ? (
+              // eslint-disable-next-line @next/next/no-img-element
+              <img
+                src={selectedItem.imageUrl}
+                alt=""
+                className="w-full h-40 object-cover"
+              />
+            ) : (
+              <div className="w-full h-40 bg-gray-100 flex items-center justify-center">
+                <span className="text-gray-300 text-sm">No image</span>
+              </div>
+            )}
 
+            <div className="px-5 py-4">
+              {/* Title */}
               <h3 className="font-display text-[16px] font-semibold text-black">
                 {selectedItem.label}
               </h3>
 
-              <div className="mt-3 space-y-1.5 text-[13px] text-[#374151]">
-                {selectedItem.date && (
-                  <p>
-                    <span className="text-[#6b7280] font-medium">Date:</span>{" "}
-                    {new Date(selectedItem.date + "T00:00:00").toLocaleDateString("en-US", {
-                      weekday: "short",
-                      month: "long",
+              {/* Caption — truncated to 2 lines */}
+              {selectedItem.caption && (
+                <p className="text-[13px] text-[#6b7280] mt-1.5 line-clamp-2">
+                  {selectedItem.caption}
+                </p>
+              )}
+
+              {/* Platform badge + Date */}
+              <div className="flex flex-wrap items-center gap-2 mt-3">
+                {selectedItem.type === "script" && selectedItem.platform ? (
+                  <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-[11px] font-semibold bg-[#1a1a1a] text-white">
+                    {selectedItem.platform.charAt(0).toUpperCase() + selectedItem.platform.slice(1)}
+                  </span>
+                ) : selectedItem.type === "post" ? (
+                  <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-[11px] font-semibold bg-[#dbeafe] text-[#1e40af] border border-[#93c5fd]">
+                    Website
+                  </span>
+                ) : null}
+
+                {(selectedItem.postedAt || selectedItem.date) && (
+                  <span className="text-[12px] text-[#6b7280]">
+                    {new Date(
+                      selectedItem.postedAt ?? selectedItem.date + "T00:00:00"
+                    ).toLocaleDateString("en-US", {
+                      month: "short",
                       day: "numeric",
                       year: "numeric",
+                      ...(selectedItem.postedAt ? { hour: "numeric", minute: "2-digit" } : {}),
                     })}
-                  </p>
-                )}
-                {selectedItem.platform && (
-                  <p>
-                    <span className="text-[#6b7280] font-medium">Platform:</span>{" "}
-                    {selectedItem.platform}
-                  </p>
-                )}
-                {selectedItem.status && (
-                  <p>
-                    <span className="text-[#6b7280] font-medium">Status:</span>{" "}
-                    {selectedItem.status}
-                  </p>
-                )}
-                {selectedItem.tier && (
-                  <p>
-                    <span className="text-[#6b7280] font-medium">Tier:</span>{" "}
-                    {selectedItem.tier}
-                  </p>
+                  </span>
                 )}
               </div>
 
+              {/* Actions */}
               <div className="flex items-center gap-2 mt-4">
                 {(() => {
                   const url = getViewPostUrl(selectedItem);

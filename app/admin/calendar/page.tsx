@@ -16,7 +16,7 @@ export default async function CalendarPage() {
   // Fetch content_calendar entries with story and post joins
   const { data: entries, error: entriesErr } = (await supabase
     .from("content_calendar")
-    .select("*, stories(headline), blog_posts(title, slug)")
+    .select("*, stories(headline), blog_posts(title, slug, featured_image_url, excerpt, published_at)")
     .order("scheduled_date", { ascending: true })) as {
     data: {
       id: string;
@@ -26,7 +26,13 @@ export default async function CalendarPage() {
       scheduled_date: string;
       status: string | null;
       stories: { headline: string } | null;
-      blog_posts: { title: string; slug: string | null } | null;
+      blog_posts: {
+        title: string;
+        slug: string | null;
+        featured_image_url: string | null;
+        excerpt: string | null;
+        published_at: string | null;
+      } | null;
     }[] | null;
     error: unknown;
   };
@@ -35,7 +41,7 @@ export default async function CalendarPage() {
   // Fetch scripts with scheduled_date
   const { data: scripts } = (await supabase
     .from("scripts")
-    .select("id, title, platform, scheduled_date, status")
+    .select("id, title, platform, scheduled_date, status, media_url, platform_captions, posted_at")
     .not("scheduled_date", "is", null)
     .order("scheduled_date", { ascending: true })) as {
     data: {
@@ -44,6 +50,9 @@ export default async function CalendarPage() {
       platform: string | null;
       scheduled_date: string | null;
       status: string;
+      media_url: string | null;
+      platform_captions: Record<string, unknown> | null;
+      posted_at: string | null;
     }[] | null;
   };
 
