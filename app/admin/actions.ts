@@ -732,6 +732,85 @@ export async function updateSponsorPackage(id: string, data: Record<string, unkn
   return { success: true };
 }
 
+// ─── SPONSOR NOTES ───────────────────────────────────────────
+
+export async function addSponsorNote(
+  sponsorId: string,
+  noteType: "talking_point_log" | "internal_note_log",
+  content: string,
+) {
+  const supabase = createServiceRoleClient();
+  const { error } = await supabase.from("sponsor_notes").insert({
+    sponsor_id: sponsorId,
+    note_type: noteType,
+    content,
+  } as never);
+  if (error) return { error: error.message };
+  revalidatePath(`/admin/sponsors/${sponsorId}`);
+  return { success: true };
+}
+
+// ─── SPONSOR DELIVERABLE AUTO-CREATE ─────────────────────────
+
+export async function autoCreateDeliverables(sponsorId: string, packageId: string) {
+  const supabase = createServiceRoleClient();
+
+  // Fetch the package deliverables JSONB
+  const { data: pkg } = (await supabase
+    .from("sponsor_packages")
+    .select("deliverables")
+    .eq("id", packageId)
+    .single()) as { data: { deliverables: { type: string; label: string; channel: string; quantity_per_month: number }[] | null } | null };
+
+  if (!pkg?.deliverables?.length) return { error: "No deliverables found in package" };
+
+  // Fetch sponsor campaign dates
+  const { data: sponsor } = (await supabase
+    .from("sponsors")
+    .select("campaign_start, campaign_end")
+    .eq("id", sponsorId)
+    .single()) as { data: { campaign_start: string | null; campaign_end: string | null } | null };
+
+  let campaignMonths = 1;
+  if (sponsor?.campaign_start && sponsor?.campaign_end) {
+    const start = new Date(sponsor.campaign_start);
+    const end = new Date(sponsor.campaign_end);
+    const diffDays = Math.max(1, (end.getTime() - start.getTime()) / (1000 * 60 * 60 * 24));
+    campaignMonths = Math.ceil(diffDays / 30);
+  }
+
+  // Fetch existing deliverables for idempotency check
+  const { data: existing } = (await supabase
+    .from("sponsor_deliverables")
+    .select("deliverable_type")
+    .eq("sponsor_id", sponsorId)) as { data: { deliverable_type: string }[] | null };
+
+  const existingTypes = new Set((existing ?? []).map((e) => e.deliverable_type));
+
+  const toInsert = pkg.deliverables
+    .filter((item) => !existingTypes.has(item.type))
+    .map((item) => ({
+      sponsor_id: sponsorId,
+      deliverable_type: item.type,
+      label: item.label,
+      channel: item.channel,
+      quantity_owed: item.quantity_per_month * campaignMonths,
+      quantity_delivered: 0,
+      quantity_scheduled: 0,
+      status: "active",
+    }));
+
+  if (toInsert.length === 0) {
+    return { success: true, created: 0, message: "Deliverables already set — no changes made." };
+  }
+
+  const { error } = await supabase.from("sponsor_deliverables").insert(toInsert as never);
+  if (error) return { error: error.message };
+
+  revalidatePath(`/admin/sponsors/${sponsorId}`);
+  return { success: true, created: toInsert.length, message: `Package deliverables created (${toInsert.length} items).` };
+}
+
 // ─── CITIES (Beyond ATL) ──────────────────────────────────────
 
 export async function updateCity(id: string, data: Record<string, unknown>) {

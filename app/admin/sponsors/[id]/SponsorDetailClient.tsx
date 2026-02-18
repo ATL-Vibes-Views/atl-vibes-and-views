@@ -4,7 +4,7 @@ import { useState, useMemo, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { ArrowLeft } from "lucide-react";
-import { updateSponsor, voidFulfillmentEntry } from "@/app/admin/actions";
+import { updateSponsor, voidFulfillmentEntry, addSponsorNote, autoCreateDeliverables } from "@/app/admin/actions";
 import { Modal } from "@/components/portal/Modal";
 import { PortalTopbar } from "@/components/portal/PortalTopbar";
 import { TabNav } from "@/components/portal/TabNav";
@@ -43,6 +43,7 @@ export interface SponsorData {
   status: string;
   notes: string | null;
   package_type: string | null;
+  package_id: string | null;
   placements_total: number | null;
   placements_used: number | null;
   category_focus: string | null;
@@ -95,8 +96,10 @@ export interface DeliverableRow {
   id: string;
   deliverable_type: string;
   label: string;
+  channel?: string;
   quantity_owed: number;
   quantity_delivered: number;
+  quantity_scheduled?: number;
   status: string;
   due_date: string | null;
   completed_at: string | null;
@@ -118,6 +121,21 @@ export interface FulfillmentLogRow {
   void_reason: string | null;
 }
 
+export interface SponsorNoteRow {
+  id: string;
+  sponsor_id: string;
+  note_type: string;
+  content: string;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface BusinessContact {
+  business_name: string | null;
+  email: string | null;
+  phone: string | null;
+}
+
 export interface DropdownOption {
   id: string;
   name: string;
@@ -134,6 +152,11 @@ interface SponsorDetailClientProps {
   packageOptions: DropdownOption[];
   categoryOptions: DropdownOption[];
   neighborhoodOptions: DropdownOption[];
+  blogPostCount: number;
+  totalDeliverableOwed: number;
+  adCampaignCount: number;
+  sponsorNotes: SponsorNoteRow[];
+  businessContact: BusinessContact | null;
 }
 
 const TABS = [
@@ -172,6 +195,17 @@ function ProgressBar({ delivered, promised }: { delivered: number; promised: num
   );
 }
 
+/* ── Format date for log entries ── */
+function formatNoteDate(dateStr: string) {
+  return new Date(dateStr).toLocaleDateString("en-US", {
+    month: "short",
+    day: "numeric",
+    year: "numeric",
+    hour: "numeric",
+    minute: "2-digit",
+  });
+}
+
 export function SponsorDetailClient({
   sponsor,
   posts,
@@ -183,25 +217,49 @@ export function SponsorDetailClient({
   packageOptions,
   categoryOptions,
   neighborhoodOptions,
+  blogPostCount,
+  totalDeliverableOwed,
+  adCampaignCount,
+  sponsorNotes,
+  businessContact,
 }: SponsorDetailClientProps) {
   const router = useRouter();
   const [activeTab, setActiveTab] = useState("info");
   const [saving, setSaving] = useState(false);
 
+  /* ── Editable form state for contact + talking points + notes ── */
+  const autoName = (!sponsor.contact_name && businessContact?.business_name) ? businessContact.business_name : null;
+  const autoEmail = (!sponsor.contact_email && businessContact?.email) ? businessContact.email : null;
+  const autoPhone = (!sponsor.contact_phone && businessContact?.phone) ? businessContact.phone : null;
+
+  const [contactName, setContactName] = useState(sponsor.contact_name ?? autoName ?? "");
+  const [contactEmail, setContactEmail] = useState(sponsor.contact_email ?? autoEmail ?? "");
+  const [contactPhone, setContactPhone] = useState(sponsor.contact_phone ?? autoPhone ?? "");
+  const [contactNameAutoFilled, setContactNameAutoFilled] = useState(!!autoName);
+  const [contactEmailAutoFilled, setContactEmailAutoFilled] = useState(!!autoEmail);
+  const [contactPhoneAutoFilled, setContactPhoneAutoFilled] = useState(!!autoPhone);
+  const [talkingPoints, setTalkingPoints] = useState(sponsor.talking_points ?? "");
+  const [notes, setNotes] = useState(sponsor.notes ?? "");
+  const [sponsorName, setSponsorName] = useState(sponsor.sponsor_name);
+
   const handleSaveSponsor = useCallback(async () => {
     setSaving(true);
     const result = await updateSponsor(sponsor.id, {
-      sponsor_name: sponsor.sponsor_name,
-      contact_name: sponsor.contact_name,
-      contact_email: sponsor.contact_email,
-      contact_phone: sponsor.contact_phone,
-      talking_points: sponsor.talking_points,
-      notes: sponsor.notes,
+      sponsor_name: sponsorName,
+      contact_name: contactName || null,
+      contact_email: contactEmail || null,
+      contact_phone: contactPhone || null,
+      talking_points: talkingPoints || null,
+      notes: notes || null,
     });
     setSaving(false);
     if ("error" in result && result.error) { alert("Error: " + result.error); return; }
+    // Clear auto-filled indicators after save
+    setContactNameAutoFilled(false);
+    setContactEmailAutoFilled(false);
+    setContactPhoneAutoFilled(false);
     router.refresh();
-  }, [sponsor, router]);
+  }, [sponsor.id, sponsorName, contactName, contactEmail, contactPhone, talkingPoints, notes, router]);
 
   const handleSelectChange = useCallback(async (fieldName: string, value: string) => {
     setSaving(true);
@@ -210,6 +268,105 @@ export function SponsorDetailClient({
     if ("error" in result && result.error) { alert("Error: " + result.error); return; }
     router.refresh();
   }, [sponsor.id, router]);
+
+  /* ── Talking Points Log Thread state ── */
+  const talkingPointNotes = useMemo(
+    () => sponsorNotes.filter((n) => n.note_type === "talking_point_log"),
+    [sponsorNotes],
+  );
+  const [showTpLogForm, setShowTpLogForm] = useState(false);
+  const [tpLogContent, setTpLogContent] = useState("");
+  const [tpLogSaving, setTpLogSaving] = useState(false);
+
+  const handleAddTpLog = useCallback(async () => {
+    if (!tpLogContent.trim()) return;
+    setTpLogSaving(true);
+    const result = await addSponsorNote(sponsor.id, "talking_point_log", tpLogContent.trim());
+    setTpLogSaving(false);
+    if ("error" in result && result.error) { alert("Error: " + result.error); return; }
+    setTpLogContent("");
+    setShowTpLogForm(false);
+    router.refresh();
+  }, [sponsor.id, tpLogContent, router]);
+
+  /* ── Internal Note Log (for tasks on Tab 2) ── */
+  const internalNotes = useMemo(
+    () => sponsorNotes.filter((n) => n.note_type === "internal_note_log"),
+    [sponsorNotes],
+  );
+  const [showTaskForm, setShowTaskForm] = useState(false);
+  const [taskContent, setTaskContent] = useState("");
+  const [taskSaving, setTaskSaving] = useState(false);
+
+  const handleAddTask = useCallback(async () => {
+    if (!taskContent.trim()) return;
+    setTaskSaving(true);
+    const result = await addSponsorNote(sponsor.id, "internal_note_log", `[TASK] ${taskContent.trim()}`);
+    setTaskSaving(false);
+    if ("error" in result && result.error) { alert("Error: " + result.error); return; }
+    setTaskContent("");
+    setShowTaskForm(false);
+    router.refresh();
+  }, [sponsor.id, taskContent, router]);
+
+  /* ── Auto-create deliverables handler ── */
+  const [creatingDeliverables, setCreatingDeliverables] = useState(false);
+
+  const handlePackageChange = useCallback(async (value: string) => {
+    setSaving(true);
+    // Save package_id to sponsor
+    const result = await updateSponsor(sponsor.id, { package_id: value || null });
+    setSaving(false);
+    if ("error" in result && result.error) { alert("Error: " + result.error); return; }
+
+    // Auto-create deliverables if package selected
+    if (value) {
+      setCreatingDeliverables(true);
+      const delResult = await autoCreateDeliverables(sponsor.id, value);
+      setCreatingDeliverables(false);
+      if ("error" in delResult && delResult.error) {
+        alert("Error creating deliverables: " + delResult.error);
+      } else if ("message" in delResult && delResult.message) {
+        alert(delResult.message);
+      }
+    }
+    router.refresh();
+  }, [sponsor.id, router]);
+
+  /* ── Pacing calculation (Tab 2) ── */
+  const pacingInfo = useMemo(() => {
+    const now = new Date();
+    if (!sponsor.campaign_start) return { state: "no_dates" as const };
+
+    const start = new Date(sponsor.campaign_start);
+    if (!sponsor.campaign_end) return { state: "no_dates" as const };
+
+    const end = new Date(sponsor.campaign_end);
+    if (now < start) return { state: "not_started" as const, startDate: sponsor.campaign_start };
+    if (now > end) return { state: "completed" as const };
+
+    const totalDays = Math.max(1, (end.getTime() - start.getTime()) / (1000 * 60 * 60 * 24));
+    const elapsedDays = (now.getTime() - start.getTime()) / (1000 * 60 * 60 * 24);
+    const campaignProgressPct = Math.min(100, Math.max(0, (elapsedDays / totalDays) * 100));
+
+    const behindPace = deliverables
+      .filter((d) => d.status !== "delivered" && d.status !== "completed" && d.quantity_owed > 0)
+      .map((d) => {
+        const deliveryPct = (d.quantity_delivered / d.quantity_owed) * 100;
+        const isBehind = deliveryPct < campaignProgressPct - 10;
+        const dueThisWeek = isBehind
+          ? Math.ceil((d.quantity_owed * (campaignProgressPct / 100)) - d.quantity_delivered)
+          : 0;
+        return { ...d, deliveryPct, isBehind, dueThisWeek };
+      })
+      .filter((d) => d.isBehind);
+
+    return {
+      state: "active" as const,
+      campaignProgressPct,
+      behindPace,
+    };
+  }, [sponsor.campaign_start, sponsor.campaign_end, deliverables]);
 
   /* ── This week's to-do items (deliverables due within 7 days) ── */
   const thisWeekTodos = useMemo(() => {
@@ -287,9 +444,9 @@ export function SponsorDetailClient({
           <div className="space-y-6">
             <StatGrid columns={4}>
               <StatCard label="Campaign Value" value={sponsor.campaign_value ? `$${sponsor.campaign_value.toLocaleString()}` : "—"} />
-              <StatCard label="Placements Used" value={`${sponsor.placements_used ?? 0} / ${sponsor.placements_total ?? 0}`} />
-              <StatCard label="Content Pieces" value={posts.length} />
-              <StatCard label="Ad Campaigns" value={campaigns.length} />
+              <StatCard label="Placements Used" value={`${sponsor.placements_used ?? 0} / ${totalDeliverableOwed || sponsor.placements_total || 0}`} />
+              <StatCard label="Content Pieces" value={blogPostCount} />
+              <StatCard label="Ad Campaigns" value={adCampaignCount} />
             </StatGrid>
 
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
@@ -297,18 +454,48 @@ export function SponsorDetailClient({
               <div className="bg-white border border-[#e5e5e5] p-5 space-y-4">
                 <h3 className="font-display text-[16px] font-semibold text-black">Contact</h3>
                 <FormGroup label="Sponsor Name">
-                  <FormInput value={sponsor.sponsor_name} readOnly />
+                  <FormInput
+                    value={sponsorName}
+                    onChange={(e) => setSponsorName(e.target.value)}
+                  />
                 </FormGroup>
                 <FormRow>
                   <FormGroup label="Contact Name">
-                    <FormInput value={sponsor.contact_name ?? ""} readOnly />
+                    <div className="relative">
+                      <FormInput
+                        value={contactName}
+                        onChange={(e) => { setContactName(e.target.value); setContactNameAutoFilled(false); }}
+                        placeholder={autoName ? "From business listing" : ""}
+                      />
+                      {contactNameAutoFilled && (
+                        <span className="absolute right-2 top-1/2 -translate-y-1/2 text-[10px] text-[#9ca3af] italic">(auto-filled)</span>
+                      )}
+                    </div>
                   </FormGroup>
                   <FormGroup label="Email">
-                    <FormInput value={sponsor.contact_email ?? ""} readOnly />
+                    <div className="relative">
+                      <FormInput
+                        value={contactEmail}
+                        onChange={(e) => { setContactEmail(e.target.value); setContactEmailAutoFilled(false); }}
+                        placeholder={autoEmail ? "From business listing" : ""}
+                      />
+                      {contactEmailAutoFilled && (
+                        <span className="absolute right-2 top-1/2 -translate-y-1/2 text-[10px] text-[#9ca3af] italic">(auto-filled)</span>
+                      )}
+                    </div>
                   </FormGroup>
                 </FormRow>
                 <FormGroup label="Phone">
-                  <FormInput value={sponsor.contact_phone ?? ""} readOnly />
+                  <div className="relative">
+                    <FormInput
+                      value={contactPhone}
+                      onChange={(e) => { setContactPhone(e.target.value); setContactPhoneAutoFilled(false); }}
+                      placeholder={autoPhone ? "From business listing" : ""}
+                    />
+                    {contactPhoneAutoFilled && (
+                      <span className="absolute right-2 top-1/2 -translate-y-1/2 text-[10px] text-[#9ca3af] italic">(auto-filled)</span>
+                    )}
+                  </div>
                 </FormGroup>
               </div>
 
@@ -337,15 +524,88 @@ export function SponsorDetailClient({
             {/* Talking points */}
             <div className="bg-white border border-[#e5e5e5] p-5 space-y-4">
               <h3 className="font-display text-[16px] font-semibold text-black">Talking Points</h3>
-              <FormGroup label="Key messaging & talking points for content creation">
-                <FormTextarea value={sponsor.talking_points ?? ""} readOnly rows={5} placeholder="No talking points yet..." />
+              <FormGroup label="Talking Points (Claude Context)">
+                <p className="text-sm text-gray-400 italic -mt-2 mb-2">
+                  This text is passed to Claude when generating sponsored blog posts. Keep it current.
+                </p>
+                <FormTextarea
+                  value={talkingPoints}
+                  onChange={(e) => setTalkingPoints(e.target.value)}
+                  rows={5}
+                  placeholder="No talking points yet..."
+                />
               </FormGroup>
+
+              {/* Talking Points Log Thread */}
+              <div className="border-t border-[#e5e5e5] pt-4 mt-4">
+                <div className="flex items-center justify-between mb-3">
+                  <h4 className="text-[12px] uppercase tracking-[0.5px] font-semibold text-[#6b7280]">
+                    Talking Points Log
+                  </h4>
+                  {!showTpLogForm && (
+                    <button
+                      onClick={() => setShowTpLogForm(true)}
+                      className="px-4 py-1.5 rounded-full text-[12px] font-semibold bg-[#fee198] text-[#1a1a1a] hover:bg-[#e6c46d] transition-colors"
+                    >
+                      Add Note
+                    </button>
+                  )}
+                </div>
+
+                {showTpLogForm && (
+                  <div className="mb-4 space-y-2">
+                    <FormTextarea
+                      value={tpLogContent}
+                      onChange={(e) => setTpLogContent(e.target.value)}
+                      rows={3}
+                      placeholder="Add a talking points history note..."
+                    />
+                    <div className="flex items-center gap-2">
+                      <button
+                        onClick={handleAddTpLog}
+                        disabled={tpLogSaving || !tpLogContent.trim()}
+                        className="px-4 py-1.5 rounded-full text-[12px] font-semibold bg-[#fee198] text-[#1a1a1a] hover:bg-[#e6c46d] transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+                      >
+                        {tpLogSaving ? "Saving..." : "Save"}
+                      </button>
+                      <button
+                        onClick={() => { setShowTpLogForm(false); setTpLogContent(""); }}
+                        className="text-[12px] text-[#6b7280] hover:text-[#374151] transition-colors"
+                      >
+                        Cancel
+                      </button>
+                    </div>
+                  </div>
+                )}
+
+                {talkingPointNotes.length === 0 ? (
+                  <p className="text-[13px] text-[#9ca3af] italic">
+                    No notes yet — add your first talking point history entry.
+                  </p>
+                ) : (
+                  <div className="space-y-2">
+                    {talkingPointNotes.map((note) => (
+                      <div key={note.id} className="bg-[#fafafa] border border-[#f0f0f0] p-3">
+                        <span className="text-[11px] text-[#9ca3af] block mb-1">
+                          {formatNoteDate(note.created_at)}
+                        </span>
+                        <p className="text-[13px] text-[#374151]">{note.content}</p>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
             </div>
 
             {/* Notes */}
             <div className="bg-white border border-[#e5e5e5] p-5 space-y-4">
               <h3 className="font-display text-[16px] font-semibold text-black">Internal Notes</h3>
-              <FormTextarea value={sponsor.notes ?? ""} readOnly rows={4} placeholder="No notes yet..." />
+              <FormTextarea
+                value={notes}
+                onChange={(e) => setNotes(e.target.value)}
+                rows={4}
+                placeholder="No notes yet..."
+              />
             </div>
           </div>
         )}
@@ -359,16 +619,16 @@ export function SponsorDetailClient({
             <div className="bg-white border border-[#e5e5e5] p-5 space-y-4">
               <h3 className="font-display text-[16px] font-semibold text-black">Package Summary</h3>
               <FormRow>
-                <FormGroup label="Package Type">
+                <FormGroup label="Package">
                   <select
-                    defaultValue={sponsor.package_type ?? ""}
-                    onChange={(e) => handleSelectChange("package_type", e.target.value)}
-                    disabled={saving}
+                    defaultValue={sponsor.package_id ?? ""}
+                    onChange={(e) => handlePackageChange(e.target.value)}
+                    disabled={saving || creatingDeliverables}
                     className="w-full border border-[#e5e5e5] bg-white px-3 py-2 text-[13px] font-body text-[#374151] focus:border-[#e6c46d] focus:outline-none transition-colors disabled:opacity-40"
                   >
                     <option value="">Select package...</option>
                     {packageOptions.map((p) => (
-                      <option key={p.id} value={p.name}>{p.name}</option>
+                      <option key={p.id} value={p.id}>{p.name}</option>
                     ))}
                   </select>
                 </FormGroup>
@@ -381,7 +641,7 @@ export function SponsorDetailClient({
                   >
                     <option value="">Select category...</option>
                     {categoryOptions.map((c) => (
-                      <option key={c.id} value={c.name}>{c.name}</option>
+                      <option key={c.id} value={c.id}>{c.name}</option>
                     ))}
                   </select>
                 </FormGroup>
@@ -394,7 +654,7 @@ export function SponsorDetailClient({
                   >
                     <option value="">Select neighborhood...</option>
                     {neighborhoodOptions.map((n) => (
-                      <option key={n.id} value={n.name}>{n.name}</option>
+                      <option key={n.id} value={n.id}>{n.name}</option>
                     ))}
                   </select>
                 </FormGroup>
@@ -438,6 +698,45 @@ export function SponsorDetailClient({
               )}
             </div>
 
+            {/* Pacing Calculation Display */}
+            <div>
+              <h3 className="font-display text-[16px] font-semibold text-black mb-3">Campaign Pacing</h3>
+              <div className="bg-white border border-[#e5e5e5] p-5">
+                {pacingInfo.state === "no_dates" && (
+                  <p className="text-[13px] text-[#6b7280]">No campaign dates set.</p>
+                )}
+                {pacingInfo.state === "not_started" && (
+                  <p className="text-[13px] text-[#6b7280]">
+                    Campaign starts {new Date(pacingInfo.startDate).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })}
+                  </p>
+                )}
+                {pacingInfo.state === "completed" && (
+                  <p className="text-[13px] text-[#6b7280]">Campaign completed</p>
+                )}
+                {pacingInfo.state === "active" && (
+                  <>
+                    {pacingInfo.behindPace.length === 0 ? (
+                      <div className="flex items-center gap-2">
+                        <span className="w-2.5 h-2.5 rounded-full bg-[#16a34a]" />
+                        <span className="text-[13px] font-semibold text-[#16a34a]">Campaign on pace &#10003;</span>
+                      </div>
+                    ) : (
+                      <div className="space-y-2">
+                        {pacingInfo.behindPace.map((d) => (
+                          <div key={d.id} className="flex items-start gap-2">
+                            <span className="w-2.5 h-2.5 rounded-full bg-[#f59e0b] mt-1 flex-shrink-0" />
+                            <span className="text-[13px] text-[#374151]">
+                              {d.label}: {Math.round(pacingInfo.campaignProgressPct)}% through campaign, {Math.round(d.deliveryPct)}% delivered — {d.dueThisWeek} due this week
+                            </span>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </>
+                )}
+              </div>
+            </div>
+
             {/* This Week's To-Do */}
             <div>
               <h3 className="font-display text-[16px] font-semibold text-black mb-3">
@@ -468,6 +767,60 @@ export function SponsorDetailClient({
                       </div>
                     </div>
                   ))}
+                </div>
+              )}
+
+              {/* Manual Task Add */}
+              <div className="mt-4">
+                {!showTaskForm ? (
+                  <button
+                    onClick={() => setShowTaskForm(true)}
+                    className="px-4 py-1.5 rounded-full text-[12px] font-semibold bg-[#fee198] text-[#1a1a1a] hover:bg-[#e6c46d] transition-colors"
+                  >
+                    Add Task
+                  </button>
+                ) : (
+                  <div className="bg-white border border-[#e5e5e5] p-4 space-y-2">
+                    <FormInput
+                      value={taskContent}
+                      onChange={(e) => setTaskContent(e.target.value)}
+                      placeholder="Task description..."
+                    />
+                    <div className="flex items-center gap-2">
+                      <button
+                        onClick={handleAddTask}
+                        disabled={taskSaving || !taskContent.trim()}
+                        className="px-4 py-1.5 rounded-full text-[12px] font-semibold bg-[#fee198] text-[#1a1a1a] hover:bg-[#e6c46d] transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+                      >
+                        {taskSaving ? "Saving..." : "Save Task"}
+                      </button>
+                      <button
+                        onClick={() => { setShowTaskForm(false); setTaskContent(""); }}
+                        className="text-[12px] text-[#6b7280] hover:text-[#374151] transition-colors"
+                      >
+                        Cancel
+                      </button>
+                    </div>
+                  </div>
+                )}
+              </div>
+
+              {/* Internal Notes Log (tasks) */}
+              {internalNotes.length > 0 && (
+                <div className="mt-4">
+                  <h4 className="text-[12px] uppercase tracking-[0.5px] font-semibold text-[#6b7280] mb-2">
+                    Task Log
+                  </h4>
+                  <div className="space-y-2">
+                    {internalNotes.map((note) => (
+                      <div key={note.id} className="bg-[#fafafa] border border-[#f0f0f0] p-3">
+                        <span className="text-[11px] text-[#9ca3af] block mb-1">
+                          {formatNoteDate(note.created_at)}
+                        </span>
+                        <p className="text-[13px] text-[#374151]">{note.content}</p>
+                      </div>
+                    ))}
+                  </div>
                 </div>
               )}
             </div>
