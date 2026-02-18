@@ -11,9 +11,7 @@ import { StatusBadge } from "@/components/portal/StatusBadge";
 import { FilterBar } from "@/components/portal/FilterBar";
 import { AdminDataTable } from "@/components/portal/AdminDataTable";
 import { Pagination } from "@/components/portal/Pagination";
-import { updateStoryStatus, resetStoryToNew } from "@/app/admin/actions";
-
-const SCORABLE_STATUSES = ["new", "scored"];
+import { resetStoryToNew } from "@/app/admin/actions";
 
 interface StoryRow {
   id: string;
@@ -177,64 +175,19 @@ export function PipelineClient({ stories, categories }: PipelineClientProps) {
     },
   ];
 
-  const handleActivateNew = useCallback(async (id: string) => {
-    setActivating(id);
-    const result = await updateStoryStatus(id, "scored");
-    setActivating(null);
-    if (result.error) {
-      alert("Error: " + result.error);
-      return;
-    }
-    router.refresh();
-  }, [router]);
-
   const renderActions = (item: StoryRow) => {
-    if (SCORABLE_STATUSES.includes(item.status)) {
-      return (
-        <div className="flex items-center gap-2">
-          <span className="text-[11px] text-[#6b7280]">
-            {item.status === "scored" ? "Scored — ready for S3" : "Awaiting S3"}
-          </span>
-          <button
-            onClick={() => handleActivateNew(item.id)}
-            disabled={activating === item.id}
-            className="inline-flex items-center px-3 py-1 text-xs font-semibold rounded-full bg-[#fee198] text-[#1a1a1a] hover:bg-[#e6c46d] transition-colors disabled:opacity-50"
-          >
-            {activating === item.id ? "..." : "Activate"}
-          </button>
-        </div>
-      );
+    if (item.status === "new" || item.status === "used") {
+      return null;
     }
-    if (ASSIGNED_STATUSES.includes(item.status)) {
-      return (
-        <button
-          onClick={() => handleActivate(item.id)}
-          disabled={activating === item.id}
-          className="inline-flex items-center px-3 py-1 text-xs font-semibold rounded-full bg-[#fee198] text-[#1a1a1a] hover:bg-[#e6c46d] transition-colors disabled:opacity-50"
-        >
-          {activating === item.id ? "Resetting..." : "Reset to New"}
-        </button>
-      );
-    }
-    if (item.status === "banked") {
-      return (
-        <button
-          onClick={() => handleActivate(item.id)}
-          disabled={activating === item.id}
-          className="inline-flex items-center px-3 py-1 text-xs font-semibold rounded-full border border-[#e5e5e5] text-[#374151] hover:border-[#d1d5db] transition-colors disabled:opacity-50"
-        >
-          {activating === item.id ? "Activating..." : "Activate"}
-        </button>
-      );
-    }
-    if (item.status === "used") {
-      return (
-        <span className="text-[#6b7280] text-xs font-semibold">
-          Used
-        </span>
-      );
-    }
-    return null;
+    return (
+      <button
+        onClick={() => handleActivate(item.id)}
+        disabled={activating === item.id}
+        className="inline-flex items-center px-3 py-1 text-xs font-semibold rounded-full bg-[#fee198] text-[#1a1a1a] hover:bg-[#e6c46d] transition-colors disabled:opacity-50"
+      >
+        {activating === item.id ? "Resetting..." : "Reset to New"}
+      </button>
+    );
   };
 
   const workflowSteps = [

@@ -33,6 +33,8 @@ export default async function PostsPage() {
       featured_image_url: string | null;
       published_at: string | null;
       created_at: string;
+      is_sponsored: boolean;
+      sponsor_business_id: string | null;
       categories: { name: string } | null;
       neighborhoods: { name: string } | null;
     }[] | null;

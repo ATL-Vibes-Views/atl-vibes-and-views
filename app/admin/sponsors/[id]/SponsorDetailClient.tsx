@@ -4,7 +4,8 @@ import { useState, useMemo, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { ArrowLeft } from "lucide-react";
-import { updateSponsor } from "@/app/admin/actions";
+import { updateSponsor, voidFulfillmentEntry } from "@/app/admin/actions";
+import { Modal } from "@/components/portal/Modal";
 import { PortalTopbar } from "@/components/portal/PortalTopbar";
 import { TabNav } from "@/components/portal/TabNav";
 import { StatCard } from "@/components/portal/StatCard";
@@ -104,6 +105,7 @@ export interface DeliverableRow {
 
 export interface FulfillmentLogRow {
   id: string;
+  sponsor_id: string;
   deliverable_id: string | null;
   title: string | null;
   description: string | null;
@@ -111,6 +113,9 @@ export interface FulfillmentLogRow {
   platform: string | null;
   content_url: string | null;
   delivered_at: string | null;
+  voided: boolean;
+  voided_at: string | null;
+  void_reason: string | null;
 }
 
 export interface DropdownOption {
@@ -217,6 +222,25 @@ export function SponsorDetailClient({
       return due <= weekOut;
     });
   }, [deliverables]);
+
+  /* ── Void fulfillment entry state ── */
+  const [voidModal, setVoidModal] = useState<FulfillmentLogRow | null>(null);
+  const [voidReason, setVoidReason] = useState("");
+  const [voiding, setVoiding] = useState(false);
+
+  const handleVoidEntry = useCallback(async () => {
+    if (!voidModal) return;
+    setVoiding(true);
+    const result = await voidFulfillmentEntry(voidModal.id, voidReason.trim() || null);
+    setVoiding(false);
+    if ("error" in result && result.error) {
+      alert("Error: " + result.error);
+      return;
+    }
+    setVoidModal(null);
+    setVoidReason("");
+    router.refresh();
+  }, [voidModal, voidReason, router]);
 
   return (
     <>
@@ -473,25 +497,48 @@ export function SponsorDetailClient({
                     hour: "numeric",
                     minute: "2-digit",
                   }) : "—";
+                  const isVoided = entry.voided;
                   return (
                     <div key={entry.id} className="relative mb-4">
                       {/* Timeline dot */}
-                      <div className="absolute left-[-17px] top-2 w-3 h-3 rounded-full bg-[#c1121f] border-2 border-white" />
-                      <div className="bg-white border border-[#e5e5e5] p-4 ml-2">
+                      <div className={`absolute left-[-17px] top-2 w-3 h-3 rounded-full border-2 border-white ${isVoided ? "bg-[#9ca3af]" : "bg-[#c1121f]"}`} />
+                      <div className={`bg-white border p-4 ml-2 ${isVoided ? "border-[#e5e5e5] opacity-60" : "border-[#e5e5e5]"}`}>
                         <div className="flex items-center justify-between mb-1">
-                          <span className="font-display text-[13px] font-semibold text-black">{entry.title ?? "Untitled"}</span>
-                          <span className="text-[11px] text-[#6b7280]">{dateStr}</span>
+                          <div className="flex items-center gap-2">
+                            <span className={`font-display text-[13px] font-semibold ${isVoided ? "line-through text-[#9ca3af]" : "text-black"}`}>
+                              {entry.title ?? "Untitled"}
+                            </span>
+                            {isVoided && (
+                              <span className="text-[10px] bg-[#fee2e2] text-[#991b1b] px-2 py-0.5 rounded-full font-semibold uppercase">
+                                Voided
+                              </span>
+                            )}
+                          </div>
+                          <div className="flex items-center gap-2">
+                            <span className={`text-[11px] ${isVoided ? "text-[#9ca3af]" : "text-[#6b7280]"}`}>{dateStr}</span>
+                            {!isVoided && (
+                              <button
+                                onClick={() => { setVoidModal(entry); setVoidReason(""); }}
+                                className="text-[10px] px-2 py-0.5 rounded-full border border-[#e5e5e5] text-[#9ca3af] hover:text-[#c1121f] hover:border-[#c1121f] transition-colors"
+                              >
+                                Void
+                              </button>
+                            )}
+                          </div>
                         </div>
                         {entry.description && (
-                          <p className="text-[12px] text-[#374151] mt-1">{entry.description}</p>
+                          <p className={`text-[12px] mt-1 ${isVoided ? "line-through text-[#9ca3af]" : "text-[#374151]"}`}>{entry.description}</p>
+                        )}
+                        {isVoided && entry.void_reason && (
+                          <p className="text-[11px] text-[#9ca3af] mt-1 italic">Reason: {entry.void_reason}</p>
                         )}
                         {(entry.channel || entry.platform) && (
                           <div className="flex items-center gap-2 mt-1.5">
                             {entry.channel && (
-                              <span className="text-[10px] bg-[#f5f5f5] text-[#6b7280] px-2 py-0.5 rounded-full uppercase">{entry.channel}</span>
+                              <span className={`text-[10px] bg-[#f5f5f5] px-2 py-0.5 rounded-full uppercase ${isVoided ? "text-[#9ca3af]" : "text-[#6b7280]"}`}>{entry.channel}</span>
                             )}
                             {entry.platform && (
-                              <span className="text-[10px] bg-[#f5f5f5] text-[#6b7280] px-2 py-0.5 rounded-full uppercase">{entry.platform}</span>
+                              <span className={`text-[10px] bg-[#f5f5f5] px-2 py-0.5 rounded-full uppercase ${isVoided ? "text-[#9ca3af]" : "text-[#6b7280]"}`}>{entry.platform}</span>
                             )}
                           </div>
                         )}
@@ -500,7 +547,7 @@ export function SponsorDetailClient({
                             href={entry.content_url}
                             target="_blank"
                             rel="noopener noreferrer"
-                            className="inline-block mt-2 text-[12px] text-[#c1121f] font-semibold hover:underline"
+                            className={`inline-block mt-2 text-[12px] font-semibold hover:underline ${isVoided ? "text-[#9ca3af]" : "text-[#c1121f]"}`}
                           >
                             View Content →
                           </a>
@@ -672,6 +719,49 @@ export function SponsorDetailClient({
           </div>
         )}
       </div>
+
+      {/* Void Fulfillment Entry Modal */}
+      <Modal
+        isOpen={!!voidModal}
+        onClose={() => { setVoidModal(null); setVoidReason(""); }}
+        title="Void Fulfillment Entry"
+        maxWidth="440px"
+        footer={
+          <>
+            <button
+              onClick={() => { setVoidModal(null); setVoidReason(""); }}
+              className="inline-flex items-center px-5 py-2 rounded-full text-sm font-semibold border border-[#e5e5e5] text-[#374151] hover:border-[#d1d5db] transition-colors"
+            >
+              Cancel
+            </button>
+            <button
+              onClick={handleVoidEntry}
+              disabled={voiding}
+              className="inline-flex items-center px-5 py-2 rounded-full text-sm font-semibold bg-[#c1121f] text-white hover:bg-[#a10e1a] transition-colors disabled:opacity-50"
+            >
+              {voiding ? "Voiding..." : "Void Entry"}
+            </button>
+          </>
+        }
+      >
+        <div className="space-y-4">
+          <p className="text-[13px] text-[#374151]">
+            Void this fulfillment entry? This will reverse the delivery credit.
+          </p>
+          <div>
+            <label className="block text-[12px] font-semibold text-[#374151] mb-1">
+              Reason (optional)
+            </label>
+            <input
+              type="text"
+              value={voidReason}
+              onChange={(e) => setVoidReason(e.target.value)}
+              placeholder="Enter reason for voiding..."
+              className="w-full border border-[#e5e5e5] bg-white px-3 py-2 text-[13px] font-body text-[#374151] focus:border-[#e6c46d] focus:outline-none transition-colors"
+            />
+          </div>
+        </div>
+      </Modal>
     </>
   );
 }
