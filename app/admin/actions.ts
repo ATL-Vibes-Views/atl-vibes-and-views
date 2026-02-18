@@ -644,6 +644,24 @@ export async function uploadScriptMedia(
   return { success: true };
 }
 
+export async function removeScriptMedia(
+  scriptId: string,
+  field: "media_url" | "thumbnail_url",
+  storagePath: string | null
+) {
+  const supabase = createServiceRoleClient();
+  if (storagePath) {
+    await supabase.storage.from("site-images").remove([storagePath]);
+  }
+  const { error } = await supabase
+    .from("scripts")
+    .update({ [field]: null, updated_at: new Date().toISOString() } as never)
+    .eq("id", scriptId);
+  if (error) return { error: error.message };
+  revalidatePath("/admin/social");
+  return { success: true };
+}
+
 // ─── PLATFORM CAPTIONS (inline save from Social Queue) ────────
 
 export async function savePlatformCaption(

@@ -230,7 +230,7 @@ export function DistributeClient({ filmingScript, captions }: DistributeClientPr
   });
 
   /* ── YouTube settings ─────────────────────────────────────── */
-  const savedYoutube = savedCaptions?.youtube as Record<string, string | boolean> | undefined;
+  const savedYoutube = getPlatformData(savedCaptions, "youtube") as Record<string, string | boolean>;
   const ytCaptionRow = captions.find((c) => c.platform === "youtube");
   const [youtubeTitle, setYoutubeTitle] = useState(
     (savedYoutube?.title as string) ?? ytCaptionRow?.caption ?? ""
