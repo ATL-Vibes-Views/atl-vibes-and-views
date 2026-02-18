@@ -1,7 +1,18 @@
 import { Metadata } from "next";
 import { createServiceRoleClient } from "@/lib/supabase";
 import { SponsorDetailClient } from "./SponsorDetailClient";
-import type { SponsorData, DeliverableRow, FulfillmentLogRow, PostRow, CampaignRow, CreativeRow, FlightRow } from "./SponsorDetailClient";
+import type {
+  SponsorData,
+  DeliverableRow,
+  FulfillmentLogRow,
+  PostRow,
+  CampaignRow,
+  CreativeRow,
+  FlightRow,
+  SponsorNoteRow,
+  BusinessContact,
+  AdPlacementRow,
+} from "./SponsorDetailClient";
 
 export const metadata: Metadata = {
   title: "Sponsor Detail | Admin CMS | ATL Vibes & Views",
@@ -25,6 +36,16 @@ export default async function SponsorDetailPage({
     .select("*")
     .eq("id", id)
     .single();
+
+  if (!sponsor) {
+    return (
+      <div className="p-8">
+        <p className="text-[13px] text-[#6b7280]">Sponsor not found.</p>
+      </div>
+    );
+  }
+
+  const s = sponsor as SponsorData;
 
   // Fetch related blog posts via post_sponsors
   const { data: postSponsors } = await supabase
@@ -55,7 +76,7 @@ export default async function SponsorDetailPage({
   if (campaignIds.length > 0) {
     const { data } = await supabase
       .from("ad_creatives")
-      .select("id, campaign_id, creative_type, headline, target_url, image_url, is_active")
+      .select("id, campaign_id, creative_type, headline, body, cta_text, target_url, image_url, is_active")
       .in("campaign_id", campaignIds);
     creatives = (data ?? []) as CreativeRow[];
   }
@@ -65,18 +86,10 @@ export default async function SponsorDetailPage({
   if (campaignIds.length > 0) {
     const { data } = await supabase
       .from("ad_flights")
-      .select("id, campaign_id, placement_id, creative_id, start_date, end_date, status, impressions, clicks")
+      .select("id, campaign_id, placement_id, creative_id, start_date, end_date, status, share_of_voice, impressions, clicks")
       .in("campaign_id", campaignIds)
       .order("start_date", { ascending: false });
     flights = (data ?? []) as FlightRow[];
-  }
-
-  if (!sponsor) {
-    return (
-      <div className="p-8">
-        <p className="text-[13px] text-[#6b7280]">Sponsor not found.</p>
-      </div>
-    );
   }
 
   // Fetch dropdown options for Tab 2
@@ -99,32 +112,110 @@ export default async function SponsorDetailPage({
   ) as { data: { id: string; name: string }[] | null };
 
   // Fetch sponsor deliverables
-  const { data: deliverables, error: delErr } = await supabase
+  const { data: deliverables } = await supabase
     .from("sponsor_deliverables")
     .select("*")
     .eq("sponsor_id", id);
-  console.log("[SponsorDetail] deliverables for", id, "→", deliverables?.length ?? 0, "rows", delErr ? `ERROR: ${JSON.stringify(delErr)}` : "");
 
-  // Fetch fulfillment log
-  const { data: fulfillmentLog, error: flErr } = await supabase
+  // Fetch fulfillment log (Phase 3C: include post_id + newsletter_id + deliverable_type)
+  const { data: fulfillmentLog } = await supabase
     .from("sponsor_fulfillment_log")
     .select("*")
     .eq("sponsor_id", id)
     .order("delivered_at", { ascending: false });
-  console.log("[SponsorDetail] fulfillmentLog for", id, "→", fulfillmentLog?.length ?? 0, "rows", flErr ? `ERROR: ${JSON.stringify(flErr)}` : "");
+
+  // Enrich fulfillment entries with blog post slug/title (for Tab 3 "View Content" links)
+  const fulfillmentPostIds = (fulfillmentLog ?? [])
+    .map((e: Record<string, unknown>) => e.post_id as string | null)
+    .filter(Boolean) as string[];
+  let fulfillmentBlogMap: Record<string, { title: string; slug: string }> = {};
+  if (fulfillmentPostIds.length > 0) {
+    const { data: blogRows } = await supabase
+      .from("blog_posts")
+      .select("id, title, slug")
+      .in("id", fulfillmentPostIds);
+    for (const row of (blogRows ?? []) as { id: string; title: string; slug: string }[]) {
+      fulfillmentBlogMap[row.id] = { title: row.title, slug: row.slug };
+    }
+  }
+  const enrichedFulfillmentLog = (fulfillmentLog ?? []).map((entry: Record<string, unknown>) => ({
+    ...entry,
+    blog_title: entry.post_id ? fulfillmentBlogMap[entry.post_id as string]?.title ?? null : null,
+    blog_slug: entry.post_id ? fulfillmentBlogMap[entry.post_id as string]?.slug ?? null : null,
+  })) as FulfillmentLogRow[];
+
+  // Fetch active ad placements (for Tab 4 flight dropdown)
+  const { data: adPlacements } = (await supabase
+    .from("ad_placements")
+    .select("id, name, channel, placement_key")
+    .eq("is_active", true)
+    .order("name")
+  ) as { data: AdPlacementRow[] | null };
+
+  // ─── Phase 3B additions ────────────────────────────────────
+
+  // Stat card: Content Pieces — count published blog posts via sponsor_business_id
+  let blogPostCount = 0;
+  if (s.business_id) {
+    const { count } = await supabase
+      .from("blog_posts")
+      .select("id", { count: "exact", head: true })
+      .eq("sponsor_business_id", s.business_id)
+      .eq("status", "published");
+    blogPostCount = count ?? 0;
+  }
+
+  // Stat card: Placements denominator — SUM(quantity_owed) from deliverables
+  const deliverableRows = (deliverables ?? []) as DeliverableRow[];
+  const totalDeliverableOwed = deliverableRows.reduce((sum, d) => sum + (d.quantity_owed ?? 0), 0);
+
+  // Stat card: Ad Campaigns count
+  const adCampaignCount = (campaigns ?? []).length;
+
+  // Sponsor notes (talking point log + internal note log)
+  const { data: sponsorNotes } = (await supabase
+    .from("sponsor_notes")
+    .select("*")
+    .eq("sponsor_id", id)
+    .order("created_at", { ascending: false })
+  ) as { data: SponsorNoteRow[] | null };
+
+  // Contact auto-populate from business_listings
+  let businessContact: BusinessContact | null = null;
+  if (s.business_id) {
+    const { data } = (await supabase
+      .from("business_listings")
+      .select("business_name, email, phone")
+      .eq("id", s.business_id)
+      .single()
+    ) as { data: { business_name: string | null; email: string | null; phone: string | null } | null };
+    if (data) {
+      businessContact = {
+        business_name: data.business_name,
+        email: data.email,
+        phone: data.phone,
+      };
+    }
+  }
 
   return (
     <SponsorDetailClient
-      sponsor={sponsor as SponsorData}
+      sponsor={s}
       posts={posts}
       campaigns={(campaigns ?? []) as CampaignRow[]}
       creatives={creatives}
       flights={flights}
-      deliverables={(deliverables ?? []) as DeliverableRow[]}
-      fulfillmentLog={(fulfillmentLog ?? []) as FulfillmentLogRow[]}
+      deliverables={deliverableRows}
+      fulfillmentLog={enrichedFulfillmentLog}
       packageOptions={packageOptions ?? []}
       categoryOptions={categoryOptions ?? []}
       neighborhoodOptions={neighborhoodOptions ?? []}
+      blogPostCount={blogPostCount}
+      totalDeliverableOwed={totalDeliverableOwed}
+      adCampaignCount={adCampaignCount}
+      sponsorNotes={(sponsorNotes ?? []) as SponsorNoteRow[]}
+      businessContact={businessContact}
+      adPlacements={(adPlacements ?? []) as AdPlacementRow[]}
     />
   );
 }

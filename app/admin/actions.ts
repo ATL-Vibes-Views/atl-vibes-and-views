@@ -732,6 +732,220 @@ export async function updateSponsorPackage(id: string, data: Record<string, unkn
   return { success: true };
 }
 
+// ─── SPONSOR NOTES ───────────────────────────────────────────
+
+export async function addSponsorNote(
+  sponsorId: string,
+  noteType: "talking_point_log" | "internal_note_log" | "internal_note",
+  content: string,
+) {
+  const supabase = createServiceRoleClient();
+  const { error } = await supabase.from("sponsor_notes").insert({
+    sponsor_id: sponsorId,
+    note_type: noteType,
+    content,
+  } as never);
+  if (error) return { error: error.message };
+  revalidatePath(`/admin/sponsors/${sponsorId}`);
+  return { success: true };
+}
+
+// ─── SPONSOR TASKS (sponsor_notes with note_type = internal_note_log) ──
+
+export async function addTask(
+  sponsorId: string,
+  description: string,
+  dueDate: string | null,
+) {
+  const supabase = createServiceRoleClient();
+  const { error } = await supabase.from("sponsor_notes").insert({
+    sponsor_id: sponsorId,
+    note_type: "internal_note_log",
+    content: description,
+    due_date: dueDate || null,
+    completed: false,
+  } as never);
+  if (error) return { error: error.message };
+  revalidatePath(`/admin/sponsors/${sponsorId}`);
+  return { success: true };
+}
+
+export async function updateTask(
+  taskId: string,
+  description: string,
+  dueDate: string | null,
+) {
+  const supabase = createServiceRoleClient();
+  const { data: task } = (await supabase
+    .from("sponsor_notes")
+    .select("sponsor_id")
+    .eq("id", taskId)
+    .single()) as { data: { sponsor_id: string } | null };
+  const { error } = await supabase
+    .from("sponsor_notes")
+    .update({ content: description, due_date: dueDate || null, updated_at: new Date().toISOString() } as never)
+    .eq("id", taskId);
+  if (error) return { error: error.message };
+  if (task) revalidatePath(`/admin/sponsors/${task.sponsor_id}`);
+  return { success: true };
+}
+
+export async function deleteTask(taskId: string) {
+  const supabase = createServiceRoleClient();
+  const { data: task } = (await supabase
+    .from("sponsor_notes")
+    .select("sponsor_id")
+    .eq("id", taskId)
+    .single()) as { data: { sponsor_id: string } | null };
+  const { error } = await supabase
+    .from("sponsor_notes")
+    .delete()
+    .eq("id", taskId)
+    .eq("note_type", "internal_note_log");
+  if (error) return { error: error.message };
+  if (task) revalidatePath(`/admin/sponsors/${task.sponsor_id}`);
+  return { success: true };
+}
+
+export async function completeTask(taskId: string) {
+  const supabase = createServiceRoleClient();
+  const { data: task } = (await supabase
+    .from("sponsor_notes")
+    .select("sponsor_id")
+    .eq("id", taskId)
+    .single()) as { data: { sponsor_id: string } | null };
+  const { error } = await supabase
+    .from("sponsor_notes")
+    .update({ completed: true, completed_at: new Date().toISOString(), updated_at: new Date().toISOString() } as never)
+    .eq("id", taskId);
+  if (error) return { error: error.message };
+  if (task) revalidatePath(`/admin/sponsors/${task.sponsor_id}`);
+  return { success: true };
+}
+
+export async function uncompleteTask(taskId: string) {
+  const supabase = createServiceRoleClient();
+  const { data: task } = (await supabase
+    .from("sponsor_notes")
+    .select("sponsor_id")
+    .eq("id", taskId)
+    .single()) as { data: { sponsor_id: string } | null };
+  const { error } = await supabase
+    .from("sponsor_notes")
+    .update({ completed: false, completed_at: null, updated_at: new Date().toISOString() } as never)
+    .eq("id", taskId);
+  if (error) return { error: error.message };
+  if (task) revalidatePath(`/admin/sponsors/${task.sponsor_id}`);
+  return { success: true };
+}
+
+// ─── SPONSOR DELIVERABLE AUTO-CREATE ─────────────────────────
+
+interface PkgDeliverable {
+  type: string;
+  label: string;
+  channel: string;
+  quantity_per_month?: number;
+  quantity_per_contract?: number;
+}
+
+export async function autoCreateDeliverables(sponsorId: string, packageId: string) {
+  const supabase = createServiceRoleClient();
+
+  // Step 1: Fetch the package deliverables JSONB
+  const { data: pkg } = (await supabase
+    .from("sponsor_packages")
+    .select("deliverables")
+    .eq("id", packageId)
+    .single()) as { data: { deliverables: PkgDeliverable[] | null } | null };
+
+  console.log("[autoCreateDeliverables] package JSONB for", packageId, "→", JSON.stringify(pkg?.deliverables));
+
+  if (!pkg?.deliverables?.length) return { error: "No deliverables found in package" };
+
+  const newPkgTypes = pkg.deliverables.map((d) => d.type);
+
+  // Step 2: Fetch sponsor campaign dates
+  const { data: sponsor } = (await supabase
+    .from("sponsors")
+    .select("campaign_start, campaign_end")
+    .eq("id", sponsorId)
+    .single()) as { data: { campaign_start: string | null; campaign_end: string | null } | null };
+
+  let campaignMonths = 1;
+  if (sponsor?.campaign_start && sponsor?.campaign_end) {
+    const start = new Date(sponsor.campaign_start);
+    const end = new Date(sponsor.campaign_end);
+    const diffDays = Math.max(1, (end.getTime() - start.getTime()) / (1000 * 60 * 60 * 24));
+    campaignMonths = Math.ceil(diffDays / 30);
+  }
+
+  // Step 3: Fetch existing deliverables
+  const { data: existing } = (await supabase
+    .from("sponsor_deliverables")
+    .select("id, deliverable_type, quantity_owed, quantity_delivered")
+    .eq("sponsor_id", sponsorId)) as { data: { id: string; deliverable_type: string; quantity_owed: number; quantity_delivered: number }[] | null };
+
+  const existingRows = existing ?? [];
+  const existingByType = new Map(existingRows.map((e) => [e.deliverable_type, e]));
+
+  // Step 4: Delete stale rows (only if quantity_delivered = 0)
+  const staleRows = existingRows.filter((e) => !newPkgTypes.includes(e.deliverable_type) && e.quantity_delivered === 0);
+  let removed = 0;
+  if (staleRows.length > 0) {
+    const staleIds = staleRows.map((r) => r.id);
+    await supabase.from("sponsor_deliverables").delete().in("id", staleIds);
+    removed = staleRows.length;
+  }
+
+  // Step 5: Create missing deliverables + update quantity_owed on existing
+  const toInsert: Record<string, unknown>[] = [];
+  let updated = 0;
+
+  for (const item of pkg.deliverables) {
+    const qtyOwed = item.quantity_per_contract != null
+      ? item.quantity_per_contract
+      : (item.quantity_per_month ?? 0) * campaignMonths;
+
+    const existingRow = existingByType.get(item.type);
+    if (!existingRow) {
+      toInsert.push({
+        sponsor_id: sponsorId,
+        deliverable_type: item.type,
+        label: item.label,
+        channel: item.channel,
+        quantity_owed: qtyOwed,
+        quantity_delivered: 0,
+        quantity_scheduled: 0,
+        status: "active",
+      });
+    } else if (existingRow.quantity_owed !== qtyOwed && existingRow.quantity_delivered === 0) {
+      await supabase.from("sponsor_deliverables")
+        .update({ quantity_owed: qtyOwed, label: item.label, channel: item.channel, updated_at: new Date().toISOString() } as never)
+        .eq("id", existingRow.id);
+      updated++;
+    }
+  }
+
+  if (toInsert.length > 0) {
+    const { error } = await supabase.from("sponsor_deliverables").insert(toInsert as never);
+    if (error) return { error: error.message };
+  }
+
+  revalidatePath(`/admin/sponsors/${sponsorId}`);
+
+  // Build message
+  const added = toInsert.length;
+  if (removed === 0 && added === 0 && updated === 0) {
+    return { success: true, message: "Package deliverables up to date." };
+  }
+  const parts: string[] = [];
+  if (removed > 0) parts.push(`${removed} removed`);
+  if (added > 0) parts.push(`${added} added`);
+  if (updated > 0) parts.push(`${updated} updated`);
+  return { success: true, message: `Package updated — ${parts.join(", ")}.` };
+}
+
 // ─── CITIES (Beyond ATL) ──────────────────────────────────────
 
 export async function updateCity(id: string, data: Record<string, unknown>) {
@@ -967,5 +1181,86 @@ export async function updateAdCreative(id: string, data: Record<string, unknown>
     .eq("id", id);
   if (error) return { error: error.message };
   revalidatePath("/admin/sponsors/creatives");
+  return { success: true };
+}
+
+// ─── AD CAMPAIGNS (Phase 3C) ─────────────────────────────────
+
+export async function createAdCampaign(
+  sponsorId: string,
+  data: { name: string; start_date: string | null; end_date: string | null; budget: number | null; notes: string | null },
+) {
+  const supabase = createServiceRoleClient();
+  const { error } = await supabase.from("ad_campaigns").insert({
+    sponsor_id: sponsorId,
+    name: data.name,
+    start_date: data.start_date,
+    end_date: data.end_date,
+    budget: data.budget,
+    notes: data.notes,
+    status: "draft",
+  } as never);
+  if (error) return { error: error.message };
+  revalidatePath(`/admin/sponsors/${sponsorId}`);
+  return { success: true };
+}
+
+// ─── AD CREATIVES — CREATE (Phase 3C) ─────────────────────────
+
+export async function createAdCreative(
+  campaignId: string,
+  sponsorId: string,
+  data: {
+    creative_type: string;
+    headline: string | null;
+    body: string | null;
+    cta_text: string | null;
+    target_url: string;
+    alt_text: string | null;
+  },
+) {
+  const supabase = createServiceRoleClient();
+  const { error } = await supabase.from("ad_creatives").insert({
+    campaign_id: campaignId,
+    creative_type: data.creative_type,
+    headline: data.headline,
+    body: data.body,
+    cta_text: data.cta_text,
+    target_url: data.target_url,
+    alt_text: data.alt_text,
+    is_active: true,
+  } as never);
+  if (error) return { error: error.message };
+  revalidatePath(`/admin/sponsors/${sponsorId}`);
+  return { success: true };
+}
+
+// ─── AD FLIGHTS — CREATE (Phase 3C) ──────────────────────────
+
+export async function createAdFlight(
+  campaignId: string,
+  sponsorId: string,
+  data: {
+    placement_id: string;
+    creative_id: string | null;
+    start_date: string;
+    end_date: string;
+    share_of_voice: number;
+    priority: number;
+  },
+) {
+  const supabase = createServiceRoleClient();
+  const { error } = await supabase.from("ad_flights").insert({
+    campaign_id: campaignId,
+    placement_id: data.placement_id,
+    creative_id: data.creative_id,
+    start_date: data.start_date,
+    end_date: data.end_date,
+    share_of_voice: data.share_of_voice,
+    priority: data.priority,
+    status: "scheduled",
+  } as never);
+  if (error) return { error: error.message };
+  revalidatePath(`/admin/sponsors/${sponsorId}`);
   return { success: true };
 }
