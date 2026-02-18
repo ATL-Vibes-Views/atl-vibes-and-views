@@ -11,6 +11,7 @@ import type {
   FlightRow,
   SponsorNoteRow,
   BusinessContact,
+  AdPlacementRow,
 } from "./SponsorDetailClient";
 
 export const metadata: Metadata = {
@@ -75,7 +76,7 @@ export default async function SponsorDetailPage({
   if (campaignIds.length > 0) {
     const { data } = await supabase
       .from("ad_creatives")
-      .select("id, campaign_id, creative_type, headline, target_url, image_url, is_active")
+      .select("id, campaign_id, creative_type, headline, body, cta_text, target_url, image_url, is_active")
       .in("campaign_id", campaignIds);
     creatives = (data ?? []) as CreativeRow[];
   }
@@ -85,7 +86,7 @@ export default async function SponsorDetailPage({
   if (campaignIds.length > 0) {
     const { data } = await supabase
       .from("ad_flights")
-      .select("id, campaign_id, placement_id, creative_id, start_date, end_date, status, impressions, clicks")
+      .select("id, campaign_id, placement_id, creative_id, start_date, end_date, status, share_of_voice, impressions, clicks")
       .in("campaign_id", campaignIds)
       .order("start_date", { ascending: false });
     flights = (data ?? []) as FlightRow[];
@@ -116,12 +117,40 @@ export default async function SponsorDetailPage({
     .select("*")
     .eq("sponsor_id", id);
 
-  // Fetch fulfillment log
+  // Fetch fulfillment log (Phase 3C: include post_id + newsletter_id + deliverable_type)
   const { data: fulfillmentLog } = await supabase
     .from("sponsor_fulfillment_log")
     .select("*")
     .eq("sponsor_id", id)
     .order("delivered_at", { ascending: false });
+
+  // Enrich fulfillment entries with blog post slug/title (for Tab 3 "View Content" links)
+  const fulfillmentPostIds = (fulfillmentLog ?? [])
+    .map((e: Record<string, unknown>) => e.post_id as string | null)
+    .filter(Boolean) as string[];
+  let fulfillmentBlogMap: Record<string, { title: string; slug: string }> = {};
+  if (fulfillmentPostIds.length > 0) {
+    const { data: blogRows } = await supabase
+      .from("blog_posts")
+      .select("id, title, slug")
+      .in("id", fulfillmentPostIds);
+    for (const row of (blogRows ?? []) as { id: string; title: string; slug: string }[]) {
+      fulfillmentBlogMap[row.id] = { title: row.title, slug: row.slug };
+    }
+  }
+  const enrichedFulfillmentLog = (fulfillmentLog ?? []).map((entry: Record<string, unknown>) => ({
+    ...entry,
+    blog_title: entry.post_id ? fulfillmentBlogMap[entry.post_id as string]?.title ?? null : null,
+    blog_slug: entry.post_id ? fulfillmentBlogMap[entry.post_id as string]?.slug ?? null : null,
+  })) as FulfillmentLogRow[];
+
+  // Fetch active ad placements (for Tab 4 flight dropdown)
+  const { data: adPlacements } = (await supabase
+    .from("ad_placements")
+    .select("id, name, channel, placement_key")
+    .eq("is_active", true)
+    .order("name")
+  ) as { data: AdPlacementRow[] | null };
 
   // ─── Phase 3B additions ────────────────────────────────────
 
@@ -177,7 +206,7 @@ export default async function SponsorDetailPage({
       creatives={creatives}
       flights={flights}
       deliverables={deliverableRows}
-      fulfillmentLog={(fulfillmentLog ?? []) as FulfillmentLogRow[]}
+      fulfillmentLog={enrichedFulfillmentLog}
       packageOptions={packageOptions ?? []}
       categoryOptions={categoryOptions ?? []}
       neighborhoodOptions={neighborhoodOptions ?? []}
@@ -186,6 +215,7 @@ export default async function SponsorDetailPage({
       adCampaignCount={adCampaignCount}
       sponsorNotes={(sponsorNotes ?? []) as SponsorNoteRow[]}
       businessContact={businessContact}
+      adPlacements={(adPlacements ?? []) as AdPlacementRow[]}
     />
   );
 }

@@ -3,7 +3,7 @@
 import { useState, useMemo, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import { ArrowLeft, Pencil, Trash2, Check } from "lucide-react";
+import { ArrowLeft, Pencil, Trash2, Check, ChevronDown, ChevronUp, ExternalLink } from "lucide-react";
 import {
   updateSponsor,
   voidFulfillmentEntry,
@@ -14,6 +14,9 @@ import {
   deleteTask,
   completeTask,
   uncompleteTask,
+  createAdCampaign,
+  createAdCreative,
+  createAdFlight,
 } from "@/app/admin/actions";
 import { Modal } from "@/components/portal/Modal";
 import { PortalTopbar } from "@/components/portal/PortalTopbar";
@@ -26,6 +29,7 @@ import { FormGroup } from "@/components/portal/FormGroup";
 import { FormInput } from "@/components/portal/FormInput";
 import { FormTextarea } from "@/components/portal/FormTextarea";
 import { FormRow } from "@/components/portal/FormRow";
+import { FormSelect } from "@/components/portal/FormSelect";
 import { ImagePicker } from "@/components/portal/ImagePicker";
 
 /* ============================================================
@@ -85,9 +89,18 @@ export interface CreativeRow {
   campaign_id: string;
   creative_type: string;
   headline: string | null;
+  body: string | null;
+  cta_text: string | null;
   target_url: string;
   image_url: string | null;
   is_active: boolean;
+}
+
+export interface AdPlacementRow {
+  id: string;
+  name: string;
+  channel: string;
+  placement_key: string;
 }
 
 export interface FlightRow {
@@ -98,6 +111,7 @@ export interface FlightRow {
   start_date: string;
   end_date: string;
   status: string;
+  share_of_voice: number | null;
   impressions: number | null;
   clicks: number | null;
 }
@@ -120,15 +134,20 @@ export interface FulfillmentLogRow {
   id: string;
   sponsor_id: string;
   deliverable_id: string | null;
+  deliverable_type: string | null;
   title: string | null;
   description: string | null;
   channel: string | null;
   platform: string | null;
   content_url: string | null;
+  post_id: string | null;
+  newsletter_id: string | null;
   delivered_at: string | null;
   voided: boolean;
   voided_at: string | null;
   void_reason: string | null;
+  blog_title: string | null;
+  blog_slug: string | null;
 }
 
 export interface SponsorNoteRow {
@@ -170,6 +189,7 @@ interface SponsorDetailClientProps {
   adCampaignCount: number;
   sponsorNotes: SponsorNoteRow[];
   businessContact: BusinessContact | null;
+  adPlacements: AdPlacementRow[];
 }
 
 const TABS = [
@@ -249,6 +269,7 @@ export function SponsorDetailClient({
   adCampaignCount,
   sponsorNotes,
   businessContact,
+  adPlacements,
 }: SponsorDetailClientProps) {
   const router = useRouter();
   const [activeTab, setActiveTab] = useState("info");
@@ -476,6 +497,122 @@ export function SponsorDetailClient({
       behindPace,
     };
   }, [sponsor.campaign_start, sponsor.campaign_end, deliverables]);
+
+  /* ── Tab 4: Ad Campaign/Creative/Flight state (Phase 3C) ── */
+  const campaignCreativesMap = useMemo(() => {
+    const map: Record<string, CreativeRow[]> = {};
+    for (const c of creatives) {
+      if (!map[c.campaign_id]) map[c.campaign_id] = [];
+      map[c.campaign_id].push(c);
+    }
+    return map;
+  }, [creatives]);
+
+  const campaignFlightsMap = useMemo(() => {
+    const map: Record<string, FlightRow[]> = {};
+    for (const f of flights) {
+      if (!map[f.campaign_id]) map[f.campaign_id] = [];
+      map[f.campaign_id].push(f);
+    }
+    return map;
+  }, [flights]);
+
+  const placementMap = useMemo(() => {
+    const map: Record<string, AdPlacementRow> = {};
+    for (const p of adPlacements) map[p.id] = p;
+    return map;
+  }, [adPlacements]);
+
+  const creativeMap = useMemo(() => {
+    const map: Record<string, CreativeRow> = {};
+    for (const c of creatives) map[c.id] = c;
+    return map;
+  }, [creatives]);
+
+  const [expandedCampaigns, setExpandedCampaigns] = useState<Record<string, boolean>>({});
+  const toggleCampaign = (id: string) => setExpandedCampaigns((prev) => ({ ...prev, [id]: !prev[id] }));
+
+  // Add Campaign modal
+  const [showCampaignModal, setShowCampaignModal] = useState(false);
+  const [newCampaignName, setNewCampaignName] = useState("");
+  const [newCampaignStart, setNewCampaignStart] = useState("");
+  const [newCampaignEnd, setNewCampaignEnd] = useState("");
+  const [newCampaignBudget, setNewCampaignBudget] = useState("");
+  const [newCampaignNotes, setNewCampaignNotes] = useState("");
+  const [savingCampaign, setSavingCampaign] = useState(false);
+
+  const handleCreateCampaign = useCallback(async () => {
+    if (!newCampaignName.trim()) return;
+    setSavingCampaign(true);
+    const result = await createAdCampaign(sponsor.id, {
+      name: newCampaignName.trim(),
+      start_date: newCampaignStart || null,
+      end_date: newCampaignEnd || null,
+      budget: newCampaignBudget ? parseFloat(newCampaignBudget) : null,
+      notes: newCampaignNotes.trim() || null,
+    });
+    setSavingCampaign(false);
+    if ("error" in result && result.error) { alert("Error: " + result.error); return; }
+    setShowCampaignModal(false);
+    setNewCampaignName(""); setNewCampaignStart(""); setNewCampaignEnd(""); setNewCampaignBudget(""); setNewCampaignNotes("");
+    router.refresh();
+  }, [sponsor.id, newCampaignName, newCampaignStart, newCampaignEnd, newCampaignBudget, newCampaignNotes, router]);
+
+  // Add Creative modal
+  const [showCreativeModal, setShowCreativeModal] = useState<string | null>(null); // campaign_id
+  const [newCreativeType, setNewCreativeType] = useState("image");
+  const [newCreativeHeadline, setNewCreativeHeadline] = useState("");
+  const [newCreativeBody, setNewCreativeBody] = useState("");
+  const [newCreativeCta, setNewCreativeCta] = useState("");
+  const [newCreativeUrl, setNewCreativeUrl] = useState("");
+  const [newCreativeAlt, setNewCreativeAlt] = useState("");
+  const [savingCreative, setSavingCreative] = useState(false);
+
+  const handleCreateCreative = useCallback(async () => {
+    if (!showCreativeModal || !newCreativeUrl.trim()) return;
+    setSavingCreative(true);
+    const result = await createAdCreative(showCreativeModal, sponsor.id, {
+      creative_type: newCreativeType,
+      headline: newCreativeHeadline.trim() || null,
+      body: newCreativeBody.trim() || null,
+      cta_text: newCreativeCta.trim() || null,
+      target_url: newCreativeUrl.trim(),
+      alt_text: newCreativeAlt.trim() || null,
+    });
+    setSavingCreative(false);
+    if ("error" in result && result.error) { alert("Error: " + result.error); return; }
+    setShowCreativeModal(null);
+    setNewCreativeType("image"); setNewCreativeHeadline(""); setNewCreativeBody(""); setNewCreativeCta(""); setNewCreativeUrl(""); setNewCreativeAlt("");
+    router.refresh();
+  }, [showCreativeModal, sponsor.id, newCreativeType, newCreativeHeadline, newCreativeBody, newCreativeCta, newCreativeUrl, newCreativeAlt, router]);
+
+  // Add Flight modal
+  const [showFlightModal, setShowFlightModal] = useState<string | null>(null); // campaign_id
+  const [newFlightPlacement, setNewFlightPlacement] = useState("");
+  const [newFlightCreative, setNewFlightCreative] = useState("");
+  const [newFlightStart, setNewFlightStart] = useState("");
+  const [newFlightEnd, setNewFlightEnd] = useState("");
+  const [newFlightSov, setNewFlightSov] = useState("100");
+  const [newFlightPriority, setNewFlightPriority] = useState("0");
+  const [savingFlight, setSavingFlight] = useState(false);
+
+  const handleCreateFlight = useCallback(async () => {
+    if (!showFlightModal || !newFlightPlacement || !newFlightStart || !newFlightEnd) return;
+    setSavingFlight(true);
+    const result = await createAdFlight(showFlightModal, sponsor.id, {
+      placement_id: newFlightPlacement,
+      creative_id: newFlightCreative || null,
+      start_date: newFlightStart,
+      end_date: newFlightEnd,
+      share_of_voice: parseInt(newFlightSov) || 100,
+      priority: parseInt(newFlightPriority) || 0,
+    });
+    setSavingFlight(false);
+    if ("error" in result && result.error) { alert("Error: " + result.error); return; }
+    setShowFlightModal(null);
+    setNewFlightPlacement(""); setNewFlightCreative(""); setNewFlightStart(""); setNewFlightEnd(""); setNewFlightSov("100"); setNewFlightPriority("0");
+    router.refresh();
+  }, [showFlightModal, sponsor.id, newFlightPlacement, newFlightCreative, newFlightStart, newFlightEnd, newFlightSov, newFlightPriority, router]);
 
   /* ── Void fulfillment entry state ── */
   const [voidModal, setVoidModal] = useState<FulfillmentLogRow | null>(null);
@@ -1148,16 +1285,31 @@ export function SponsorDetailClient({
                             )}
                           </div>
                         )}
-                        {entry.content_url && (
+                        {/* View Content link — priority: post_id > newsletter_id > content_url */}
+                        {entry.post_id ? (
+                          <Link
+                            href={`/admin/content/blog-posts/${entry.post_id}/edit`}
+                            className={`inline-block mt-2 text-[12px] font-semibold hover:underline ${isVoided ? "text-[#9ca3af]" : "text-[#c1121f]"}`}
+                          >
+                            View Content →
+                          </Link>
+                        ) : entry.newsletter_id ? (
+                          <Link
+                            href={`/admin/newsletters/${entry.newsletter_id}`}
+                            className={`inline-block mt-2 text-[12px] font-semibold hover:underline ${isVoided ? "text-[#9ca3af]" : "text-[#c1121f]"}`}
+                          >
+                            View Content →
+                          </Link>
+                        ) : entry.content_url ? (
                           <a
                             href={entry.content_url}
                             target="_blank"
                             rel="noopener noreferrer"
-                            className={`inline-block mt-2 text-[12px] font-semibold hover:underline ${isVoided ? "text-[#9ca3af]" : "text-[#c1121f]"}`}
+                            className={`inline-flex items-center gap-1 mt-2 text-[12px] font-semibold hover:underline ${isVoided ? "text-[#9ca3af]" : "text-[#c1121f]"}`}
                           >
-                            View Content →
+                            View Content <ExternalLink size={11} />
                           </a>
-                        )}
+                        ) : null}
                       </div>
                     </div>
                   );
@@ -1168,160 +1320,251 @@ export function SponsorDetailClient({
         )}
 
         {/* ═══════════════════════════════════════════
-            TAB 4 — Ad Creatives & Flights
+            TAB 4 — Ad Creatives & Flights (Phase 3C)
             ═══════════════════════════════════════════ */}
         {activeTab === "creatives" && (
           <div className="space-y-6">
-            {/* Creative cards with ImagePicker */}
+            {/* Section 1: Campaigns */}
             <div>
               <div className="flex items-center justify-between mb-3">
-                <h3 className="font-display text-[16px] font-semibold text-black">Ad Creatives</h3>
+                <h3 className="font-display text-[16px] font-semibold text-black">Campaigns</h3>
                 <button
-                  onClick={() => { /* add creative — navigate to creatives page */ window.location.href = "/admin/sponsors/creatives"; }}
+                  onClick={() => setShowCampaignModal(true)}
                   className="px-4 py-1.5 rounded-full text-[12px] font-semibold bg-[#fee198] text-[#1a1a1a] hover:bg-[#e6c46d] transition-colors"
                 >
-                  + Add Creative
+                  + Add Campaign
                 </button>
               </div>
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-                {creatives.length === 0 ? (
-                  <p className="col-span-full text-center text-[13px] text-[#6b7280] py-10 bg-white border border-[#e5e5e5]">
-                    No creatives for this sponsor.
-                  </p>
-                ) : (
-                  creatives.map((c) => (
-                    <div key={c.id} className="bg-white border border-[#e5e5e5] overflow-hidden">
-                      <ImagePicker
-                        value={c.image_url ?? ""}
-                        onChange={() => { /* creative image update — managed via ad_creatives table */ }}
-                        folder={`sponsors/${sponsor.id}`}
-                        label={c.creative_type}
-                      />
-                      <div className="p-3">
-                        <p className="text-[13px] font-semibold text-black truncate">{c.headline ?? "Untitled"}</p>
-                        <p className="text-[11px] text-[#6b7280] truncate mt-0.5">{c.target_url}</p>
-                        <div className="flex items-center justify-between mt-2">
-                          <span className="text-[10px] text-[#9ca3af] uppercase">{c.creative_type}</span>
-                          <StatusBadge variant={c.is_active ? "green" : "gray"}>
-                            {c.is_active ? "Active" : "Inactive"}
-                          </StatusBadge>
+
+              {campaigns.length === 0 ? (
+                <div className="bg-white border border-[#e5e5e5] p-8 text-center">
+                  <p className="text-[13px] text-[#6b7280]">No ad campaigns yet. Add a campaign to get started.</p>
+                </div>
+              ) : (
+                <div className="space-y-3">
+                  {campaigns.map((camp) => {
+                    const campFlights = campaignFlightsMap[camp.id] ?? [];
+                    const campCreatives = campaignCreativesMap[camp.id] ?? [];
+                    const isExpanded = expandedCampaigns[camp.id];
+                    const campStatusColor: Record<string, "gray" | "green" | "gold" | "blue"> = { draft: "gray", active: "green", paused: "gold", completed: "blue" };
+                    return (
+                      <div key={camp.id} className="bg-white border border-[#e5e5e5]">
+                        {/* Campaign header */}
+                        <div
+                          className="p-4 flex items-center justify-between cursor-pointer hover:bg-[#fafafa] transition-colors"
+                          onClick={() => toggleCampaign(camp.id)}
+                        >
+                          <div className="flex items-center gap-3">
+                            {isExpanded ? <ChevronUp size={16} className="text-[#9ca3af]" /> : <ChevronDown size={16} className="text-[#9ca3af]" />}
+                            <div>
+                              <span className="font-display text-[14px] font-semibold text-black">{camp.name}</span>
+                              <div className="flex items-center gap-2 mt-0.5">
+                                {camp.start_date && camp.end_date && (
+                                  <span className="text-[11px] text-[#6b7280]">
+                                    {new Date(camp.start_date).toLocaleDateString("en-US", { month: "short", day: "numeric" })} — {new Date(camp.end_date).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })}
+                                  </span>
+                                )}
+                                {camp.budget && (
+                                  <span className="text-[11px] text-[#374151] font-semibold">${camp.budget.toLocaleString()}</span>
+                                )}
+                              </div>
+                            </div>
+                          </div>
+                          <div className="flex items-center gap-3">
+                            <span className="text-[11px] text-[#6b7280]">{campFlights.length} flight{campFlights.length !== 1 ? "s" : ""}</span>
+                            <StatusBadge variant={campStatusColor[camp.status] ?? "gray"}>{camp.status}</StatusBadge>
+                          </div>
                         </div>
+
+                        {/* Expanded: flights + actions */}
+                        {isExpanded && (
+                          <div className="border-t border-[#e5e5e5] p-4 space-y-4">
+                            <div className="flex items-center gap-2">
+                              <button
+                                onClick={() => setShowCreativeModal(camp.id)}
+                                className="px-3 py-1 rounded-full text-[11px] font-semibold border border-[#e5e5e5] text-[#374151] hover:border-[#e6c46d] transition-colors"
+                              >
+                                + Add Creative
+                              </button>
+                              <button
+                                onClick={() => setShowFlightModal(camp.id)}
+                                className="px-3 py-1 rounded-full text-[11px] font-semibold border border-[#e5e5e5] text-[#374151] hover:border-[#e6c46d] transition-colors"
+                              >
+                                + Add Flight
+                              </button>
+                            </div>
+
+                            {/* Flights list */}
+                            {campFlights.length === 0 ? (
+                              <p className="text-[12px] text-[#9ca3af] italic">No flights for this campaign.</p>
+                            ) : (
+                              <div className="space-y-2">
+                                <h4 className="text-[11px] uppercase tracking-[0.5px] font-semibold text-[#6b7280]">Flights</h4>
+                                {campFlights.map((fl) => (
+                                  <div key={fl.id} className="bg-[#fafafa] border border-[#f0f0f0] p-3 flex items-center justify-between">
+                                    <div className="flex items-center gap-3">
+                                      <span className="text-[12px] font-semibold text-[#374151]">
+                                        {placementMap[fl.placement_id]?.name ?? fl.placement_id.slice(0, 8)}
+                                      </span>
+                                      {fl.creative_id && creativeMap[fl.creative_id] && (
+                                        <span className="text-[11px] text-[#6b7280]">
+                                          {creativeMap[fl.creative_id].headline ?? "Untitled creative"}
+                                        </span>
+                                      )}
+                                    </div>
+                                    <div className="flex items-center gap-3">
+                                      <span className="text-[11px] text-[#6b7280]">
+                                        {new Date(fl.start_date).toLocaleDateString("en-US", { month: "short", day: "numeric" })} — {new Date(fl.end_date).toLocaleDateString("en-US", { month: "short", day: "numeric" })}
+                                      </span>
+                                      <StatusBadge variant={statusBadgeMap[fl.status] ?? "gray"}>{fl.status}</StatusBadge>
+                                      {fl.share_of_voice != null && (
+                                        <span className="text-[10px] text-[#9ca3af]">{fl.share_of_voice}% SOV</span>
+                                      )}
+                                    </div>
+                                  </div>
+                                ))}
+                              </div>
+                            )}
+
+                            {/* Creatives for this campaign */}
+                            {campCreatives.length > 0 && (
+                              <div className="space-y-2">
+                                <h4 className="text-[11px] uppercase tracking-[0.5px] font-semibold text-[#6b7280]">Creatives</h4>
+                                {campCreatives.map((cr) => (
+                                  <div key={cr.id} className="bg-[#fafafa] border border-[#f0f0f0] p-3 flex items-center justify-between">
+                                    <div className="flex items-center gap-3">
+                                      {cr.image_url && (
+                                        <img src={cr.image_url} alt={cr.headline ?? ""} className="w-[60px] h-[60px] object-cover rounded" />
+                                      )}
+                                      <div>
+                                        <span className="text-[12px] font-semibold text-[#374151]">{cr.headline ?? "Untitled"}</span>
+                                        {cr.body && <p className="text-[11px] text-[#6b7280] mt-0.5 line-clamp-1">{cr.body}</p>}
+                                        {cr.cta_text && <span className="text-[10px] text-[#9ca3af] mt-0.5 block">CTA: {cr.cta_text}</span>}
+                                      </div>
+                                    </div>
+                                    <div className="flex items-center gap-2">
+                                      <span className="text-[10px] bg-[#f5f5f5] px-2 py-0.5 rounded-full uppercase text-[#6b7280]">{cr.creative_type}</span>
+                                      <StatusBadge variant={cr.is_active ? "green" : "gray"}>{cr.is_active ? "Active" : "Inactive"}</StatusBadge>
+                                    </div>
+                                  </div>
+                                ))}
+                              </div>
+                            )}
+                          </div>
+                        )}
                       </div>
-                    </div>
-                  ))
-                )}
-              </div>
+                    );
+                  })}
+                </div>
+              )}
             </div>
 
-            {/* Flights table */}
+            {/* Section 3: All Creatives (flat list) */}
             <div>
-              <h3 className="font-display text-[16px] font-semibold text-black mb-3">Ad Flights</h3>
-              <AdminDataTable
-                columns={[
-                  {
-                    key: "placement_id",
-                    header: "Placement",
-                    render: (item: FlightRow) => (
-                      <span className="text-[12px] font-mono text-[#6b7280]">{item.placement_id.slice(0, 8)}...</span>
-                    ),
-                  },
-                  {
-                    key: "status",
-                    header: "Status",
-                    render: (item: FlightRow) => (
-                      <StatusBadge variant={statusBadgeMap[item.status] ?? "gray"}>
-                        {item.status}
-                      </StatusBadge>
-                    ),
-                  },
-                  {
-                    key: "start_date",
-                    header: "Start",
-                    render: (item: FlightRow) => (
-                      <span className="text-[12px] text-[#6b7280]">
-                        {new Date(item.start_date).toLocaleDateString("en-US", { month: "short", day: "numeric" })}
-                      </span>
-                    ),
-                  },
-                  {
-                    key: "end_date",
-                    header: "End",
-                    render: (item: FlightRow) => (
-                      <span className="text-[12px] text-[#6b7280]">
-                        {new Date(item.end_date).toLocaleDateString("en-US", { month: "short", day: "numeric" })}
-                      </span>
-                    ),
-                  },
-                  {
-                    key: "impressions",
-                    header: "Impressions",
-                    render: (item: FlightRow) => (
-                      <span className="text-[13px] text-[#374151]">{item.impressions?.toLocaleString() ?? "—"}</span>
-                    ),
-                  },
-                  {
-                    key: "clicks",
-                    header: "Clicks",
-                    render: (item: FlightRow) => (
-                      <span className="text-[13px] text-[#374151]">{item.clicks?.toLocaleString() ?? "—"}</span>
-                    ),
-                  },
-                ]}
-                data={flights}
-                emptyMessage="No ad flights for this sponsor."
-              />
+              <h3 className="font-display text-[16px] font-semibold text-black mb-3">All Creatives</h3>
+              {creatives.length === 0 ? (
+                <div className="bg-white border border-[#e5e5e5] p-6 text-center">
+                  <p className="text-[13px] text-[#6b7280]">No creatives for this sponsor.</p>
+                </div>
+              ) : (
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                  {creatives.map((c) => (
+                    <div key={c.id} className="bg-white border border-[#e5e5e5] overflow-hidden">
+                      {c.image_url && (
+                        <div className="w-full h-[60px] bg-[#f5f5f5] flex items-center justify-center overflow-hidden">
+                          <img src={c.image_url} alt={c.headline ?? ""} className="w-[60px] h-[60px] object-cover" />
+                        </div>
+                      )}
+                      <div className="p-3">
+                        <div className="flex items-center gap-2 mb-1">
+                          <span className="text-[10px] bg-[#f5f5f5] px-2 py-0.5 rounded-full uppercase text-[#6b7280]">{c.creative_type}</span>
+                          <StatusBadge variant={c.is_active ? "green" : "gray"}>{c.is_active ? "Active" : "Inactive"}</StatusBadge>
+                        </div>
+                        <p className="text-[13px] font-semibold text-black truncate">{c.headline ?? "Untitled"}</p>
+                        {c.body && <p className="text-[11px] text-[#6b7280] mt-0.5 line-clamp-2">{c.body}</p>}
+                        {c.cta_text && <span className="text-[10px] text-[#9ca3af] block mt-1">CTA: {c.cta_text}</span>}
+                        <p className="text-[11px] text-[#6b7280] truncate mt-1">{c.target_url}</p>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
             </div>
           </div>
         )}
 
         {/* ═══════════════════════════════════════════
-            TAB 5 — Sponsored Content
+            TAB 5 — Sponsored Content (Phase 3C)
             ═══════════════════════════════════════════ */}
         {activeTab === "content" && (
-          <div className="space-y-4">
-            <h3 className="font-display text-[16px] font-semibold text-black">
-              Sponsored Blog Posts
-              <span className="ml-2 text-[13px] font-normal text-[#6b7280]">({posts.length})</span>
-            </h3>
-            <AdminDataTable
-              columns={[
-                {
-                  key: "title",
-                  header: "Post Title",
-                  width: "50%",
-                  render: (item: PostRow) => (
-                    <Link
-                      href="/admin/posts"
-                      className="font-display text-[14px] font-semibold text-black hover:text-[#c1121f] transition-colors"
-                    >
-                      {item.title}
-                    </Link>
-                  ),
-                },
-                {
-                  key: "status",
-                  header: "Status",
-                  render: (item: PostRow) => (
-                    <StatusBadge variant={statusBadgeMap[item.status] ?? "gray"}>
-                      {item.status}
-                    </StatusBadge>
-                  ),
-                },
-                {
-                  key: "published_at",
-                  header: "Published",
-                  render: (item: PostRow) => (
-                    <span className="text-[12px] text-[#6b7280]">
-                      {item.published_at
-                        ? new Date(item.published_at).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })
-                        : "—"}
-                    </span>
-                  ),
-                },
-              ]}
-              data={posts}
-              emptyMessage="No sponsored content yet."
-            />
+          <div className="space-y-6">
+            {/* Blog Posts section */}
+            <div>
+              <h3 className="font-display text-[16px] font-semibold text-black mb-3">
+                Blog Posts
+                <span className="ml-2 text-[13px] font-normal text-[#6b7280]">({posts.length})</span>
+              </h3>
+              {posts.length === 0 ? (
+                <div className="bg-white border border-[#e5e5e5] p-6 text-center">
+                  <p className="text-[13px] text-[#6b7280]">No sponsored blog posts yet.</p>
+                </div>
+              ) : (
+                <div className="space-y-2">
+                  {posts.map((post) => (
+                    <div key={post.id} className="bg-white border border-[#e5e5e5] p-4 flex items-center justify-between">
+                      <div className="flex-1 min-w-0 mr-4">
+                        <Link
+                          href={`/admin/content/blog-posts/${post.id}/edit`}
+                          className="font-display text-[14px] font-semibold text-black hover:text-[#c1121f] transition-colors"
+                        >
+                          {post.title}
+                        </Link>
+                        <div className="flex items-center gap-2 mt-1">
+                          <StatusBadge variant={statusBadgeMap[post.status] ?? "gray"}>{post.status}</StatusBadge>
+                          <span className="text-[11px] text-[#6b7280]">
+                            {post.published_at
+                              ? new Date(post.published_at).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })
+                              : "Draft"}
+                          </span>
+                        </div>
+                      </div>
+                      <Link
+                        href={`/admin/content/blog-posts/${post.id}/edit`}
+                        className="px-3 py-1 rounded-full text-[11px] font-semibold border border-[#e5e5e5] text-[#374151] hover:border-[#e6c46d] transition-colors flex-shrink-0"
+                      >
+                        Edit
+                      </Link>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+
+            {/* Scripts section */}
+            <div>
+              <h3 className="font-display text-[16px] font-semibold text-black mb-3">
+                Scripts
+                <span className="ml-2 text-[13px] font-normal text-[#6b7280]">(0)</span>
+              </h3>
+              {/* TODO: Scripts link to sponsors indirectly via story → story_businesses → business_listings.
+                  No direct sponsor_id on scripts table. Would need to query via fulfillment log
+                  entries with deliverable_type IN ('reel', 'script') or via the indirect join path.
+                  Showing placeholder for now. */}
+              <div className="bg-white border border-[#e5e5e5] p-6 text-center">
+                <p className="text-[13px] text-[#6b7280]">No sponsored scripts yet.</p>
+              </div>
+            </div>
+
+            {/* Social Posts section */}
+            <div>
+              <h3 className="font-display text-[16px] font-semibold text-black mb-3">
+                Social Posts
+                <span className="ml-2 text-[13px] font-normal text-[#6b7280]">(0)</span>
+              </h3>
+              <div className="bg-white border border-[#e5e5e5] p-6 text-center">
+                <p className="text-[13px] text-[#6b7280]">Coming soon.</p>
+              </div>
+            </div>
           </div>
         )}
       </div>
@@ -1366,6 +1609,165 @@ export function SponsorDetailClient({
               className="w-full border border-[#e5e5e5] bg-white px-3 py-2 text-[13px] font-body text-[#374151] focus:border-[#e6c46d] focus:outline-none transition-colors"
             />
           </div>
+        </div>
+      </Modal>
+
+      {/* Add Campaign Modal (Phase 3C) */}
+      <Modal
+        isOpen={showCampaignModal}
+        onClose={() => setShowCampaignModal(false)}
+        title="Add Campaign"
+        maxWidth="500px"
+        footer={
+          <>
+            <button
+              onClick={() => setShowCampaignModal(false)}
+              className="inline-flex items-center px-5 py-2 rounded-full text-sm font-semibold border border-[#e5e5e5] text-[#374151] hover:border-[#d1d5db] transition-colors"
+            >
+              Cancel
+            </button>
+            <button
+              onClick={handleCreateCampaign}
+              disabled={savingCampaign || !newCampaignName.trim()}
+              className="inline-flex items-center px-5 py-2 rounded-full text-sm font-semibold bg-[#fee198] text-[#1a1a1a] hover:bg-[#e6c46d] transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+            >
+              {savingCampaign ? "Saving..." : "Create Campaign"}
+            </button>
+          </>
+        }
+      >
+        <div className="space-y-4">
+          <FormGroup label="Campaign Name" required>
+            <FormInput value={newCampaignName} onChange={(e) => setNewCampaignName(e.target.value)} placeholder="e.g. Spring 2026 Banner Campaign" />
+          </FormGroup>
+          <FormRow>
+            <FormGroup label="Start Date">
+              <FormInput type="date" value={newCampaignStart} onChange={(e) => setNewCampaignStart(e.target.value)} />
+            </FormGroup>
+            <FormGroup label="End Date">
+              <FormInput type="date" value={newCampaignEnd} onChange={(e) => setNewCampaignEnd(e.target.value)} />
+            </FormGroup>
+          </FormRow>
+          <FormGroup label="Budget">
+            <FormInput type="number" value={newCampaignBudget} onChange={(e) => setNewCampaignBudget(e.target.value)} placeholder="0.00" />
+          </FormGroup>
+          <FormGroup label="Notes">
+            <FormTextarea value={newCampaignNotes} onChange={(e) => setNewCampaignNotes(e.target.value)} rows={3} placeholder="Campaign notes..." />
+          </FormGroup>
+        </div>
+      </Modal>
+
+      {/* Add Creative Modal (Phase 3C) */}
+      <Modal
+        isOpen={!!showCreativeModal}
+        onClose={() => setShowCreativeModal(null)}
+        title="Add Creative"
+        maxWidth="500px"
+        footer={
+          <>
+            <button
+              onClick={() => setShowCreativeModal(null)}
+              className="inline-flex items-center px-5 py-2 rounded-full text-sm font-semibold border border-[#e5e5e5] text-[#374151] hover:border-[#d1d5db] transition-colors"
+            >
+              Cancel
+            </button>
+            <button
+              onClick={handleCreateCreative}
+              disabled={savingCreative || !newCreativeUrl.trim()}
+              className="inline-flex items-center px-5 py-2 rounded-full text-sm font-semibold bg-[#fee198] text-[#1a1a1a] hover:bg-[#e6c46d] transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+            >
+              {savingCreative ? "Saving..." : "Create Creative"}
+            </button>
+          </>
+        }
+      >
+        <div className="space-y-4">
+          <FormGroup label="Creative Type" required>
+            <FormSelect
+              value={newCreativeType}
+              onChange={(e) => setNewCreativeType(e.target.value)}
+              options={[
+                { value: "image", label: "Image" },
+                { value: "html", label: "HTML" },
+                { value: "native", label: "Native" },
+              ]}
+            />
+          </FormGroup>
+          <FormGroup label="Headline">
+            <FormInput value={newCreativeHeadline} onChange={(e) => setNewCreativeHeadline(e.target.value)} placeholder="Creative headline..." />
+          </FormGroup>
+          <FormGroup label="Body">
+            <FormTextarea value={newCreativeBody} onChange={(e) => setNewCreativeBody(e.target.value)} rows={3} placeholder="Body text..." />
+          </FormGroup>
+          <FormGroup label="CTA Text">
+            <FormInput value={newCreativeCta} onChange={(e) => setNewCreativeCta(e.target.value)} placeholder="e.g. Learn More" />
+          </FormGroup>
+          <FormGroup label="Target URL" required>
+            <FormInput value={newCreativeUrl} onChange={(e) => setNewCreativeUrl(e.target.value)} placeholder="https://..." />
+          </FormGroup>
+          <FormGroup label="Alt Text">
+            <FormInput value={newCreativeAlt} onChange={(e) => setNewCreativeAlt(e.target.value)} placeholder="Image alt text..." />
+          </FormGroup>
+        </div>
+      </Modal>
+
+      {/* Add Flight Modal (Phase 3C) */}
+      <Modal
+        isOpen={!!showFlightModal}
+        onClose={() => setShowFlightModal(null)}
+        title="Add Flight"
+        maxWidth="500px"
+        footer={
+          <>
+            <button
+              onClick={() => setShowFlightModal(null)}
+              className="inline-flex items-center px-5 py-2 rounded-full text-sm font-semibold border border-[#e5e5e5] text-[#374151] hover:border-[#d1d5db] transition-colors"
+            >
+              Cancel
+            </button>
+            <button
+              onClick={handleCreateFlight}
+              disabled={savingFlight || !newFlightPlacement || !newFlightStart || !newFlightEnd}
+              className="inline-flex items-center px-5 py-2 rounded-full text-sm font-semibold bg-[#fee198] text-[#1a1a1a] hover:bg-[#e6c46d] transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+            >
+              {savingFlight ? "Saving..." : "Create Flight"}
+            </button>
+          </>
+        }
+      >
+        <div className="space-y-4">
+          <FormGroup label="Placement" required>
+            <FormSelect
+              value={newFlightPlacement}
+              onChange={(e) => setNewFlightPlacement(e.target.value)}
+              placeholder="Select placement..."
+              options={adPlacements.map((p) => ({ value: p.id, label: `${p.name} (${p.channel})` }))}
+            />
+          </FormGroup>
+          <FormGroup label="Creative">
+            <FormSelect
+              value={newFlightCreative}
+              onChange={(e) => setNewFlightCreative(e.target.value)}
+              placeholder="Select creative (optional)..."
+              options={(showFlightModal ? (campaignCreativesMap[showFlightModal] ?? []) : []).map((c) => ({ value: c.id, label: c.headline ?? "Untitled" }))}
+            />
+          </FormGroup>
+          <FormRow>
+            <FormGroup label="Start Date" required>
+              <FormInput type="date" value={newFlightStart} onChange={(e) => setNewFlightStart(e.target.value)} />
+            </FormGroup>
+            <FormGroup label="End Date" required>
+              <FormInput type="date" value={newFlightEnd} onChange={(e) => setNewFlightEnd(e.target.value)} />
+            </FormGroup>
+          </FormRow>
+          <FormRow>
+            <FormGroup label="Share of Voice (%)" hint="0–100, default 100">
+              <FormInput type="number" value={newFlightSov} onChange={(e) => setNewFlightSov(e.target.value)} />
+            </FormGroup>
+            <FormGroup label="Priority" hint="Higher = more important">
+              <FormInput type="number" value={newFlightPriority} onChange={(e) => setNewFlightPriority(e.target.value)} />
+            </FormGroup>
+          </FormRow>
         </div>
       </Modal>
     </>

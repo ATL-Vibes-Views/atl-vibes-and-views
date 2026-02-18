@@ -1183,3 +1183,84 @@ export async function updateAdCreative(id: string, data: Record<string, unknown>
   revalidatePath("/admin/sponsors/creatives");
   return { success: true };
 }
+
+// ─── AD CAMPAIGNS (Phase 3C) ─────────────────────────────────
+
+export async function createAdCampaign(
+  sponsorId: string,
+  data: { name: string; start_date: string | null; end_date: string | null; budget: number | null; notes: string | null },
+) {
+  const supabase = createServiceRoleClient();
+  const { error } = await supabase.from("ad_campaigns").insert({
+    sponsor_id: sponsorId,
+    name: data.name,
+    start_date: data.start_date,
+    end_date: data.end_date,
+    budget: data.budget,
+    notes: data.notes,
+    status: "draft",
+  } as never);
+  if (error) return { error: error.message };
+  revalidatePath(`/admin/sponsors/${sponsorId}`);
+  return { success: true };
+}
+
+// ─── AD CREATIVES — CREATE (Phase 3C) ─────────────────────────
+
+export async function createAdCreative(
+  campaignId: string,
+  sponsorId: string,
+  data: {
+    creative_type: string;
+    headline: string | null;
+    body: string | null;
+    cta_text: string | null;
+    target_url: string;
+    alt_text: string | null;
+  },
+) {
+  const supabase = createServiceRoleClient();
+  const { error } = await supabase.from("ad_creatives").insert({
+    campaign_id: campaignId,
+    creative_type: data.creative_type,
+    headline: data.headline,
+    body: data.body,
+    cta_text: data.cta_text,
+    target_url: data.target_url,
+    alt_text: data.alt_text,
+    is_active: true,
+  } as never);
+  if (error) return { error: error.message };
+  revalidatePath(`/admin/sponsors/${sponsorId}`);
+  return { success: true };
+}
+
+// ─── AD FLIGHTS — CREATE (Phase 3C) ──────────────────────────
+
+export async function createAdFlight(
+  campaignId: string,
+  sponsorId: string,
+  data: {
+    placement_id: string;
+    creative_id: string | null;
+    start_date: string;
+    end_date: string;
+    share_of_voice: number;
+    priority: number;
+  },
+) {
+  const supabase = createServiceRoleClient();
+  const { error } = await supabase.from("ad_flights").insert({
+    campaign_id: campaignId,
+    placement_id: data.placement_id,
+    creative_id: data.creative_id,
+    start_date: data.start_date,
+    end_date: data.end_date,
+    share_of_voice: data.share_of_voice,
+    priority: data.priority,
+    status: "scheduled",
+  } as never);
+  if (error) return { error: error.message };
+  revalidatePath(`/admin/sponsors/${sponsorId}`);
+  return { success: true };
+}
