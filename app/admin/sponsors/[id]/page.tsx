@@ -86,7 +86,7 @@ export default async function SponsorDetailPage({
   if (campaignIds.length > 0) {
     const { data } = await supabase
       .from("ad_flights")
-      .select("id, campaign_id, placement_id, creative_id, start_date, end_date, status, share_of_voice, impressions, clicks")
+      .select("id, campaign_id, placement_id, creative_id, start_date, end_date, status, share_of_voice")
       .in("campaign_id", campaignIds)
       .order("start_date", { ascending: false });
     flights = (data ?? []) as FlightRow[];

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useMemo, useCallback } from "react";
+import { useState, useMemo, useCallback, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { ArrowLeft, Pencil, Trash2, Check, ChevronDown, ChevronUp, ExternalLink } from "lucide-react";
@@ -112,8 +112,6 @@ export interface FlightRow {
   end_date: string;
   status: string;
   share_of_voice: number | null;
-  impressions: number | null;
-  clicks: number | null;
 }
 
 export interface DeliverableRow {
@@ -274,6 +272,14 @@ export function SponsorDetailClient({
   const router = useRouter();
   const [activeTab, setActiveTab] = useState("info");
   const [saving, setSaving] = useState(false);
+
+  /* ── Toast notification ── */
+  const [toast, setToast] = useState<string | null>(null);
+  useEffect(() => {
+    if (!toast) return;
+    const timer = setTimeout(() => setToast(null), 3000);
+    return () => clearTimeout(timer);
+  }, [toast]);
 
   /* ── Editable form state for contact + talking points + notes ── */
   const autoName = (!sponsor.contact_name && businessContact?.business_name) ? businessContact.business_name : null;
@@ -498,6 +504,12 @@ export function SponsorDetailClient({
     };
   }, [sponsor.campaign_start, sponsor.campaign_end, deliverables]);
 
+  /* ── Tab 5: Podcast entries from fulfillment log ── */
+  const podcastEntries = useMemo(
+    () => fulfillmentLog.filter((e) => e.deliverable_type === "podcast_segment" && !e.voided),
+    [fulfillmentLog],
+  );
+
   /* ── Tab 4: Ad Campaign/Creative/Flight state (Phase 3C) ── */
   const campaignCreativesMap = useMemo(() => {
     const map: Record<string, CreativeRow[]> = {};
@@ -555,6 +567,7 @@ export function SponsorDetailClient({
     if ("error" in result && result.error) { alert("Error: " + result.error); return; }
     setShowCampaignModal(false);
     setNewCampaignName(""); setNewCampaignStart(""); setNewCampaignEnd(""); setNewCampaignBudget(""); setNewCampaignNotes("");
+    setToast("Campaign created successfully.");
     router.refresh();
   }, [sponsor.id, newCampaignName, newCampaignStart, newCampaignEnd, newCampaignBudget, newCampaignNotes, router]);
 
@@ -583,6 +596,7 @@ export function SponsorDetailClient({
     if ("error" in result && result.error) { alert("Error: " + result.error); return; }
     setShowCreativeModal(null);
     setNewCreativeType("image"); setNewCreativeHeadline(""); setNewCreativeBody(""); setNewCreativeCta(""); setNewCreativeUrl(""); setNewCreativeAlt("");
+    setToast("Creative added successfully.");
     router.refresh();
   }, [showCreativeModal, sponsor.id, newCreativeType, newCreativeHeadline, newCreativeBody, newCreativeCta, newCreativeUrl, newCreativeAlt, router]);
 
@@ -611,6 +625,7 @@ export function SponsorDetailClient({
     if ("error" in result && result.error) { alert("Error: " + result.error); return; }
     setShowFlightModal(null);
     setNewFlightPlacement(""); setNewFlightCreative(""); setNewFlightStart(""); setNewFlightEnd(""); setNewFlightSov("100"); setNewFlightPriority("0");
+    setToast("Flight scheduled successfully.");
     router.refresh();
   }, [showFlightModal, sponsor.id, newFlightPlacement, newFlightCreative, newFlightStart, newFlightEnd, newFlightSov, newFlightPriority, router]);
 
@@ -635,6 +650,15 @@ export function SponsorDetailClient({
 
   return (
     <>
+      {/* Toast notification */}
+      {toast && (
+        <div className="fixed top-4 right-4 z-50 animate-in fade-in slide-in-from-top-2 duration-200">
+          <div className="bg-[#1a1a1a] text-white px-5 py-3 rounded-full text-[13px] font-semibold shadow-lg">
+            {toast}
+          </div>
+        </div>
+      )}
+
       <PortalTopbar
         title={sponsor.sponsor_name}
         actions={
@@ -1553,6 +1577,54 @@ export function SponsorDetailClient({
               <div className="bg-white border border-[#e5e5e5] p-6 text-center">
                 <p className="text-[13px] text-[#6b7280]">No sponsored scripts yet.</p>
               </div>
+            </div>
+
+            {/* Podcast section */}
+            <div>
+              <h3 className="font-display text-[16px] font-semibold text-black mb-3">
+                Podcast
+                <span className="ml-2 text-[13px] font-normal text-[#6b7280]">({podcastEntries.length})</span>
+              </h3>
+              {podcastEntries.length === 0 ? (
+                <div className="bg-white border border-[#e5e5e5] p-6 text-center">
+                  <p className="text-[13px] text-[#6b7280]">No podcast segments yet.</p>
+                </div>
+              ) : (
+                <div className="space-y-2">
+                  {podcastEntries.map((entry) => (
+                    <div key={entry.id} className="bg-white border border-[#e5e5e5] p-4 flex items-center justify-between">
+                      <div className="flex-1 min-w-0 mr-4">
+                        <span className="font-display text-[14px] font-semibold text-black">
+                          {entry.title ?? "Untitled Segment"}
+                        </span>
+                        <div className="flex items-center gap-2 mt-1">
+                          {entry.delivered_at && (
+                            <span className="text-[11px] text-[#6b7280]">
+                              {new Date(entry.delivered_at).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })}
+                            </span>
+                          )}
+                          {entry.channel && (
+                            <span className="text-[10px] bg-[#f5f5f5] px-2 py-0.5 rounded-full uppercase text-[#6b7280]">{entry.channel}</span>
+                          )}
+                          {entry.platform && (
+                            <span className="text-[10px] bg-[#f5f5f5] px-2 py-0.5 rounded-full uppercase text-[#6b7280]">{entry.platform}</span>
+                          )}
+                        </div>
+                      </div>
+                      {entry.content_url && (
+                        <a
+                          href={entry.content_url}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="inline-flex items-center gap-1 px-3 py-1 rounded-full text-[11px] font-semibold border border-[#e5e5e5] text-[#374151] hover:border-[#e6c46d] transition-colors flex-shrink-0"
+                        >
+                          View Content <ExternalLink size={11} />
+                        </a>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              )}
             </div>
 
             {/* Social Posts section */}
