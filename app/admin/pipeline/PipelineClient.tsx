@@ -11,7 +11,7 @@ import { StatusBadge } from "@/components/portal/StatusBadge";
 import { FilterBar } from "@/components/portal/FilterBar";
 import { AdminDataTable } from "@/components/portal/AdminDataTable";
 import { Pagination } from "@/components/portal/Pagination";
-import { updateStoryStatus, resetStoryToNew } from "@/app/admin/actions";
+import { updateStoryStatus } from "@/app/admin/actions";
 
 const SCORABLE_STATUSES = ["new", "scored"];
 
@@ -73,7 +73,7 @@ export function PipelineClient({ stories, categories }: PipelineClientProps) {
 
   const handleActivate = useCallback(async (id: string) => {
     setActivating(id);
-    const result = await resetStoryToNew(id);
+    const result = await updateStoryStatus(id, "assigned_blog");
     setActivating(null);
     if (result.error) {
       alert("Error: " + result.error);

@@ -549,20 +549,20 @@ export async function unpublishBlogPostReverseCredit(postId: string) {
   }
 
   // ── Reverse fulfillment credit ──
-  // Find the fulfillment log entry for this post
-  const { data: logEntry } = (await supabase
+  // Find the fulfillment log entries for this post
+  const { data: logEntries } = (await supabase
     .from("sponsor_fulfillment_log")
     .select("id, sponsor_id, deliverable_id")
-    .eq("post_id", postId)
-    .limit(1)
-    .single()) as { data: { id: string; sponsor_id: string; deliverable_id: string | null } | null };
+    .eq("post_id", postId)) as { data: { id: string; sponsor_id: string; deliverable_id: string | null }[] | null };
+
+  const logEntry = logEntries?.[0] ?? null;
 
   if (logEntry) {
-    // Delete the fulfillment log entry
+    // Delete the fulfillment log entry by post_id
     await supabase
       .from("sponsor_fulfillment_log")
       .delete()
-      .eq("id", logEntry.id);
+      .eq("post_id", postId);
 
     // Decrement deliverable quantity if applicable (don't go below 0)
     if (logEntry.deliverable_id) {
