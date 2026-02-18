@@ -271,7 +271,10 @@ export async function updateStoryStatus(id: string, status: string) {
 
 export async function resetStoryToNew(id: string) {
   const supabase = createServiceRoleClient();
-  const { error } = await _resetStoryFull(supabase, id);
+  const { error } = await supabase
+    .from("stories")
+    .update({ status: "new", updated_at: new Date().toISOString() } as never)
+    .eq("id", id);
   if (error) return { error: error.message };
   revalidatePath("/admin/pipeline");
   return { success: true };
