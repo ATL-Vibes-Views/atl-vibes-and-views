@@ -736,7 +736,7 @@ export async function updateSponsorPackage(id: string, data: Record<string, unkn
 
 export async function addSponsorNote(
   sponsorId: string,
-  noteType: "talking_point_log" | "internal_note_log",
+  noteType: "talking_point_log" | "internal_note_log" | "internal_note",
   content: string,
 ) {
   const supabase = createServiceRoleClient();
@@ -750,21 +750,122 @@ export async function addSponsorNote(
   return { success: true };
 }
 
+// ─── SPONSOR TASKS (sponsor_notes with note_type = internal_note_log) ──
+
+export async function addTask(
+  sponsorId: string,
+  description: string,
+  dueDate: string | null,
+) {
+  const supabase = createServiceRoleClient();
+  const { error } = await supabase.from("sponsor_notes").insert({
+    sponsor_id: sponsorId,
+    note_type: "internal_note_log",
+    content: description,
+    due_date: dueDate || null,
+    completed: false,
+  } as never);
+  if (error) return { error: error.message };
+  revalidatePath(`/admin/sponsors/${sponsorId}`);
+  return { success: true };
+}
+
+export async function updateTask(
+  taskId: string,
+  description: string,
+  dueDate: string | null,
+) {
+  const supabase = createServiceRoleClient();
+  const { data: task } = (await supabase
+    .from("sponsor_notes")
+    .select("sponsor_id")
+    .eq("id", taskId)
+    .single()) as { data: { sponsor_id: string } | null };
+  const { error } = await supabase
+    .from("sponsor_notes")
+    .update({ content: description, due_date: dueDate || null, updated_at: new Date().toISOString() } as never)
+    .eq("id", taskId);
+  if (error) return { error: error.message };
+  if (task) revalidatePath(`/admin/sponsors/${task.sponsor_id}`);
+  return { success: true };
+}
+
+export async function deleteTask(taskId: string) {
+  const supabase = createServiceRoleClient();
+  const { data: task } = (await supabase
+    .from("sponsor_notes")
+    .select("sponsor_id")
+    .eq("id", taskId)
+    .single()) as { data: { sponsor_id: string } | null };
+  const { error } = await supabase
+    .from("sponsor_notes")
+    .delete()
+    .eq("id", taskId)
+    .eq("note_type", "internal_note_log");
+  if (error) return { error: error.message };
+  if (task) revalidatePath(`/admin/sponsors/${task.sponsor_id}`);
+  return { success: true };
+}
+
+export async function completeTask(taskId: string) {
+  const supabase = createServiceRoleClient();
+  const { data: task } = (await supabase
+    .from("sponsor_notes")
+    .select("sponsor_id")
+    .eq("id", taskId)
+    .single()) as { data: { sponsor_id: string } | null };
+  const { error } = await supabase
+    .from("sponsor_notes")
+    .update({ completed: true, completed_at: new Date().toISOString(), updated_at: new Date().toISOString() } as never)
+    .eq("id", taskId);
+  if (error) return { error: error.message };
+  if (task) revalidatePath(`/admin/sponsors/${task.sponsor_id}`);
+  return { success: true };
+}
+
+export async function uncompleteTask(taskId: string) {
+  const supabase = createServiceRoleClient();
+  const { data: task } = (await supabase
+    .from("sponsor_notes")
+    .select("sponsor_id")
+    .eq("id", taskId)
+    .single()) as { data: { sponsor_id: string } | null };
+  const { error } = await supabase
+    .from("sponsor_notes")
+    .update({ completed: false, completed_at: null, updated_at: new Date().toISOString() } as never)
+    .eq("id", taskId);
+  if (error) return { error: error.message };
+  if (task) revalidatePath(`/admin/sponsors/${task.sponsor_id}`);
+  return { success: true };
+}
+
 // ─── SPONSOR DELIVERABLE AUTO-CREATE ─────────────────────────
+
+interface PkgDeliverable {
+  type: string;
+  label: string;
+  channel: string;
+  quantity_per_month?: number;
+  quantity_per_contract?: number;
+}
 
 export async function autoCreateDeliverables(sponsorId: string, packageId: string) {
   const supabase = createServiceRoleClient();
 
-  // Fetch the package deliverables JSONB
+  // Step 1: Fetch the package deliverables JSONB
   const { data: pkg } = (await supabase
     .from("sponsor_packages")
     .select("deliverables")
     .eq("id", packageId)
-    .single()) as { data: { deliverables: { type: string; label: string; channel: string; quantity_per_month: number }[] | null } | null };
+    .single()) as { data: { deliverables: PkgDeliverable[] | null } | null };
+
+  console.log("[autoCreateDeliverables] package JSONB for", packageId, "→", JSON.stringify(pkg?.deliverables));
 
   if (!pkg?.deliverables?.length) return { error: "No deliverables found in package" };
 
-  // Fetch sponsor campaign dates
+  const newPkgTypes = pkg.deliverables.map((d) => d.type);
+
+  // Step 2: Fetch sponsor campaign dates
   const { data: sponsor } = (await supabase
     .from("sponsors")
     .select("campaign_start, campaign_end")
@@ -779,36 +880,70 @@ export async function autoCreateDeliverables(sponsorId: string, packageId: strin
     campaignMonths = Math.ceil(diffDays / 30);
   }
 
-  // Fetch existing deliverables for idempotency check
+  // Step 3: Fetch existing deliverables
   const { data: existing } = (await supabase
     .from("sponsor_deliverables")
-    .select("deliverable_type")
-    .eq("sponsor_id", sponsorId)) as { data: { deliverable_type: string }[] | null };
+    .select("id, deliverable_type, quantity_owed, quantity_delivered")
+    .eq("sponsor_id", sponsorId)) as { data: { id: string; deliverable_type: string; quantity_owed: number; quantity_delivered: number }[] | null };
 
-  const existingTypes = new Set((existing ?? []).map((e) => e.deliverable_type));
+  const existingRows = existing ?? [];
+  const existingByType = new Map(existingRows.map((e) => [e.deliverable_type, e]));
 
-  const toInsert = pkg.deliverables
-    .filter((item) => !existingTypes.has(item.type))
-    .map((item) => ({
-      sponsor_id: sponsorId,
-      deliverable_type: item.type,
-      label: item.label,
-      channel: item.channel,
-      quantity_owed: item.quantity_per_month * campaignMonths,
-      quantity_delivered: 0,
-      quantity_scheduled: 0,
-      status: "active",
-    }));
-
-  if (toInsert.length === 0) {
-    return { success: true, created: 0, message: "Deliverables already set — no changes made." };
+  // Step 4: Delete stale rows (only if quantity_delivered = 0)
+  const staleRows = existingRows.filter((e) => !newPkgTypes.includes(e.deliverable_type) && e.quantity_delivered === 0);
+  let removed = 0;
+  if (staleRows.length > 0) {
+    const staleIds = staleRows.map((r) => r.id);
+    await supabase.from("sponsor_deliverables").delete().in("id", staleIds);
+    removed = staleRows.length;
   }
 
-  const { error } = await supabase.from("sponsor_deliverables").insert(toInsert as never);
-  if (error) return { error: error.message };
+  // Step 5: Create missing deliverables + update quantity_owed on existing
+  const toInsert: Record<string, unknown>[] = [];
+  let updated = 0;
+
+  for (const item of pkg.deliverables) {
+    const qtyOwed = item.quantity_per_contract != null
+      ? item.quantity_per_contract
+      : (item.quantity_per_month ?? 0) * campaignMonths;
+
+    const existingRow = existingByType.get(item.type);
+    if (!existingRow) {
+      toInsert.push({
+        sponsor_id: sponsorId,
+        deliverable_type: item.type,
+        label: item.label,
+        channel: item.channel,
+        quantity_owed: qtyOwed,
+        quantity_delivered: 0,
+        quantity_scheduled: 0,
+        status: "active",
+      });
+    } else if (existingRow.quantity_owed !== qtyOwed && existingRow.quantity_delivered === 0) {
+      await supabase.from("sponsor_deliverables")
+        .update({ quantity_owed: qtyOwed, label: item.label, channel: item.channel, updated_at: new Date().toISOString() } as never)
+        .eq("id", existingRow.id);
+      updated++;
+    }
+  }
+
+  if (toInsert.length > 0) {
+    const { error } = await supabase.from("sponsor_deliverables").insert(toInsert as never);
+    if (error) return { error: error.message };
+  }
 
   revalidatePath(`/admin/sponsors/${sponsorId}`);
-  return { success: true, created: toInsert.length, message: `Package deliverables created (${toInsert.length} items).` };
+
+  // Build message
+  const added = toInsert.length;
+  if (removed === 0 && added === 0 && updated === 0) {
+    return { success: true, message: "Package deliverables up to date." };
+  }
+  const parts: string[] = [];
+  if (removed > 0) parts.push(`${removed} removed`);
+  if (added > 0) parts.push(`${added} added`);
+  if (updated > 0) parts.push(`${updated} updated`);
+  return { success: true, message: `Package updated — ${parts.join(", ")}.` };
 }
 
 // ─── CITIES (Beyond ATL) ──────────────────────────────────────
