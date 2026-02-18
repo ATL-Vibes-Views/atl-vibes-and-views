@@ -175,8 +175,22 @@ export async function unpublishBlogPost(postId: string) {
     .update({ status: "archived", updated_at: new Date().toISOString() } as never)
     .eq("id", postId);
   if (error) return { error: error.message };
+
+  // Reset source story via post_source_stories
+  const { data: links } = (await supabase
+    .from("post_source_stories")
+    .select("story_id")
+    .eq("post_id", postId)) as { data: { story_id: string }[] | null };
+
+  if (links?.length) {
+    for (const link of links) {
+      await _resetStoryFull(supabase, link.story_id);
+    }
+  }
+
   revalidatePath("/admin/posts");
   revalidatePath("/admin/publishing");
+  revalidatePath("/admin/pipeline");
   return { success: true };
 }
 
@@ -522,6 +536,18 @@ export async function unpublishBlogPostReverseCredit(postId: string) {
     .eq("id", postId);
   if (error) return { error: error.message };
 
+  // Reset source story via post_source_stories
+  const { data: links } = (await supabase
+    .from("post_source_stories")
+    .select("story_id")
+    .eq("post_id", postId)) as { data: { story_id: string }[] | null };
+
+  if (links?.length) {
+    for (const link of links) {
+      await _resetStoryFull(supabase, link.story_id);
+    }
+  }
+
   // ── Reverse fulfillment credit ──
   // Find the fulfillment log entry for this post
   const { data: logEntry } = (await supabase
@@ -575,6 +601,7 @@ export async function unpublishBlogPostReverseCredit(postId: string) {
 
   revalidatePath("/admin/posts");
   revalidatePath("/admin/publishing");
+  revalidatePath("/admin/pipeline");
   revalidatePath("/admin/sponsors");
   return { success: true };
 }
