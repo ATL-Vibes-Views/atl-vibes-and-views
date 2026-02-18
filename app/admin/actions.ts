@@ -280,7 +280,7 @@ export async function resetStoryToNew(id: string) {
     .single();
   if (fetchErr) return { error: fetchErr.message };
 
-  const wasBanked = story.status === "banked";
+  const wasBanked = (story as { status: string }).status === "banked";
 
   const updates: Record<string, unknown> = {
     status: "new",
