@@ -8,7 +8,8 @@ import { StatusBadge } from "@/components/portal/StatusBadge";
 import { FilterBar } from "@/components/portal/FilterBar";
 import { AdminDataTable } from "@/components/portal/AdminDataTable";
 import { Pagination } from "@/components/portal/Pagination";
-import { unpublishBlogPost } from "@/app/admin/actions";
+import { Modal } from "@/components/portal/Modal";
+import { unpublishBlogPost, unpublishBlogPostReverseCredit, getSponsorNameByBusinessId } from "@/app/admin/actions";
 
 interface PostRow {
   id: string;
@@ -23,6 +24,8 @@ interface PostRow {
   featured_image_url: string | null;
   published_at: string | null;
   created_at: string;
+  is_sponsored: boolean;
+  sponsor_business_id: string | null;
   categories: { name: string } | null;
   neighborhoods: { name: string } | null;
 }
@@ -50,11 +53,21 @@ export function PostsClient({ posts, categories }: PostsClientProps) {
   const [categoryFilter, setCategoryFilter] = useState("");
   const [page, setPage] = useState(1);
   const [unpublishing, setUnpublishing] = useState<string | null>(null);
+  const [sponsoredUnpublishModal, setSponsoredUnpublishModal] = useState<PostRow | null>(null);
+  const [sponsorName, setSponsorName] = useState<string>("");
 
-  const handleUnpublish = useCallback(async (postId: string) => {
+  const handleUnpublish = useCallback(async (post: PostRow) => {
+    // Version B — Sponsored posts: show modal
+    if (post.is_sponsored && post.sponsor_business_id) {
+      const sponsor = await getSponsorNameByBusinessId(post.sponsor_business_id);
+      setSponsorName(sponsor?.sponsor_name ?? "Unknown Sponsor");
+      setSponsoredUnpublishModal(post);
+      return;
+    }
+    // Version A — Non-sponsored posts: existing behavior unchanged
     if (!confirm("Unpublish this post? It will be removed from the public site.")) return;
-    setUnpublishing(postId);
-    const result = await unpublishBlogPost(postId);
+    setUnpublishing(post.id);
+    const result = await unpublishBlogPost(post.id);
     setUnpublishing(null);
     if (result.error) {
       alert("Error: " + result.error);
@@ -62,6 +75,32 @@ export function PostsClient({ posts, categories }: PostsClientProps) {
     }
     router.refresh();
   }, [router]);
+
+  const handleSponsoredUnpublishKeep = useCallback(async () => {
+    if (!sponsoredUnpublishModal) return;
+    setUnpublishing(sponsoredUnpublishModal.id);
+    setSponsoredUnpublishModal(null);
+    const result = await unpublishBlogPost(sponsoredUnpublishModal.id);
+    setUnpublishing(null);
+    if (result.error) {
+      alert("Error: " + result.error);
+      return;
+    }
+    router.refresh();
+  }, [sponsoredUnpublishModal, router]);
+
+  const handleSponsoredUnpublishReverse = useCallback(async () => {
+    if (!sponsoredUnpublishModal) return;
+    setUnpublishing(sponsoredUnpublishModal.id);
+    setSponsoredUnpublishModal(null);
+    const result = await unpublishBlogPostReverseCredit(sponsoredUnpublishModal.id);
+    setUnpublishing(null);
+    if (result.error) {
+      alert("Error: " + result.error);
+      return;
+    }
+    router.refresh();
+  }, [sponsoredUnpublishModal, router]);
 
   const filtered = useMemo(() => {
     let items = posts;
@@ -225,7 +264,7 @@ export function PostsClient({ posts, categories }: PostsClientProps) {
               </button>
               {item.status === "published" && (
                 <button
-                  onClick={() => handleUnpublish(item.id)}
+                  onClick={() => handleUnpublish(item)}
                   disabled={unpublishing === item.id}
                   className="inline-flex items-center px-3 py-1 text-xs font-semibold rounded-full border border-[#e5e5e5] text-[#c1121f] hover:border-[#c1121f] transition-colors disabled:opacity-50"
                 >
@@ -245,6 +284,47 @@ export function PostsClient({ posts, categories }: PostsClientProps) {
           onPageChange={setPage}
         />
       </div>
+
+      {/* Sponsored Unpublish Modal — Version B */}
+      <Modal
+        isOpen={!!sponsoredUnpublishModal}
+        onClose={() => setSponsoredUnpublishModal(null)}
+        title="Unpublish Post"
+        maxWidth="520px"
+        footer={
+          <>
+            <button
+              onClick={() => setSponsoredUnpublishModal(null)}
+              className="inline-flex items-center px-5 py-2 rounded-full text-sm font-semibold border border-[#e5e5e5] text-[#374151] hover:border-[#d1d5db] transition-colors"
+            >
+              Cancel
+            </button>
+            <button
+              onClick={handleSponsoredUnpublishKeep}
+              disabled={!!unpublishing}
+              className="inline-flex items-center px-5 py-2 rounded-full text-sm font-semibold bg-[#fee198] text-[#1a1a1a] hover:bg-[#e6c46d] transition-colors disabled:opacity-50"
+            >
+              Unpublish — Keep Credit
+            </button>
+            <button
+              onClick={handleSponsoredUnpublishReverse}
+              disabled={!!unpublishing}
+              className="inline-flex items-center px-5 py-2 rounded-full text-sm font-semibold bg-[#c1121f] text-white hover:bg-[#a10e1a] transition-colors disabled:opacity-50"
+            >
+              Unpublish — Reverse Credit
+            </button>
+          </>
+        }
+      >
+        <div className="space-y-3">
+          <p className="text-[13px] text-[#374151]">
+            Unpublish this post? It will be removed from the public site.
+          </p>
+          <p className="text-[13px] text-[#374151]">
+            This post is linked to <strong>{sponsorName}</strong>. Should the fulfillment credit be reversed?
+          </p>
+        </div>
+      </Modal>
     </>
   );
 }

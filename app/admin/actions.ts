@@ -97,6 +97,72 @@ export async function publishBlogPost(id: string) {
     } as never)
     .eq("id", id);
   if (error) return { error: error.message };
+
+  // ── Sponsor fulfillment tracking (additive) ──
+  const { data: post } = (await supabase
+    .from("blog_posts")
+    .select("title, is_sponsored, sponsor_business_id")
+    .eq("id", id)
+    .single()) as { data: { title: string; is_sponsored: boolean; sponsor_business_id: string | null } | null };
+
+  if (post?.is_sponsored && post.sponsor_business_id) {
+    const { data: sponsor } = (await supabase
+      .from("sponsors")
+      .select("id, sponsor_name")
+      .eq("business_id", post.sponsor_business_id)
+      .single()) as { data: { id: string; sponsor_name: string } | null };
+
+    if (sponsor) {
+      // Find active blog_feature deliverable
+      const { data: deliverable } = (await supabase
+        .from("sponsor_deliverables")
+        .select("id")
+        .eq("sponsor_id", sponsor.id)
+        .eq("deliverable_type", "blog_feature")
+        .eq("status", "active")
+        .limit(1)
+        .single()) as { data: { id: string } | null };
+
+      // Insert fulfillment log entry
+      await supabase.from("sponsor_fulfillment_log").insert({
+        sponsor_id: sponsor.id,
+        deliverable_id: deliverable?.id ?? null,
+        deliverable_type: "blog_feature",
+        title: post.title,
+        channel: "website",
+        platform: "website",
+        post_id: id,
+        delivered_at: new Date().toISOString(),
+      } as never);
+
+      // Increment deliverable quantity if found
+      if (deliverable) {
+        const { data: delRow } = (await supabase
+          .from("sponsor_deliverables")
+          .select("quantity_delivered")
+          .eq("id", deliverable.id)
+          .single()) as { data: { quantity_delivered: number } | null };
+        if (delRow) {
+          await supabase
+            .from("sponsor_deliverables")
+            .update({ quantity_delivered: delRow.quantity_delivered + 1, updated_at: new Date().toISOString() } as never)
+            .eq("id", deliverable.id);
+        }
+      }
+
+      // Increment placements_used on sponsor
+      const { data: sponsorRow } = (await supabase
+        .from("sponsors")
+        .select("placements_used")
+        .eq("id", sponsor.id)
+        .single()) as { data: { placements_used: number | null } | null };
+      await supabase
+        .from("sponsors")
+        .update({ placements_used: (sponsorRow?.placements_used ?? 0) + 1, updated_at: new Date().toISOString() } as never)
+        .eq("id", sponsor.id);
+    }
+  }
+
   revalidatePath("/admin/publishing");
   revalidatePath("/admin/posts");
   return { success: true };
@@ -432,6 +498,144 @@ export async function updateSponsor(id: string, data: Record<string, unknown>) {
     .eq("id", id);
   if (error) return { error: error.message };
   revalidatePath(`/admin/sponsors/${id}`);
+  revalidatePath("/admin/sponsors");
+  return { success: true };
+}
+
+export async function getSponsorNameByBusinessId(businessId: string) {
+  const supabase = createServiceRoleClient();
+  const { data } = (await supabase
+    .from("sponsors")
+    .select("id, sponsor_name")
+    .eq("business_id", businessId)
+    .single()) as { data: { id: string; sponsor_name: string } | null };
+  return data;
+}
+
+export async function unpublishBlogPostReverseCredit(postId: string) {
+  const supabase = createServiceRoleClient();
+
+  // ── Run ALL existing unpublish logic exactly as-is ──
+  const { error } = await supabase
+    .from("blog_posts")
+    .update({ status: "archived", updated_at: new Date().toISOString() } as never)
+    .eq("id", postId);
+  if (error) return { error: error.message };
+
+  // ── Reverse fulfillment credit ──
+  // Find the fulfillment log entry for this post
+  const { data: logEntry } = (await supabase
+    .from("sponsor_fulfillment_log")
+    .select("id, sponsor_id, deliverable_id")
+    .eq("post_id", postId)
+    .limit(1)
+    .single()) as { data: { id: string; sponsor_id: string; deliverable_id: string | null } | null };
+
+  if (logEntry) {
+    // Delete the fulfillment log entry
+    await supabase
+      .from("sponsor_fulfillment_log")
+      .delete()
+      .eq("id", logEntry.id);
+
+    // Decrement deliverable quantity if applicable (don't go below 0)
+    if (logEntry.deliverable_id) {
+      const { data: delRow } = (await supabase
+        .from("sponsor_deliverables")
+        .select("quantity_delivered")
+        .eq("id", logEntry.deliverable_id)
+        .single()) as { data: { quantity_delivered: number } | null };
+      if (delRow) {
+        await supabase
+          .from("sponsor_deliverables")
+          .update({
+            quantity_delivered: Math.max(0, delRow.quantity_delivered - 1),
+            updated_at: new Date().toISOString(),
+          } as never)
+          .eq("id", logEntry.deliverable_id);
+      }
+    }
+
+    // Decrement placements_used on sponsor (don't go below 0)
+    const { data: sponsorRow } = (await supabase
+      .from("sponsors")
+      .select("placements_used")
+      .eq("id", logEntry.sponsor_id)
+      .single()) as { data: { placements_used: number | null } | null };
+    if (sponsorRow) {
+      await supabase
+        .from("sponsors")
+        .update({
+          placements_used: Math.max(0, (sponsorRow.placements_used ?? 0) - 1),
+          updated_at: new Date().toISOString(),
+        } as never)
+        .eq("id", logEntry.sponsor_id);
+    }
+  }
+
+  revalidatePath("/admin/posts");
+  revalidatePath("/admin/publishing");
+  revalidatePath("/admin/sponsors");
+  return { success: true };
+}
+
+export async function voidFulfillmentEntry(entryId: string, voidReason: string | null) {
+  const supabase = createServiceRoleClient();
+
+  // Fetch the entry to get sponsor_id and deliverable_id
+  const { data: entry } = (await supabase
+    .from("sponsor_fulfillment_log")
+    .select("id, sponsor_id, deliverable_id, voided")
+    .eq("id", entryId)
+    .single()) as { data: { id: string; sponsor_id: string; deliverable_id: string | null; voided: boolean } | null };
+
+  if (!entry) return { error: "Fulfillment entry not found" };
+  if (entry.voided) return { error: "Entry already voided" };
+
+  // Mark as voided
+  await supabase
+    .from("sponsor_fulfillment_log")
+    .update({
+      voided: true,
+      voided_at: new Date().toISOString(),
+      void_reason: voidReason || null,
+    } as never)
+    .eq("id", entryId);
+
+  // Decrement deliverable quantity if applicable (don't go below 0)
+  if (entry.deliverable_id) {
+    const { data: delRow } = (await supabase
+      .from("sponsor_deliverables")
+      .select("quantity_delivered")
+      .eq("id", entry.deliverable_id)
+      .single()) as { data: { quantity_delivered: number } | null };
+    if (delRow) {
+      await supabase
+        .from("sponsor_deliverables")
+        .update({
+          quantity_delivered: Math.max(0, delRow.quantity_delivered - 1),
+          updated_at: new Date().toISOString(),
+        } as never)
+        .eq("id", entry.deliverable_id);
+    }
+  }
+
+  // Decrement placements_used on sponsor (don't go below 0)
+  const { data: sponsorRow } = (await supabase
+    .from("sponsors")
+    .select("placements_used")
+    .eq("id", entry.sponsor_id)
+    .single()) as { data: { placements_used: number | null } | null };
+  if (sponsorRow) {
+    await supabase
+      .from("sponsors")
+      .update({
+        placements_used: Math.max(0, (sponsorRow.placements_used ?? 0) - 1),
+        updated_at: new Date().toISOString(),
+      } as never)
+      .eq("id", entry.sponsor_id);
+  }
+
   revalidatePath("/admin/sponsors");
   return { success: true };
 }
