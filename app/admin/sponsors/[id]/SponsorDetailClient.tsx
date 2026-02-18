@@ -3,8 +3,18 @@
 import { useState, useMemo, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import { ArrowLeft } from "lucide-react";
-import { updateSponsor, voidFulfillmentEntry, addSponsorNote, autoCreateDeliverables } from "@/app/admin/actions";
+import { ArrowLeft, Pencil, Trash2, Check } from "lucide-react";
+import {
+  updateSponsor,
+  voidFulfillmentEntry,
+  addSponsorNote,
+  autoCreateDeliverables,
+  addTask,
+  updateTask,
+  deleteTask,
+  completeTask,
+  uncompleteTask,
+} from "@/app/admin/actions";
 import { Modal } from "@/components/portal/Modal";
 import { PortalTopbar } from "@/components/portal/PortalTopbar";
 import { TabNav } from "@/components/portal/TabNav";
@@ -126,6 +136,9 @@ export interface SponsorNoteRow {
   sponsor_id: string;
   note_type: string;
   content: string;
+  due_date: string | null;
+  completed: boolean | null;
+  completed_at: string | null;
   created_at: string;
   updated_at: string;
 }
@@ -206,6 +219,20 @@ function formatNoteDate(dateStr: string) {
   });
 }
 
+/* ── Format short date for task rows ── */
+function formatShortDate(dateStr: string) {
+  return new Date(dateStr + "T12:00:00").toLocaleDateString("en-US", {
+    weekday: "short",
+    month: "short",
+    day: "numeric",
+  });
+}
+
+/* ── Strip [TASK] prefix from legacy content ── */
+function stripTaskPrefix(content: string) {
+  return content.replace(/^\[TASK\]\s*/i, "");
+}
+
 export function SponsorDetailClient({
   sponsor,
   posts,
@@ -239,7 +266,6 @@ export function SponsorDetailClient({
   const [contactEmailAutoFilled, setContactEmailAutoFilled] = useState(!!autoEmail);
   const [contactPhoneAutoFilled, setContactPhoneAutoFilled] = useState(!!autoPhone);
   const [talkingPoints, setTalkingPoints] = useState(sponsor.talking_points ?? "");
-  const [notes, setNotes] = useState(sponsor.notes ?? "");
   const [sponsorName, setSponsorName] = useState(sponsor.sponsor_name);
 
   const handleSaveSponsor = useCallback(async () => {
@@ -250,16 +276,14 @@ export function SponsorDetailClient({
       contact_email: contactEmail || null,
       contact_phone: contactPhone || null,
       talking_points: talkingPoints || null,
-      notes: notes || null,
     });
     setSaving(false);
     if ("error" in result && result.error) { alert("Error: " + result.error); return; }
-    // Clear auto-filled indicators after save
     setContactNameAutoFilled(false);
     setContactEmailAutoFilled(false);
     setContactPhoneAutoFilled(false);
     router.refresh();
-  }, [sponsor.id, sponsorName, contactName, contactEmail, contactPhone, talkingPoints, notes, router]);
+  }, [sponsor.id, sponsorName, contactName, contactEmail, contactPhone, talkingPoints, router]);
 
   const handleSelectChange = useCallback(async (fieldName: string, value: string) => {
     setSaving(true);
@@ -289,25 +313,110 @@ export function SponsorDetailClient({
     router.refresh();
   }, [sponsor.id, tpLogContent, router]);
 
-  /* ── Internal Note Log (for tasks on Tab 2) ── */
+  /* ── Internal Notes Log Thread state (Fix 3) ── */
   const internalNotes = useMemo(
+    () => sponsorNotes.filter((n) => n.note_type === "internal_note"),
+    [sponsorNotes],
+  );
+  const [showInternalNoteForm, setShowInternalNoteForm] = useState(false);
+  const [internalNoteContent, setInternalNoteContent] = useState("");
+  const [internalNoteSaving, setInternalNoteSaving] = useState(false);
+
+  const handleAddInternalNote = useCallback(async () => {
+    if (!internalNoteContent.trim()) return;
+    setInternalNoteSaving(true);
+    const result = await addSponsorNote(sponsor.id, "internal_note", internalNoteContent.trim());
+    setInternalNoteSaving(false);
+    if ("error" in result && result.error) { alert("Error: " + result.error); return; }
+    setInternalNoteContent("");
+    setShowInternalNoteForm(false);
+    router.refresh();
+  }, [sponsor.id, internalNoteContent, router]);
+
+  /* ── Task state (Fix 4) ── */
+  const allTasks = useMemo(
     () => sponsorNotes.filter((n) => n.note_type === "internal_note_log"),
     [sponsorNotes],
   );
-  const [showTaskForm, setShowTaskForm] = useState(false);
-  const [taskContent, setTaskContent] = useState("");
-  const [taskSaving, setTaskSaving] = useState(false);
+  const activeTasks = useMemo(
+    () => allTasks
+      .filter((t) => !t.completed)
+      .sort((a, b) => {
+        if (!a.due_date && !b.due_date) return 0;
+        if (!a.due_date) return 1;
+        if (!b.due_date) return -1;
+        return a.due_date.localeCompare(b.due_date);
+      }),
+    [allTasks],
+  );
+  const completedTasks = useMemo(
+    () => allTasks.filter((t) => t.completed),
+    [allTasks],
+  );
 
-  const handleAddTask = useCallback(async () => {
-    if (!taskContent.trim()) return;
-    setTaskSaving(true);
-    const result = await addSponsorNote(sponsor.id, "internal_note_log", `[TASK] ${taskContent.trim()}`);
-    setTaskSaving(false);
+  const [showAddTaskForm, setShowAddTaskForm] = useState(false);
+  const [newTaskDesc, setNewTaskDesc] = useState("");
+  const [newTaskDue, setNewTaskDue] = useState("");
+  const [addingTask, setAddingTask] = useState(false);
+  const [editingTaskId, setEditingTaskId] = useState<string | null>(null);
+  const [editTaskDesc, setEditTaskDesc] = useState("");
+  const [editTaskDue, setEditTaskDue] = useState("");
+  const [editingTaskSaving, setEditingTaskSaving] = useState(false);
+  const [showCompletedTasks, setShowCompletedTasks] = useState(false);
+
+  const handleAddTaskSubmit = useCallback(async () => {
+    if (!newTaskDesc.trim() || !newTaskDue) return;
+    setAddingTask(true);
+    const result = await addTask(sponsor.id, newTaskDesc.trim(), newTaskDue);
+    setAddingTask(false);
     if ("error" in result && result.error) { alert("Error: " + result.error); return; }
-    setTaskContent("");
-    setShowTaskForm(false);
+    setNewTaskDesc("");
+    setNewTaskDue("");
+    setShowAddTaskForm(false);
     router.refresh();
-  }, [sponsor.id, taskContent, router]);
+  }, [sponsor.id, newTaskDesc, newTaskDue, router]);
+
+  const handleEditTaskSubmit = useCallback(async () => {
+    if (!editingTaskId || !editTaskDesc.trim() || !editTaskDue) return;
+    setEditingTaskSaving(true);
+    const result = await updateTask(editingTaskId, editTaskDesc.trim(), editTaskDue);
+    setEditingTaskSaving(false);
+    if ("error" in result && result.error) { alert("Error: " + result.error); return; }
+    setEditingTaskId(null);
+    router.refresh();
+  }, [editingTaskId, editTaskDesc, editTaskDue, router]);
+
+  const handleDeleteTask = useCallback(async (taskId: string) => {
+    if (!confirm("Delete this task?")) return;
+    const result = await deleteTask(taskId);
+    if ("error" in result && result.error) { alert("Error: " + result.error); return; }
+    router.refresh();
+  }, [router]);
+
+  const handleToggleComplete = useCallback(async (task: SponsorNoteRow) => {
+    const result = task.completed
+      ? await uncompleteTask(task.id)
+      : await completeTask(task.id);
+    if ("error" in result && result.error) { alert("Error: " + result.error); return; }
+    router.refresh();
+  }, [router]);
+
+  /* ── This Week's To-Do (tasks by due date) ── */
+  const todayStr = useMemo(() => new Date().toISOString().slice(0, 10), []);
+  const weekFromNow = useMemo(() => {
+    const d = new Date();
+    d.setDate(d.getDate() + 7);
+    return d.toISOString().slice(0, 10);
+  }, []);
+
+  const overdueTasks = useMemo(
+    () => activeTasks.filter((t) => t.due_date && t.due_date < todayStr),
+    [activeTasks, todayStr],
+  );
+  const dueThisWeekTasks = useMemo(
+    () => activeTasks.filter((t) => t.due_date && t.due_date >= todayStr && t.due_date <= weekFromNow),
+    [activeTasks, todayStr, weekFromNow],
+  );
 
   /* ── Auto-create deliverables handler ── */
   const [creatingDeliverables, setCreatingDeliverables] = useState(false);
@@ -367,18 +476,6 @@ export function SponsorDetailClient({
       behindPace,
     };
   }, [sponsor.campaign_start, sponsor.campaign_end, deliverables]);
-
-  /* ── This week's to-do items (deliverables due within 7 days) ── */
-  const thisWeekTodos = useMemo(() => {
-    const now = new Date();
-    const weekOut = new Date(now.getTime() + 7 * 24 * 60 * 60 * 1000);
-    return deliverables.filter((d) => {
-      if (d.status === "delivered" || d.status === "completed") return false;
-      if (!d.due_date) return false;
-      const due = new Date(d.due_date);
-      return due <= weekOut;
-    });
-  }, [deliverables]);
 
   /* ── Void fulfillment entry state ── */
   const [voidModal, setVoidModal] = useState<FulfillmentLogRow | null>(null);
@@ -597,15 +694,62 @@ export function SponsorDetailClient({
               </div>
             </div>
 
-            {/* Notes */}
+            {/* Internal Notes — persistent append-only log (Fix 3) */}
             <div className="bg-white border border-[#e5e5e5] p-5 space-y-4">
-              <h3 className="font-display text-[16px] font-semibold text-black">Internal Notes</h3>
-              <FormTextarea
-                value={notes}
-                onChange={(e) => setNotes(e.target.value)}
-                rows={4}
-                placeholder="No notes yet..."
-              />
+              <div className="flex items-center justify-between">
+                <h3 className="font-display text-[16px] font-semibold text-black">Internal Notes</h3>
+                {!showInternalNoteForm && (
+                  <button
+                    onClick={() => setShowInternalNoteForm(true)}
+                    className="px-4 py-1.5 rounded-full text-[12px] font-semibold bg-[#fee198] text-[#1a1a1a] hover:bg-[#e6c46d] transition-colors"
+                  >
+                    Add Note
+                  </button>
+                )}
+              </div>
+
+              {showInternalNoteForm && (
+                <div className="space-y-2">
+                  <FormTextarea
+                    value={internalNoteContent}
+                    onChange={(e) => setInternalNoteContent(e.target.value)}
+                    rows={3}
+                    placeholder="Add an internal note..."
+                  />
+                  <div className="flex items-center gap-2">
+                    <button
+                      onClick={handleAddInternalNote}
+                      disabled={internalNoteSaving || !internalNoteContent.trim()}
+                      className="px-4 py-1.5 rounded-full text-[12px] font-semibold bg-[#fee198] text-[#1a1a1a] hover:bg-[#e6c46d] transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+                    >
+                      {internalNoteSaving ? "Saving..." : "Save"}
+                    </button>
+                    <button
+                      onClick={() => { setShowInternalNoteForm(false); setInternalNoteContent(""); }}
+                      className="text-[12px] text-[#6b7280] hover:text-[#374151] transition-colors"
+                    >
+                      Cancel
+                    </button>
+                  </div>
+                </div>
+              )}
+
+              {internalNotes.length === 0 ? (
+                <p className="text-[13px] text-[#9ca3af] italic">
+                  No internal notes yet — add your first note.
+                </p>
+              ) : (
+                <div className="space-y-2">
+                  {internalNotes.map((note) => (
+                    <div key={note.id} className="bg-[#fafafa] border border-[#f0f0f0] p-3">
+                      <span className="text-[11px] text-[#9ca3af] block mb-1">
+                        {formatNoteDate(note.created_at)}
+                      </span>
+                      <p className="text-[13px] text-[#374151]">{note.content}</p>
+                    </div>
+                  ))}
+                </div>
+              )}
             </div>
           </div>
         )}
@@ -737,90 +881,199 @@ export function SponsorDetailClient({
               </div>
             </div>
 
-            {/* This Week's To-Do */}
+            {/* This Week's To-Do (real tasks by due date) */}
             <div>
               <h3 className="font-display text-[16px] font-semibold text-black mb-3">
                 This Week&apos;s To-Do
-                {thisWeekTodos.length > 0 && (
+                {(overdueTasks.length + dueThisWeekTasks.length) > 0 && (
                   <span className="ml-2 inline-flex items-center justify-center w-5 h-5 rounded-full bg-[#c1121f] text-white text-[10px] font-bold">
-                    {thisWeekTodos.length}
+                    {overdueTasks.length + dueThisWeekTasks.length}
                   </span>
                 )}
               </h3>
-              {thisWeekTodos.length === 0 ? (
-                <div className="bg-white border border-[#e5e5e5] p-6 text-center">
-                  <p className="text-[13px] text-[#6b7280]">Nothing due this week.</p>
-                </div>
-              ) : (
-                <div className="space-y-2">
-                  {thisWeekTodos.map((d) => (
-                    <div key={d.id} className="bg-white border border-[#e5e5e5] p-3 flex items-center justify-between">
-                      <div>
-                        <span className="text-[13px] font-semibold text-black">{d.label}</span>
-                        <span className="ml-2 text-[11px] text-[#9ca3af]">{d.deliverable_type}</span>
-                      </div>
-                      <div className="flex items-center gap-2">
-                        <span className="text-[11px] text-[#c1121f] font-semibold">
-                          Due {d.due_date ? new Date(d.due_date).toLocaleDateString("en-US", { month: "short", day: "numeric" }) : "—"}
+              <div className="bg-white border border-[#e5e5e5] p-5">
+                {overdueTasks.length === 0 && dueThisWeekTasks.length === 0 ? (
+                  <div className="flex items-center gap-2">
+                    <span className="w-2.5 h-2.5 rounded-full bg-[#16a34a]" />
+                    <span className="text-[13px] font-semibold text-[#16a34a]">No tasks due this week &#10003;</span>
+                  </div>
+                ) : (
+                  <div className="space-y-2">
+                    {overdueTasks.map((t) => (
+                      <div key={t.id} className="flex items-start gap-2">
+                        <span className="text-[13px] text-[#c1121f]">&#9888;</span>
+                        <span className="text-[13px] text-[#c1121f]">
+                          {stripTaskPrefix(t.content)} — was due {t.due_date ? formatShortDate(t.due_date) : ""}
                         </span>
-                        <span className="text-[11px] text-[#6b7280]">{d.quantity_delivered}/{d.quantity_owed}</span>
                       </div>
-                    </div>
-                  ))}
-                </div>
-              )}
+                    ))}
+                    {dueThisWeekTasks.map((t) => (
+                      <div key={t.id} className="flex items-start gap-2">
+                        <span className="w-2.5 h-2.5 rounded-full bg-[#f59e0b] mt-1 flex-shrink-0" />
+                        <span className="text-[13px] text-[#374151]">
+                          {stripTaskPrefix(t.content)} — due {t.due_date ? formatShortDate(t.due_date) : ""}
+                        </span>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            </div>
 
-              {/* Manual Task Add */}
-              <div className="mt-4">
-                {!showTaskForm ? (
+            {/* Task List (Fix 4) */}
+            <div>
+              <div className="flex items-center justify-between mb-3">
+                <h3 className="font-display text-[16px] font-semibold text-black">Task List</h3>
+                {!showAddTaskForm && (
                   <button
-                    onClick={() => setShowTaskForm(true)}
+                    onClick={() => setShowAddTaskForm(true)}
                     className="px-4 py-1.5 rounded-full text-[12px] font-semibold bg-[#fee198] text-[#1a1a1a] hover:bg-[#e6c46d] transition-colors"
                   >
                     Add Task
                   </button>
-                ) : (
-                  <div className="bg-white border border-[#e5e5e5] p-4 space-y-2">
-                    <FormInput
-                      value={taskContent}
-                      onChange={(e) => setTaskContent(e.target.value)}
-                      placeholder="Task description..."
-                    />
-                    <div className="flex items-center gap-2">
-                      <button
-                        onClick={handleAddTask}
-                        disabled={taskSaving || !taskContent.trim()}
-                        className="px-4 py-1.5 rounded-full text-[12px] font-semibold bg-[#fee198] text-[#1a1a1a] hover:bg-[#e6c46d] transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
-                      >
-                        {taskSaving ? "Saving..." : "Save Task"}
-                      </button>
-                      <button
-                        onClick={() => { setShowTaskForm(false); setTaskContent(""); }}
-                        className="text-[12px] text-[#6b7280] hover:text-[#374151] transition-colors"
-                      >
-                        Cancel
-                      </button>
-                    </div>
-                  </div>
                 )}
               </div>
 
-              {/* Internal Notes Log (tasks) */}
-              {internalNotes.length > 0 && (
-                <div className="mt-4">
-                  <h4 className="text-[12px] uppercase tracking-[0.5px] font-semibold text-[#6b7280] mb-2">
-                    Task Log
-                  </h4>
-                  <div className="space-y-2">
-                    {internalNotes.map((note) => (
-                      <div key={note.id} className="bg-[#fafafa] border border-[#f0f0f0] p-3">
-                        <span className="text-[11px] text-[#9ca3af] block mb-1">
-                          {formatNoteDate(note.created_at)}
-                        </span>
-                        <p className="text-[13px] text-[#374151]">{note.content}</p>
-                      </div>
-                    ))}
+              {/* Add task form */}
+              {showAddTaskForm && (
+                <div className="bg-white border border-[#e5e5e5] p-4 mb-3 space-y-3">
+                  <FormInput
+                    value={newTaskDesc}
+                    onChange={(e) => setNewTaskDesc(e.target.value)}
+                    placeholder="Task description..."
+                  />
+                  <FormInput
+                    type="date"
+                    value={newTaskDue}
+                    onChange={(e) => setNewTaskDue(e.target.value)}
+                  />
+                  <div className="flex items-center gap-2">
+                    <button
+                      onClick={handleAddTaskSubmit}
+                      disabled={addingTask || !newTaskDesc.trim() || !newTaskDue}
+                      className="px-4 py-1.5 rounded-full text-[12px] font-semibold bg-[#fee198] text-[#1a1a1a] hover:bg-[#e6c46d] transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+                    >
+                      {addingTask ? "Saving..." : "Save Task"}
+                    </button>
+                    <button
+                      onClick={() => { setShowAddTaskForm(false); setNewTaskDesc(""); setNewTaskDue(""); }}
+                      className="text-[12px] text-[#6b7280] hover:text-[#374151] transition-colors"
+                    >
+                      Cancel
+                    </button>
                   </div>
+                </div>
+              )}
+
+              {/* Active tasks */}
+              {activeTasks.length === 0 && completedTasks.length === 0 ? (
+                <div className="bg-white border border-[#e5e5e5] p-6 text-center">
+                  <p className="text-[13px] text-[#6b7280]">No tasks yet.</p>
+                </div>
+              ) : (
+                <div className="space-y-2">
+                  {activeTasks.map((task) => {
+                    const isOverdue = task.due_date ? task.due_date < todayStr : false;
+
+                    if (editingTaskId === task.id) {
+                      return (
+                        <div key={task.id} className="bg-white border border-[#e5e5e5] p-4 space-y-3">
+                          <FormInput
+                            value={editTaskDesc}
+                            onChange={(e) => setEditTaskDesc(e.target.value)}
+                            placeholder="Task description..."
+                          />
+                          <FormInput
+                            type="date"
+                            value={editTaskDue}
+                            onChange={(e) => setEditTaskDue(e.target.value)}
+                          />
+                          <div className="flex items-center gap-2">
+                            <button
+                              onClick={handleEditTaskSubmit}
+                              disabled={editingTaskSaving || !editTaskDesc.trim() || !editTaskDue}
+                              className="px-4 py-1.5 rounded-full text-[12px] font-semibold bg-[#fee198] text-[#1a1a1a] hover:bg-[#e6c46d] transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+                            >
+                              {editingTaskSaving ? "Saving..." : "Save"}
+                            </button>
+                            <button
+                              onClick={() => setEditingTaskId(null)}
+                              className="text-[12px] text-[#6b7280] hover:text-[#374151] transition-colors"
+                            >
+                              Cancel
+                            </button>
+                          </div>
+                        </div>
+                      );
+                    }
+
+                    return (
+                      <div key={task.id} className="bg-white border border-[#e5e5e5] p-3 flex items-center gap-3">
+                        <button
+                          onClick={() => handleToggleComplete(task)}
+                          className="w-5 h-5 rounded border border-[#d1d5db] flex items-center justify-center hover:border-[#16a34a] transition-colors flex-shrink-0"
+                          aria-label="Mark complete"
+                        />
+                        <div className="flex-1 min-w-0">
+                          <span className="text-[13px] text-[#374151]">{stripTaskPrefix(task.content)}</span>
+                        </div>
+                        {task.due_date && (
+                          <span className={`text-[11px] font-semibold whitespace-nowrap ${isOverdue ? "text-[#c1121f]" : "text-[#6b7280]"}`}>
+                            {formatShortDate(task.due_date)}
+                          </span>
+                        )}
+                        <button
+                          onClick={() => { setEditingTaskId(task.id); setEditTaskDesc(stripTaskPrefix(task.content)); setEditTaskDue(task.due_date ?? ""); }}
+                          className="text-[#9ca3af] hover:text-[#374151] transition-colors flex-shrink-0"
+                          aria-label="Edit task"
+                        >
+                          <Pencil size={14} />
+                        </button>
+                        <button
+                          onClick={() => handleDeleteTask(task.id)}
+                          className="text-[#9ca3af] hover:text-[#c1121f] transition-colors flex-shrink-0"
+                          aria-label="Delete task"
+                        >
+                          <Trash2 size={14} />
+                        </button>
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+
+              {/* Completed tasks toggle */}
+              {completedTasks.length > 0 && (
+                <div className="mt-3">
+                  <button
+                    onClick={() => setShowCompletedTasks(!showCompletedTasks)}
+                    className="text-[12px] text-[#6b7280] hover:text-[#374151] transition-colors"
+                  >
+                    {showCompletedTasks ? "Hide" : "Show"} Completed ({completedTasks.length})
+                  </button>
+                  {showCompletedTasks && (
+                    <div className="space-y-2 mt-2">
+                      {completedTasks.map((task) => (
+                        <div key={task.id} className="bg-white border border-[#e5e5e5] p-3 flex items-center gap-3 opacity-60">
+                          <button
+                            onClick={() => handleToggleComplete(task)}
+                            className="w-5 h-5 rounded border border-[#16a34a] bg-[#16a34a] flex items-center justify-center hover:bg-[#15803d] transition-colors flex-shrink-0"
+                            aria-label="Mark incomplete"
+                          >
+                            <Check size={12} className="text-white" />
+                          </button>
+                          <div className="flex-1 min-w-0">
+                            <span className="text-[13px] text-[#9ca3af] line-through">{stripTaskPrefix(task.content)}</span>
+                          </div>
+                          {task.due_date && (
+                            <span className="text-[11px] text-[#9ca3af] whitespace-nowrap">
+                              {formatShortDate(task.due_date)}
+                            </span>
+                          )}
+                        </div>
+                      ))}
+                    </div>
+                  )}
                 </div>
               )}
             </div>
