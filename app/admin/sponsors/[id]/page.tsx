@@ -55,6 +55,7 @@ export default async function SponsorDetailPage({
       .select("id, title, slug, status, published_at")
       .eq("sponsor_business_id", s.business_id)
       .eq("is_sponsored", true)
+      .eq("status", "published")
       .order("published_at", { ascending: false });
     posts = (data ?? []) as PostRow[];
   }
