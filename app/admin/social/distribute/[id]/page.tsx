@@ -1,5 +1,5 @@
 import { Metadata } from "next";
-import { createServerClient } from "@/lib/supabase";
+import { createServiceRoleClient } from "@/lib/supabase";
 import { DistributeClient } from "./DistributeClient";
 
 export const metadata: Metadata = {
@@ -16,7 +16,7 @@ export default async function DistributePage({
   params: Promise<{ id: string }>;
 }) {
   const { id } = await params;
-  const supabase = createServerClient();
+  const supabase = createServiceRoleClient();
 
   // Fetch the filming script with story + batch joins
   const { data: filmingScript, error: scriptErr } = (await supabase
@@ -36,6 +36,9 @@ export default async function DistributePage({
       hashtags: string | null;
       call_to_action: string | null;
       scheduled_date: string | null;
+      media_url: string | null;
+      thumbnail_url: string | null;
+      platform_captions: Record<string, unknown> | null;
       created_at: string;
       script_batches: { batch_name: string | null } | null;
       stories: {

@@ -1,12 +1,15 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useMemo, useState, useCallback } from "react";
+import { useRouter } from "next/navigation";
 import { PortalTopbar } from "@/components/portal/PortalTopbar";
 import { StatCard } from "@/components/portal/StatCard";
 import { StatGrid } from "@/components/portal/StatGrid";
 import { FilterBar } from "@/components/portal/FilterBar";
 import { AdminDataTable } from "@/components/portal/AdminDataTable";
 import { StatusBadge } from "@/components/portal/StatusBadge";
+import { Modal } from "@/components/portal/Modal";
+import { createAdPlacement } from "@/app/admin/actions";
 
 /* ============================================================
    AD PLACEMENTS — Manage placement slots and view flight status
@@ -38,9 +41,23 @@ interface AdPlacementsClientProps {
 }
 
 export function AdPlacementsClient({ placements, flights }: AdPlacementsClientProps) {
+  const router = useRouter();
   const [search, setSearch] = useState("");
   const [channelFilter, setChannelFilter] = useState("");
   const [statusFilter, setStatusFilter] = useState("");
+  const [showNewModal, setShowNewModal] = useState(false);
+  const [saving, setSaving] = useState(false);
+
+  const handleCreate = useCallback(async (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+    setSaving(true);
+    const formData = new FormData(e.currentTarget);
+    const result = await createAdPlacement(formData);
+    setSaving(false);
+    if (result.error) { alert("Error: " + result.error); return; }
+    setShowNewModal(false);
+    router.refresh();
+  }, [router]);
 
   const today = new Date().toISOString().split("T")[0];
 
@@ -149,14 +166,14 @@ export function AdPlacementsClient({ placements, flights }: AdPlacementsClientPr
         title="Ad Placements"
         actions={
           <button
-            onClick={() => console.log("Create placement")}
+            onClick={() => setShowNewModal(true)}
             className="inline-flex items-center justify-center px-6 py-2.5 rounded-full text-sm font-semibold bg-[#fee198] text-[#1a1a1a] hover:bg-[#e6c46d] transition-colors"
           >
             + New Placement
           </button>
         }
       />
-      <div className="p-8 max-[899px]:pt-16 space-y-4">
+      <div className="p-8 space-y-4">
         <StatGrid columns={3}>
           <StatCard label="Total Placements" value={placements.length} />
           <StatCard
@@ -199,6 +216,44 @@ export function AdPlacementsClient({ placements, flights }: AdPlacementsClientPr
           emptyMessage="No ad placements found."
         />
       </div>
+
+      <Modal isOpen={showNewModal} onClose={() => setShowNewModal(false)} title="New Placement">
+        <form onSubmit={handleCreate} className="space-y-4">
+          <div>
+            <label className="block text-[12px] font-semibold text-[#374151] mb-1">Name</label>
+            <input name="name" required className="w-full px-3 py-2 text-[13px] border border-[#e5e5e5]" />
+          </div>
+          <div>
+            <label className="block text-[12px] font-semibold text-[#374151] mb-1">Channel</label>
+            <select name="channel" required className="w-full px-3 py-2 text-[13px] border border-[#e5e5e5]">
+              <option value="">Select channel</option>
+              <option value="website">Website</option>
+              <option value="newsletter">Newsletter</option>
+              <option value="social">Social</option>
+            </select>
+          </div>
+          <div>
+            <label className="block text-[12px] font-semibold text-[#374151] mb-1">Placement Key</label>
+            <input name="placement_key" required placeholder="e.g. homepage_hero" className="w-full px-3 py-2 text-[13px] border border-[#e5e5e5]" />
+          </div>
+          <div>
+            <label className="block text-[12px] font-semibold text-[#374151] mb-1">Page Type</label>
+            <input name="page_type" placeholder="e.g. homepage, neighborhood" className="w-full px-3 py-2 text-[13px] border border-[#e5e5e5]" />
+          </div>
+          <div>
+            <label className="block text-[12px] font-semibold text-[#374151] mb-1">Dimensions</label>
+            <input name="dimensions" placeholder="e.g. 728x90" className="w-full px-3 py-2 text-[13px] border border-[#e5e5e5]" />
+          </div>
+          <div>
+            <label className="block text-[12px] font-semibold text-[#374151] mb-1">Description</label>
+            <textarea name="description" rows={2} className="w-full px-3 py-2 text-[13px] border border-[#e5e5e5]" />
+          </div>
+          <div className="flex justify-end gap-2 pt-2">
+            <button type="button" onClick={() => setShowNewModal(false)} className="px-6 py-2.5 rounded-full text-sm font-semibold border border-[#e5e5e5] text-[#374151]">Cancel</button>
+            <button type="submit" disabled={saving} className="px-6 py-2.5 rounded-full text-sm font-semibold bg-[#fee198] text-[#1a1a1a] disabled:opacity-50">{saving ? "Saving..." : "Create"}</button>
+          </div>
+        </form>
+      </Modal>
     </>
   );
 }

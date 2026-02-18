@@ -8,6 +8,10 @@ export const metadata: Metadata = {
   title: "Event Partnerships",
   description:
     "Signature partnerships and custom activations that connect brands with Atlanta's community through meaningful experiences.",
+  openGraph: {
+    title: "Event Partnerships",
+    description: "Signature partnerships and custom activations that connect brands with Atlanta's community through meaningful experiences.",
+  },
 };
 
 /* ============================================================

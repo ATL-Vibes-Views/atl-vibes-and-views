@@ -22,6 +22,11 @@ export const metadata: Metadata = {
   title: "Beyond ATL — Explore Cities Outside Atlanta | ATL Vibes & Views",
   description:
     "Discover restaurants, events, stories, and culture from cities just outside Atlanta — Decatur, Marietta, Sandy Springs, and more.",
+  openGraph: {
+    title: "Beyond ATL — Explore Cities Outside Atlanta | ATL Vibes & Views",
+    description:
+      "Discover restaurants, events, stories, and culture from cities just outside Atlanta — Decatur, Marietta, Sandy Springs, and more.",
+  },
 };
 
 /* ============================================================

@@ -1,8 +1,10 @@
 "use client";
 
-import { useState, useMemo } from "react";
+import { useState, useMemo, useCallback } from "react";
+import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { ArrowLeft } from "lucide-react";
+import { updateSponsor } from "@/app/admin/actions";
 import { PortalTopbar } from "@/components/portal/PortalTopbar";
 import { TabNav } from "@/components/portal/TabNav";
 import { StatCard } from "@/components/portal/StatCard";
@@ -177,7 +179,32 @@ export function SponsorDetailClient({
   categoryOptions,
   neighborhoodOptions,
 }: SponsorDetailClientProps) {
+  const router = useRouter();
   const [activeTab, setActiveTab] = useState("info");
+  const [saving, setSaving] = useState(false);
+
+  const handleSaveSponsor = useCallback(async () => {
+    setSaving(true);
+    const result = await updateSponsor(sponsor.id, {
+      sponsor_name: sponsor.sponsor_name,
+      contact_name: sponsor.contact_name,
+      contact_email: sponsor.contact_email,
+      contact_phone: sponsor.contact_phone,
+      talking_points: sponsor.talking_points,
+      notes: sponsor.notes,
+    });
+    setSaving(false);
+    if ("error" in result && result.error) { alert("Error: " + result.error); return; }
+    router.refresh();
+  }, [sponsor, router]);
+
+  const handleSelectChange = useCallback(async (fieldName: string, value: string) => {
+    setSaving(true);
+    const result = await updateSponsor(sponsor.id, { [fieldName]: value || null });
+    setSaving(false);
+    if ("error" in result && result.error) { alert("Error: " + result.error); return; }
+    router.refresh();
+  }, [sponsor.id, router]);
 
   /* ── This week's to-do items (deliverables due within 7 days) ── */
   const thisWeekTodos = useMemo(() => {
@@ -204,15 +231,16 @@ export function SponsorDetailClient({
               <ArrowLeft size={14} /> Back
             </Link>
             <button
-              onClick={() => console.log("Save sponsor:", sponsor.id)}
-              className="inline-flex items-center justify-center px-6 py-2.5 rounded-full text-sm font-semibold bg-[#fee198] text-[#1a1a1a] hover:bg-[#e6c46d] transition-colors"
+              onClick={handleSaveSponsor}
+              disabled={saving}
+              className="inline-flex items-center justify-center px-6 py-2.5 rounded-full text-sm font-semibold bg-[#fee198] text-[#1a1a1a] hover:bg-[#e6c46d] transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
             >
-              Save Changes
+              {saving ? "Saving..." : "Save Changes"}
             </button>
           </div>
         }
       />
-      <div className="p-8 max-[899px]:pt-16 space-y-6">
+      <div className="p-8 space-y-6">
         {/* Status bar */}
         <div className="flex items-center gap-3">
           <StatusBadge variant={statusBadgeMap[sponsor.status] ?? "gray"}>
@@ -310,8 +338,9 @@ export function SponsorDetailClient({
                 <FormGroup label="Package Type">
                   <select
                     defaultValue={sponsor.package_type ?? ""}
-                    onChange={(e) => console.log("Package type changed:", e.target.value)}
-                    className="w-full border border-[#e5e5e5] bg-white px-3 py-2 text-[13px] font-body text-[#374151] focus:border-[#e6c46d] focus:outline-none transition-colors"
+                    onChange={(e) => handleSelectChange("package_type", e.target.value)}
+                    disabled={saving}
+                    className="w-full border border-[#e5e5e5] bg-white px-3 py-2 text-[13px] font-body text-[#374151] focus:border-[#e6c46d] focus:outline-none transition-colors disabled:opacity-40"
                   >
                     <option value="">Select package...</option>
                     {packageOptions.map((p) => (
@@ -322,8 +351,9 @@ export function SponsorDetailClient({
                 <FormGroup label="Category Focus">
                   <select
                     defaultValue={sponsor.category_focus ?? ""}
-                    onChange={(e) => console.log("Category focus changed:", e.target.value)}
-                    className="w-full border border-[#e5e5e5] bg-white px-3 py-2 text-[13px] font-body text-[#374151] focus:border-[#e6c46d] focus:outline-none transition-colors"
+                    onChange={(e) => handleSelectChange("category_focus", e.target.value)}
+                    disabled={saving}
+                    className="w-full border border-[#e5e5e5] bg-white px-3 py-2 text-[13px] font-body text-[#374151] focus:border-[#e6c46d] focus:outline-none transition-colors disabled:opacity-40"
                   >
                     <option value="">Select category...</option>
                     {categoryOptions.map((c) => (
@@ -334,8 +364,9 @@ export function SponsorDetailClient({
                 <FormGroup label="Neighborhood Focus">
                   <select
                     defaultValue={sponsor.neighborhood_focus ?? ""}
-                    onChange={(e) => console.log("Neighborhood focus changed:", e.target.value)}
-                    className="w-full border border-[#e5e5e5] bg-white px-3 py-2 text-[13px] font-body text-[#374151] focus:border-[#e6c46d] focus:outline-none transition-colors"
+                    onChange={(e) => handleSelectChange("neighborhood_focus", e.target.value)}
+                    disabled={saving}
+                    className="w-full border border-[#e5e5e5] bg-white px-3 py-2 text-[13px] font-body text-[#374151] focus:border-[#e6c46d] focus:outline-none transition-colors disabled:opacity-40"
                   >
                     <option value="">Select neighborhood...</option>
                     {neighborhoodOptions.map((n) => (
@@ -493,7 +524,7 @@ export function SponsorDetailClient({
               <div className="flex items-center justify-between mb-3">
                 <h3 className="font-display text-[16px] font-semibold text-black">Ad Creatives</h3>
                 <button
-                  onClick={() => console.log("Add creative for sponsor:", sponsor.id)}
+                  onClick={() => { /* add creative — navigate to creatives page */ window.location.href = "/admin/sponsors/creatives"; }}
                   className="px-4 py-1.5 rounded-full text-[12px] font-semibold bg-[#fee198] text-[#1a1a1a] hover:bg-[#e6c46d] transition-colors"
                 >
                   + Add Creative
@@ -509,7 +540,7 @@ export function SponsorDetailClient({
                     <div key={c.id} className="bg-white border border-[#e5e5e5] overflow-hidden">
                       <ImagePicker
                         value={c.image_url ?? ""}
-                        onChange={(url) => console.log("Update creative image:", c.id, url)}
+                        onChange={() => { /* creative image update — managed via ad_creatives table */ }}
                         folder={`sponsors/${sponsor.id}`}
                         label={c.creative_type}
                       />

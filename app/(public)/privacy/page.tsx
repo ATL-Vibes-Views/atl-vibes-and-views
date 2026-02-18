@@ -7,6 +7,10 @@ export const metadata: Metadata = {
   description:
     "How ATL Vibes & Views collects, uses, and protects your personal information.",
   robots: { index: true, follow: true },
+  openGraph: {
+    title: "Privacy Policy",
+    description: "How ATL Vibes & Views collects, uses, and protects your personal information.",
+  },
 };
 
 export default function PrivacyPolicyPage() {

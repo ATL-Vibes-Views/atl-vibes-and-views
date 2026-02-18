@@ -8,6 +8,10 @@ export const metadata: Metadata = {
   title: "Marketing Services",
   description:
     "Full-service marketing for Atlanta businesses. SEO, website design, social media management, and paid advertising that actually drives results.",
+  openGraph: {
+    title: "Marketing Services",
+    description: "Full-service marketing for Atlanta businesses. SEO, website design, social media management, and paid advertising that actually drives results.",
+  },
 };
 
 /* ============================================================
@@ -364,10 +368,10 @@ export default function MarketingPage() {
                 booking, and grow to 4,000+ followers.
               </p>
               <Link
-                href="/partner/case-studies/inked-by-j"
+                href="/partner"
                 className="text-[#fee198] font-semibold text-base tracking-[1px] border-b-2 border-[#fee198] pb-1 hover:text-white hover:border-white transition-all"
               >
-                Read the Case Study
+                Get Started
               </Link>
             </div>
           </section>

@@ -1,10 +1,13 @@
 "use client";
 
-import { useMemo } from "react";
+import { useMemo, useState, useCallback } from "react";
+import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { ArrowLeft, Package } from "lucide-react";
 import { PortalTopbar } from "@/components/portal/PortalTopbar";
 import { StatusBadge } from "@/components/portal/StatusBadge";
+import { Modal } from "@/components/portal/Modal";
+import { createSponsorPackage, updateSponsorPackage } from "@/app/admin/actions";
 
 /* ============================================================
    PACKAGE TEMPLATES — Card layout with parsed deliverables
@@ -56,6 +59,36 @@ function parseDeliverableLine(d: DeliverableItem): string {
 }
 
 export function PackagesClient({ packages, sponsors }: PackagesClientProps) {
+  const router = useRouter();
+  const [showNewModal, setShowNewModal] = useState(false);
+  const [editPkg, setEditPkg] = useState<PackageTemplate | null>(null);
+  const [saving, setSaving] = useState(false);
+
+  const handleCreate = useCallback(async (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+    setSaving(true);
+    const formData = new FormData(e.currentTarget);
+    const result = await createSponsorPackage(formData);
+    setSaving(false);
+    if (result.error) { alert("Error: " + result.error); return; }
+    setShowNewModal(false);
+    router.refresh();
+  }, [router]);
+
+  const handleEdit = useCallback(async (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+    if (!editPkg) return;
+    setSaving(true);
+    const formData = new FormData(e.currentTarget);
+    const data: Record<string, unknown> = {};
+    formData.forEach((value, key) => { data[key] = value || null; });
+    const result = await updateSponsorPackage(editPkg.id, data);
+    setSaving(false);
+    if (result.error) { alert("Error: " + result.error); return; }
+    setEditPkg(null);
+    router.refresh();
+  }, [editPkg, router]);
+
   // Count sponsors by package_id
   const usageMap = useMemo(() => {
     const map: Record<string, number> = {};
@@ -80,7 +113,7 @@ export function PackagesClient({ packages, sponsors }: PackagesClientProps) {
               <ArrowLeft size={14} /> Sponsors
             </Link>
             <button
-              onClick={() => console.log("Create package")}
+              onClick={() => setShowNewModal(true)}
               className="inline-flex items-center justify-center px-6 py-2.5 rounded-full text-sm font-semibold bg-[#fee198] text-[#1a1a1a] hover:bg-[#e6c46d] transition-colors"
             >
               + New Package
@@ -88,7 +121,7 @@ export function PackagesClient({ packages, sponsors }: PackagesClientProps) {
           </div>
         }
       />
-      <div className="p-8 max-[899px]:pt-16 space-y-4">
+      <div className="p-8 space-y-4">
         {packages.length === 0 ? (
           <div className="bg-white border border-[#e5e5e5] p-10 text-center">
             <p className="text-[13px] text-[#6b7280]">No package templates yet. Create one to get started.</p>
@@ -163,7 +196,7 @@ export function PackagesClient({ packages, sponsors }: PackagesClientProps) {
                       )}
                     </div>
                     <button
-                      onClick={() => console.log("Edit package:", pkg.id)}
+                      onClick={() => setEditPkg(pkg)}
                       className="px-3 py-1 rounded-full text-[11px] font-semibold border border-[#e5e5e5] text-[#374151] hover:border-[#d1d5db] transition-colors"
                     >
                       Edit
@@ -175,6 +208,60 @@ export function PackagesClient({ packages, sponsors }: PackagesClientProps) {
           </div>
         )}
       </div>
+
+      {/* New Package Modal */}
+      <Modal isOpen={showNewModal} onClose={() => setShowNewModal(false)} title="New Package">
+        <form onSubmit={handleCreate} className="space-y-4">
+          <div>
+            <label className="block text-[12px] font-semibold text-[#374151] mb-1">Name</label>
+            <input name="name" required className="w-full px-3 py-2 text-[13px] border border-[#e5e5e5]" />
+          </div>
+          <div>
+            <label className="block text-[12px] font-semibold text-[#374151] mb-1">Price Display</label>
+            <input name="price_display" required placeholder="$499/mo" className="w-full px-3 py-2 text-[13px] border border-[#e5e5e5]" />
+          </div>
+          <div>
+            <label className="block text-[12px] font-semibold text-[#374151] mb-1">Billing Cycle</label>
+            <select name="billing_cycle" className="w-full px-3 py-2 text-[13px] border border-[#e5e5e5]">
+              <option value="monthly">Monthly</option>
+              <option value="quarterly">Quarterly</option>
+              <option value="annual">Annual</option>
+            </select>
+          </div>
+          <div>
+            <label className="block text-[12px] font-semibold text-[#374151] mb-1">Description</label>
+            <textarea name="description" rows={3} className="w-full px-3 py-2 text-[13px] border border-[#e5e5e5]" />
+          </div>
+          <div className="flex justify-end gap-2 pt-2">
+            <button type="button" onClick={() => setShowNewModal(false)} className="px-6 py-2.5 rounded-full text-sm font-semibold border border-[#e5e5e5] text-[#374151]">Cancel</button>
+            <button type="submit" disabled={saving} className="px-6 py-2.5 rounded-full text-sm font-semibold bg-[#fee198] text-[#1a1a1a] disabled:opacity-50">{saving ? "Saving..." : "Create"}</button>
+          </div>
+        </form>
+      </Modal>
+
+      {/* Edit Package Modal */}
+      <Modal isOpen={!!editPkg} onClose={() => setEditPkg(null)} title="Edit Package">
+        {editPkg && (
+          <form onSubmit={handleEdit} className="space-y-4">
+            <div>
+              <label className="block text-[12px] font-semibold text-[#374151] mb-1">Name</label>
+              <input name="name" defaultValue={editPkg.name} className="w-full px-3 py-2 text-[13px] border border-[#e5e5e5]" />
+            </div>
+            <div>
+              <label className="block text-[12px] font-semibold text-[#374151] mb-1">Price Display</label>
+              <input name="price_display" defaultValue={editPkg.price_display ?? ""} className="w-full px-3 py-2 text-[13px] border border-[#e5e5e5]" />
+            </div>
+            <div>
+              <label className="block text-[12px] font-semibold text-[#374151] mb-1">Description</label>
+              <textarea name="description" defaultValue={editPkg.description ?? ""} rows={3} className="w-full px-3 py-2 text-[13px] border border-[#e5e5e5]" />
+            </div>
+            <div className="flex justify-end gap-2 pt-2">
+              <button type="button" onClick={() => setEditPkg(null)} className="px-6 py-2.5 rounded-full text-sm font-semibold border border-[#e5e5e5] text-[#374151]">Cancel</button>
+              <button type="submit" disabled={saving} className="px-6 py-2.5 rounded-full text-sm font-semibold bg-[#fee198] text-[#1a1a1a] disabled:opacity-50">{saving ? "Saving..." : "Save"}</button>
+            </div>
+          </form>
+        )}
+      </Modal>
     </>
   );
 }

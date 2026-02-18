@@ -142,7 +142,7 @@ export function PlanBillingClient({
             newsletter features through a partnership with ATL Vibes &amp; Views.
           </p>
           <Link
-            href="/partners"
+            href="/partner"
             className="inline-flex items-center justify-center rounded-full bg-[#fee198] px-6 py-2.5 text-[13px] font-semibold text-[#1a1a1a] hover:opacity-90 transition-opacity mt-5"
           >
             Explore Partnerships &rarr;

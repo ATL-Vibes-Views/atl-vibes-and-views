@@ -1,5 +1,5 @@
 import { Metadata } from "next";
-import { createServerClient } from "@/lib/supabase";
+import { createServiceRoleClient } from "@/lib/supabase";
 import { EventDetailClient } from "./EventDetailClient";
 
 export const metadata: Metadata = {
@@ -12,7 +12,7 @@ export const dynamic = 'force-dynamic';
 
 export default async function EventDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
-  const supabase = createServerClient();
+  const supabase = createServiceRoleClient();
   const isNew = id === "new";
 
   let event = null;

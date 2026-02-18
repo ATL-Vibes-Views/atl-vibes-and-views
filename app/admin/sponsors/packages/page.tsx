@@ -1,5 +1,5 @@
 import { Metadata } from "next";
-import { createServerClient } from "@/lib/supabase";
+import { createServiceRoleClient } from "@/lib/supabase";
 import { PackagesClient } from "./PackagesClient";
 
 export const metadata: Metadata = {
@@ -25,7 +25,7 @@ interface PackageTemplate {
 }
 
 export default async function PackagesPage() {
-  const supabase = createServerClient();
+  const supabase = createServiceRoleClient();
 
   // sponsor_packages may not exist yet — use .returns<>() pattern
   const { data: packages, error } = await (supabase

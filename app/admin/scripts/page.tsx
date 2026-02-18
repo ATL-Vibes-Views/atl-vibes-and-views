@@ -1,5 +1,5 @@
 import { Metadata } from "next";
-import { createServerClient } from "@/lib/supabase";
+import { createServiceRoleClient } from "@/lib/supabase";
 import { ScriptsClient } from "./ScriptsClient";
 
 export const metadata: Metadata = {
@@ -11,15 +11,16 @@ export const metadata: Metadata = {
 export const dynamic = 'force-dynamic';
 
 export default async function ScriptsPage() {
-  const supabase = createServerClient();
+  const supabase = createServiceRoleClient();
 
   // Filming scripts: draft/pending only — approved scripts go to Social Queue
+  // platform_captions JSONB stores per-platform caption data directly on the script row
   const { data: filmingScripts, error: scriptsErr } = (await supabase
     .from("scripts")
     .select("*, script_batches(batch_name), stories(headline)")
     .eq("platform", "reel")
     .eq("format", "talking_head")
-    .in("status", ["draft", "pending"])
+    .in("status", ["draft"])
     .order("created_at", { ascending: false })) as {
     data: {
       id: string;
@@ -30,6 +31,7 @@ export default async function ScriptsPage() {
       platform: string;
       format: string;
       status: string;
+      platform_captions: Record<string, unknown> | null;
       scheduled_date: string | null;
       created_at: string;
       script_batches: { batch_name: string | null } | null;
@@ -38,26 +40,6 @@ export default async function ScriptsPage() {
     error: unknown;
   };
   if (scriptsErr) console.error("Failed to fetch filming scripts:", scriptsErr);
-
-  // All caption rows (platform != 'reel') — grouped client-side by story_id
-  const { data: captions, error: captionsErr } = (await supabase
-    .from("scripts")
-    .select("id, story_id, platform, caption, description, tags, hashtags, status")
-    .neq("platform", "reel")
-    .order("platform")) as {
-    data: {
-      id: string;
-      story_id: string | null;
-      platform: string;
-      caption: string | null;
-      description: string | null;
-      tags: string | null;
-      hashtags: string | null;
-      status: string;
-    }[] | null;
-    error: unknown;
-  };
-  if (captionsErr) console.error("Failed to fetch captions:", captionsErr);
 
   const { data: batches } = (await supabase
     .from("script_batches")
@@ -76,7 +58,7 @@ export default async function ScriptsPage() {
   };
 
   const counts = {
-    pending: (statusCounts ?? []).filter(s => s.status === "draft" || s.status === "pending").length,
+    pending: (statusCounts ?? []).filter(s => s.status === "draft").length,
     approved: (statusCounts ?? []).filter(s => s.status === "approved").length,
     published: (statusCounts ?? []).filter(s => s.status === "posted" || s.status === "published").length,
   };
@@ -84,7 +66,6 @@ export default async function ScriptsPage() {
   return (
     <ScriptsClient
       filmingScripts={filmingScripts ?? []}
-      captions={captions ?? []}
       batches={(batches ?? []).filter((b) => b.batch_name !== null) as { id: string; batch_name: string }[]}
       counts={counts}
     />

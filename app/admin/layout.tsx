@@ -28,7 +28,9 @@ import {
   Settings,
 } from "lucide-react";
 import { PortalSidebar } from "@/components/portal/PortalSidebar";
-import { createServerClient } from "@/lib/supabase";
+import { createServiceRoleClient } from "@/lib/supabase";
+
+export const dynamic = "force-dynamic";
 
 export const metadata: Metadata = {
   title: "Admin | ATL Vibes & Views",
@@ -41,29 +43,29 @@ export default async function AdminLayout({
 }: {
   children: React.ReactNode;
 }) {
-  const supabase = createServerClient();
+  const supabase = createServiceRoleClient();
 
   // Fetch count badges in parallel — 11 badges total
   const counts = (await Promise.all([
-    supabase.from("blog_posts").select("*", { count: "exact", head: true }).eq("status", "scheduled"),
-    supabase.from("blog_posts").select("*", { count: "exact", head: true }).eq("status", "draft"),
+    supabase.from("blog_posts").select("*", { count: "exact", head: true }).in("status", ["draft", "ready_for_review"]),
+    supabase.from("blog_posts").select("*", { count: "exact", head: true }).in("status", ["published", "scheduled", "ready_for_review", "archived"]),
     supabase.from("scripts").select("*", { count: "exact", head: true }).eq("status", "draft").eq("platform", "reel"),
-    supabase.from("scripts").select("*", { count: "exact", head: true }).eq("status", "approved").eq("platform", "reel"),
-    supabase.from("stories").select("*", { count: "exact", head: true }).eq("tier", "social").eq("status", "scored"),
+    supabase.from("scripts").select("*", { count: "exact", head: true }).eq("status", "approved"),
+    supabase.from("stories").select("*", { count: "exact", head: true }).eq("tier", "social").in("status", ["assigned_blog", "assigned_script", "assigned_dual", "assigned_social"]),
     supabase.from("media_items").select("*", { count: "exact", head: true }),
-    supabase.from("stories").select("*", { count: "exact", head: true }).eq("status", "in_progress"),
+    supabase.from("stories").select("*", { count: "exact", head: true }).in("status", ["draft_script", "draft_social"]),
     supabase.from("business_listings").select("*", { count: "exact", head: true }),
     supabase.from("events").select("*", { count: "exact", head: true }),
-    supabase.from("reviews").select("*", { count: "exact", head: true }).eq("status", "pending"),
+    supabase.from("reviews").select("*", { count: "exact", head: true }).eq("status", "pending_review"),
     supabase.from("submissions").select("*", { count: "exact", head: true }).eq("status", "pending"),
   ])) as unknown as { count: number | null }[];
 
-  const publishingQueue = counts[0].count ?? 0;
-  const draftPosts = counts[1].count ?? 0;
+  const publishingQueue = counts[0].count ?? 0; // draft + ready_for_review
+  const blogPostsCount = counts[1].count ?? 0; // published + scheduled + ready_for_review + archived
   const draftScripts = counts[2].count ?? 0;
   const approvedScripts = counts[3].count ?? 0;
   const tier3Stories = counts[4].count ?? 0;
-  const socialQueue = approvedScripts + tier3Stories;
+  const socialQueue = approvedScripts;
   const mediaCount = counts[5].count ?? 0;
   const pipelineCount = counts[6].count ?? 0;
   const businessCount = counts[7].count ?? 0;
@@ -77,7 +79,7 @@ export default async function AdminLayout({
       items: [
         { label: "Dashboard", path: "/admin", icon: <LayoutDashboard size={16} /> },
         { label: "Publishing Queue", path: "/admin/publishing", icon: <Rocket size={16} />, ...(publishingQueue > 0 ? { count: publishingQueue } : {}) },
-        { label: "Blog Posts", path: "/admin/posts", icon: <FileText size={16} />, ...(draftPosts > 0 ? { count: draftPosts } : {}) },
+        { label: "Blog Posts", path: "/admin/posts", icon: <FileText size={16} />, ...(blogPostsCount > 0 ? { count: blogPostsCount } : {}) },
         { label: "Scripts", path: "/admin/scripts", icon: <Film size={16} />, ...(draftScripts > 0 ? { count: draftScripts } : {}) },
         { label: "Social Queue", path: "/admin/social", icon: <Share2 size={16} />, ...(socialQueue > 0 ? { count: socialQueue } : {}) },
         { label: "Media", path: "/admin/media", icon: <Video size={16} />, ...(mediaCount > 0 ? { count: mediaCount } : {}) },
@@ -142,7 +144,7 @@ export default async function AdminLayout({
         navGroups={navGroups}
         activePath="/admin"
       />
-      <main className="flex-1 min-[900px]:ml-[240px] max-[899px]:ml-0 overflow-y-auto">
+      <main className="flex-1 min-[900px]:ml-[240px] max-[899px]:ml-0 max-[899px]:pt-[44px] overflow-y-auto">
         {children}
       </main>
     </div>

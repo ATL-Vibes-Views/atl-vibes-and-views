@@ -1,5 +1,5 @@
 import { Metadata } from "next";
-import { createServerClient } from "@/lib/supabase";
+import { createServiceRoleClient } from "@/lib/supabase";
 import { PublishingClient } from "./PublishingClient";
 
 export const metadata: Metadata = {
@@ -11,13 +11,13 @@ export const metadata: Metadata = {
 export const dynamic = 'force-dynamic';
 
 export default async function PublishingPage() {
-  const supabase = createServerClient();
+  const supabase = createServiceRoleClient();
 
-  // Blog posts in draft — the publishing queue is where drafts get media + published
+  // Blog posts in draft or ready_for_review — the publishing queue is where drafts get media + published
   const { data: posts, error: postsErr } = (await supabase
     .from("blog_posts")
     .select("*, categories(name), neighborhoods(name)")
-    .eq("status", "draft")
+    .in("status", ["draft", "ready_for_review"])
     .order("created_at", { ascending: false })) as {
     data: {
       id: string;

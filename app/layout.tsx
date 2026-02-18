@@ -1,4 +1,4 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import { Cormorant_Garamond, Inter } from "next/font/google";
 import Script from "next/script";
 import "./globals.css";
@@ -31,6 +31,13 @@ const inter = Inter({
 // });
 // Then add codecPro.variable to the <html> className below
 const codecProVariable = ""; // Placeholder until font files are added
+
+/* --- Viewport --- */
+export const viewport: Viewport = {
+  width: "device-width",
+  initialScale: 1,
+  maximumScale: 5,
+};
 
 /* --- Metadata --- */
 export const metadata: Metadata = {

@@ -34,15 +34,15 @@ const DEFAULT_INTRO =
    METADATA — from content_index or safe defaults
    ============================================================ */
 export async function generateMetadata(): Promise<Metadata> {
-  const ci = await getContentIndexByToken("page-areas", {
-    targetType: "area",
-    activeUrl: "/areas",
-  }).catch(() => null);
+  const ci = await getContentIndexByToken("page-areas", { targetType: "area", activeUrl: "/areas" }).catch(() => null);
+  const title = ci?.seo_title || "Explore Atlanta by Area — ATL Vibes & Views";
+  const description =
+    ci?.meta_description ||
+    "Discover Atlanta's neighborhoods, restaurants, events, and culture across every area of the city.";
   return {
-    title: ci?.seo_title || "Explore Atlanta by Area — ATL Vibes & Views",
-    description:
-      ci?.meta_description ||
-      "Discover Atlanta's neighborhoods, restaurants, events, and culture across every area of the city.",
+    title,
+    description,
+    openGraph: { title, description },
   };
 }
 

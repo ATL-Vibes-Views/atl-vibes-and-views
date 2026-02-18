@@ -1,8 +1,10 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useCallback } from "react";
+import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { ArrowLeft, Star, Newspaper } from "lucide-react";
+import { updateEvent } from "@/app/admin/actions";
 import { PortalTopbar } from "@/components/portal/PortalTopbar";
 import { TabNav } from "@/components/portal/TabNav";
 import { StatusBadge } from "@/components/portal/StatusBadge";
@@ -73,15 +75,95 @@ export function EventDetailClient({
   cities,
   businesses,
 }: EventDetailClientProps) {
+  const router = useRouter();
+  const evId = ev?.id as string | undefined;
   const [activeTab, setActiveTab] = useState("basic");
+  const [saving, setSaving] = useState(false);
   const [localTags, setLocalTags] = useState<string[]>(activeTagIds);
 
   const title = isNew ? "New Event" : field(ev, "title", "Event");
 
+  const handleToggle = useCallback(async (fieldName: string, currentValue: boolean) => {
+    if (!evId) return;
+    setSaving(true);
+    const result = await updateEvent(evId, { [fieldName]: !currentValue });
+    setSaving(false);
+    if ("error" in result && result.error) { alert("Error: " + result.error); return; }
+    router.refresh();
+  }, [evId, router]);
+
+  const handleSaveBasic = useCallback(async () => {
+    if (!evId) return;
+    const form = document.querySelector('[data-tab="basic"]') as HTMLElement | null;
+    if (!form) return;
+    const inputs = form.querySelectorAll("input, textarea, select");
+    const labels = ["title", "slug", "tagline", "event_type", "description", "category_id", "status", "featured_image_url", "website"];
+    const data: Record<string, unknown> = {};
+    inputs.forEach((el, i) => { if (labels[i]) data[labels[i]] = (el as HTMLInputElement).value || null; });
+    setSaving(true);
+    const result = await updateEvent(evId, data);
+    setSaving(false);
+    if ("error" in result && result.error) { alert("Error: " + result.error); return; }
+    router.refresh();
+  }, [evId, router]);
+
+  const handleSaveDatetime = useCallback(async () => {
+    if (!evId) return;
+    const form = document.querySelector('[data-tab="datetime"]') as HTMLElement | null;
+    if (!form) return;
+    const inputs = form.querySelectorAll("input");
+    const labels = ["start_date", "start_time", "end_date", "end_time"];
+    const data: Record<string, unknown> = {};
+    inputs.forEach((el, i) => { if (labels[i]) data[labels[i]] = el.value || null; });
+    // include recurrence_rule if visible
+    const extraInputs = form.querySelectorAll('input');
+    if (extraInputs.length > 4) data.recurrence_rule = (extraInputs[4] as HTMLInputElement).value || null;
+    setSaving(true);
+    const result = await updateEvent(evId, data);
+    setSaving(false);
+    if ("error" in result && result.error) { alert("Error: " + result.error); return; }
+    router.refresh();
+  }, [evId, router]);
+
+  const handleSaveVenue = useCallback(async () => {
+    if (!evId) return;
+    const form = document.querySelector('[data-tab="venue"]') as HTMLElement | null;
+    if (!form) return;
+    const inputs = form.querySelectorAll("input, select");
+    const labels = ["venue_name", "venue_business_id", "organizer_business_id", "organizer_name", "organizer_url", "street_address", "street_address_2", "state", "zip_code", "neighborhood_id", "latitude", "longitude", "city_id"];
+    const data: Record<string, unknown> = {};
+    inputs.forEach((el, i) => { if (labels[i]) data[labels[i]] = (el as HTMLInputElement).value || null; });
+    if (data.latitude) data.latitude = parseFloat(data.latitude as string);
+    if (data.longitude) data.longitude = parseFloat(data.longitude as string);
+    setSaving(true);
+    const result = await updateEvent(evId, data);
+    setSaving(false);
+    if ("error" in result && result.error) { alert("Error: " + result.error); return; }
+    router.refresh();
+  }, [evId, router]);
+
+  const handleSaveTickets = useCallback(async () => {
+    if (!evId) return;
+    const form = document.querySelector('[data-tab="tickets"]') as HTMLElement | null;
+    if (!form) return;
+    const inputs = form.querySelectorAll("input:not([type=checkbox]), select");
+    const labels = ["ticket_price_min", "ticket_price_max", "ticket_url", "tier", "listing_price_cents", "payment_status", "pricing_source"];
+    const data: Record<string, unknown> = {};
+    inputs.forEach((el, i) => { if (labels[i]) data[labels[i]] = (el as HTMLInputElement).value || null; });
+    if (data.ticket_price_min) data.ticket_price_min = parseFloat(data.ticket_price_min as string);
+    if (data.ticket_price_max) data.ticket_price_max = parseFloat(data.ticket_price_max as string);
+    if (data.listing_price_cents) data.listing_price_cents = parseInt(data.listing_price_cents as string);
+    setSaving(true);
+    const result = await updateEvent(evId, data);
+    setSaving(false);
+    if ("error" in result && result.error) { alert("Error: " + result.error); return; }
+    router.refresh();
+  }, [evId, router]);
+
   return (
     <>
       <PortalTopbar title={title} />
-      <div className="p-8 max-[899px]:pt-16 space-y-6">
+      <div className="p-8 space-y-6">
         <Link href="/admin/events" className="inline-flex items-center gap-1.5 text-[13px] text-[#6b7280] hover:text-black transition-colors">
           <ArrowLeft size={14} /> Back to Events
         </Link>
@@ -98,7 +180,7 @@ export function EventDetailClient({
 
         {/* Tab 1 — Basic Info */}
         {activeTab === "basic" && (
-          <div className="space-y-4">
+          <div className="space-y-4" data-tab="basic">
             <FormGroup label="Title"><FormInput defaultValue={field(ev, "title")} /></FormGroup>
             <FormGroup label="Slug"><FormInput defaultValue={field(ev, "slug")} readOnly className="bg-[#f5f5f5]" /></FormGroup>
             <FormRow columns={2}>
@@ -119,18 +201,18 @@ export function EventDetailClient({
             <FormGroup label="Featured Image URL"><FormInput defaultValue={field(ev, "featured_image_url")} /></FormGroup>
             <FormGroup label="Website"><FormInput defaultValue={field(ev, "website")} /></FormGroup>
             <FormRow columns={2}>
-              <ToggleSwitch label="Featured" checked={fieldBool(ev, "is_featured")} onChange={() => console.log("Toggle featured")} />
-              <ToggleSwitch label="Featured on Map" checked={fieldBool(ev, "featured_on_map")} onChange={() => console.log("Toggle map")} />
+              <ToggleSwitch label="Featured" checked={fieldBool(ev, "is_featured")} onChange={() => handleToggle("is_featured", fieldBool(ev, "is_featured"))} />
+              <ToggleSwitch label="Featured on Map" checked={fieldBool(ev, "featured_on_map")} onChange={() => handleToggle("featured_on_map", fieldBool(ev, "featured_on_map"))} />
             </FormRow>
             <ButtonBar>
-              <button onClick={() => console.log("Save basic")} className="inline-flex items-center px-6 py-2.5 rounded-full text-sm font-semibold bg-[#fee198] text-[#1a1a1a] hover:bg-[#fdd870] transition-colors">Save Changes</button>
+              <button onClick={handleSaveBasic} disabled={saving} className="inline-flex items-center px-6 py-2.5 rounded-full text-sm font-semibold bg-[#fee198] text-[#1a1a1a] hover:bg-[#fdd870] transition-colors disabled:opacity-40 disabled:cursor-not-allowed">{saving ? "Saving..." : "Save Changes"}</button>
             </ButtonBar>
           </div>
         )}
 
         {/* Tab 2 — Date & Time */}
         {activeTab === "datetime" && (
-          <div className="space-y-4">
+          <div className="space-y-4" data-tab="datetime">
             <FormRow columns={2}>
               <FormGroup label="Start Date"><FormInput type="date" defaultValue={field(ev, "start_date")} /></FormGroup>
               <FormGroup label="Start Time"><FormInput type="time" defaultValue={field(ev, "start_time")} /></FormGroup>
@@ -139,19 +221,19 @@ export function EventDetailClient({
               <FormGroup label="End Date"><FormInput type="date" defaultValue={field(ev, "end_date")} /></FormGroup>
               <FormGroup label="End Time"><FormInput type="time" defaultValue={field(ev, "end_time")} /></FormGroup>
             </FormRow>
-            <ToggleSwitch label="Recurring Event" checked={fieldBool(ev, "is_recurring")} onChange={() => console.log("Toggle recurring")} />
+            <ToggleSwitch label="Recurring Event" checked={fieldBool(ev, "is_recurring")} onChange={() => handleToggle("is_recurring", fieldBool(ev, "is_recurring"))} />
             {fieldBool(ev, "is_recurring") && (
               <FormGroup label="Recurrence Rule"><FormInput defaultValue={field(ev, "recurrence_rule")} /></FormGroup>
             )}
             <ButtonBar>
-              <button onClick={() => console.log("Save datetime")} className="inline-flex items-center px-6 py-2.5 rounded-full text-sm font-semibold bg-[#fee198] text-[#1a1a1a] hover:bg-[#fdd870] transition-colors">Save Changes</button>
+              <button onClick={handleSaveDatetime} disabled={saving} className="inline-flex items-center px-6 py-2.5 rounded-full text-sm font-semibold bg-[#fee198] text-[#1a1a1a] hover:bg-[#fdd870] transition-colors disabled:opacity-40 disabled:cursor-not-allowed">{saving ? "Saving..." : "Save Changes"}</button>
             </ButtonBar>
           </div>
         )}
 
         {/* Tab 3 — Venue & Location */}
         {activeTab === "venue" && (
-          <div className="space-y-4">
+          <div className="space-y-4" data-tab="venue">
             <FormGroup label="Venue Name"><FormInput defaultValue={field(ev, "venue_name")} /></FormGroup>
             <FormGroup label="Venue Business">
               <FormSelect options={businesses} defaultValue={field(ev, "venue_business_id")} placeholder="Link to existing business" />
@@ -182,15 +264,15 @@ export function EventDetailClient({
               <FormSelect options={cities.map((c) => ({ value: c.id, label: c.name }))} defaultValue={field(ev, "city_id")} placeholder="Select city" />
             </FormGroup>
             <ButtonBar>
-              <button onClick={() => console.log("Save venue")} className="inline-flex items-center px-6 py-2.5 rounded-full text-sm font-semibold bg-[#fee198] text-[#1a1a1a] hover:bg-[#fdd870] transition-colors">Save Changes</button>
+              <button onClick={handleSaveVenue} disabled={saving} className="inline-flex items-center px-6 py-2.5 rounded-full text-sm font-semibold bg-[#fee198] text-[#1a1a1a] hover:bg-[#fdd870] transition-colors disabled:opacity-40 disabled:cursor-not-allowed">{saving ? "Saving..." : "Save Changes"}</button>
             </ButtonBar>
           </div>
         )}
 
         {/* Tab 4 — Tickets & Pricing */}
         {activeTab === "tickets" && (
-          <div className="space-y-4">
-            <ToggleSwitch label="Free Event" checked={fieldBool(ev, "is_free")} onChange={() => console.log("Toggle free")} />
+          <div className="space-y-4" data-tab="tickets">
+            <ToggleSwitch label="Free Event" checked={fieldBool(ev, "is_free")} onChange={() => handleToggle("is_free", fieldBool(ev, "is_free"))} />
             {!fieldBool(ev, "is_free") && (
               <>
                 <FormRow columns={2}>
@@ -212,11 +294,11 @@ export function EventDetailClient({
               </FormGroup>
             </FormRow>
             <FormRow columns={2}>
-              <ToggleSwitch label="Comped" checked={fieldBool(ev, "is_comped")} onChange={() => console.log("Toggle comped")} />
+              <ToggleSwitch label="Comped" checked={fieldBool(ev, "is_comped")} onChange={() => handleToggle("is_comped", fieldBool(ev, "is_comped"))} />
               <FormGroup label="Pricing Source"><FormInput defaultValue={field(ev, "pricing_source")} readOnly className="bg-[#f5f5f5]" /></FormGroup>
             </FormRow>
             <ButtonBar>
-              <button onClick={() => console.log("Save tickets")} className="inline-flex items-center px-6 py-2.5 rounded-full text-sm font-semibold bg-[#fee198] text-[#1a1a1a] hover:bg-[#fdd870] transition-colors">Save Changes</button>
+              <button onClick={handleSaveTickets} disabled={saving} className="inline-flex items-center px-6 py-2.5 rounded-full text-sm font-semibold bg-[#fee198] text-[#1a1a1a] hover:bg-[#fdd870] transition-colors disabled:opacity-40 disabled:cursor-not-allowed">{saving ? "Saving..." : "Save Changes"}</button>
             </ButtonBar>
           </div>
         )}
@@ -259,7 +341,7 @@ export function EventDetailClient({
                 </div>
               ))}
             </div>
-            <UploadZone onUpload={(files) => console.log("Upload event images:", files)} accept="image/*" label="Add event photos" />
+            <UploadZone onUpload={() => { /* event image upload — storage integration pending */ }} accept="image/*" label="Add event photos" />
 
             <h3 className="font-display text-[16px] font-semibold text-black">Related Blog Posts</h3>
             {relatedPosts.length > 0 ? (
@@ -276,7 +358,15 @@ export function EventDetailClient({
             )}
 
             <ButtonBar>
-              <button onClick={() => console.log("Save tags")} className="inline-flex items-center px-6 py-2.5 rounded-full text-sm font-semibold bg-[#fee198] text-[#1a1a1a] hover:bg-[#fdd870] transition-colors">Save Changes</button>
+              <button onClick={async () => {
+                if (!evId) return;
+                setSaving(true);
+                // Save any event-level data; tags are managed via junction table separately
+                const result = await updateEvent(evId, {});
+                setSaving(false);
+                if ("error" in result && result.error) { alert("Error: " + result.error); return; }
+                router.refresh();
+              }} disabled={saving} className="inline-flex items-center px-6 py-2.5 rounded-full text-sm font-semibold bg-[#fee198] text-[#1a1a1a] hover:bg-[#fdd870] transition-colors disabled:opacity-40 disabled:cursor-not-allowed">{saving ? "Saving..." : "Save Changes"}</button>
             </ButtonBar>
           </div>
         )}

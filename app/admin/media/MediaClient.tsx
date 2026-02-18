@@ -1,7 +1,10 @@
 "use client";
 
-import { useState, useMemo } from "react";
+import { useState, useMemo, useCallback } from "react";
+import { useRouter } from "next/navigation";
 import Link from "next/link";
+import { updateMediaItem } from "@/app/admin/actions";
+import { Modal } from "@/components/portal/Modal";
 import { PortalTopbar } from "@/components/portal/PortalTopbar";
 import { StatusBadge } from "@/components/portal/StatusBadge";
 import { FilterBar } from "@/components/portal/FilterBar";
@@ -18,10 +21,8 @@ interface MediaRow {
   thumbnail_url: string | null;
   status: string;
   is_featured: boolean;
-  neighborhood_id: string | null;
   published_at: string | null;
   created_at: string;
-  neighborhoods: { name: string } | null;
 }
 
 interface MediaClientProps {
@@ -32,16 +33,40 @@ const ITEMS_PER_PAGE = 25;
 
 const statusBadgeMap: Record<string, "green" | "gray" | "blue" | "yellow"> = {
   published: "green",
-  draft: "gray",
+  draft: "yellow",
   scheduled: "blue",
-  pending: "yellow",
+  archived: "gray",
 };
 
 export function MediaClient({ media }: MediaClientProps) {
+  const router = useRouter();
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState("");
   const [typeFilter, setTypeFilter] = useState("");
   const [page, setPage] = useState(1);
+  const [editModal, setEditModal] = useState<MediaRow | null>(null);
+  const [editTitle, setEditTitle] = useState("");
+  const [editStatus, setEditStatus] = useState("");
+  const [saving, setSaving] = useState(false);
+
+  const openEditModal = useCallback((item: MediaRow) => {
+    setEditTitle(item.title);
+    setEditStatus(item.status);
+    setEditModal(item);
+  }, []);
+
+  const handleSaveEdit = useCallback(async () => {
+    if (!editModal) return;
+    setSaving(true);
+    const result = await updateMediaItem(editModal.id, { title: editTitle, status: editStatus });
+    setSaving(false);
+    if (result.error) {
+      alert("Error: " + result.error);
+      return;
+    }
+    setEditModal(null);
+    router.refresh();
+  }, [editModal, editTitle, editStatus, router]);
 
   const filtered = useMemo(() => {
     let items = media;
@@ -71,7 +96,7 @@ export function MediaClient({ media }: MediaClientProps) {
       render: (item: MediaRow) => (
         <div className="w-[48px] h-[32px] bg-[#f5f5f5] border border-[#e5e5e5] flex items-center justify-center overflow-hidden">
           {item.thumbnail_url ? (
-            <img src={item.thumbnail_url} alt="" className="w-full h-full object-cover" />
+            <img src={item.thumbnail_url} alt={item.title || "Media thumbnail"} className="w-full h-full object-cover" />
           ) : (
             <span className="text-[9px] text-[#6b7280]">No img</span>
           )}
@@ -100,13 +125,6 @@ export function MediaClient({ media }: MediaClientProps) {
       header: "Source",
       render: (item: MediaRow) => (
         <span className="text-[13px]">{item.source_type}</span>
-      ),
-    },
-    {
-      key: "neighborhood",
-      header: "Neighborhood",
-      render: (item: MediaRow) => (
-        <span className="text-[13px]">{item.neighborhoods?.name ?? "—"}</span>
       ),
     },
     {
@@ -149,7 +167,7 @@ export function MediaClient({ media }: MediaClientProps) {
           </Link>
         }
       />
-      <div className="p-8 max-[899px]:pt-16 space-y-4">
+      <div className="p-8 space-y-4">
         <FilterBar
           filters={[
             {
@@ -159,7 +177,8 @@ export function MediaClient({ media }: MediaClientProps) {
               options: [
                 { value: "published", label: "Published" },
                 { value: "draft", label: "Draft" },
-                { value: "pending", label: "Pending" },
+                { value: "scheduled", label: "Scheduled" },
+                { value: "archived", label: "Archived" },
               ],
             },
             {
@@ -168,8 +187,10 @@ export function MediaClient({ media }: MediaClientProps) {
               value: typeFilter,
               options: [
                 { value: "video", label: "Video" },
-                { value: "image", label: "Image" },
                 { value: "audio", label: "Audio" },
+                { value: "podcast", label: "Podcast" },
+                { value: "short", label: "Short" },
+                { value: "image", label: "Image" },
               ],
             },
           ]}
@@ -183,7 +204,7 @@ export function MediaClient({ media }: MediaClientProps) {
           data={paginated}
           actions={(item) => (
             <button
-              onClick={() => console.log("Edit media:", item.id)}
+              onClick={() => openEditModal(item)}
               className="inline-flex items-center px-3 py-1 text-xs font-semibold rounded-full border border-[#e5e5e5] text-[#374151] hover:border-[#d1d5db] transition-colors"
             >
               Edit
@@ -200,6 +221,56 @@ export function MediaClient({ media }: MediaClientProps) {
           onPageChange={setPage}
         />
       </div>
+
+      <Modal
+        isOpen={!!editModal}
+        onClose={() => setEditModal(null)}
+        title="Edit Media Item"
+        footer={
+          <>
+            <button
+              onClick={() => setEditModal(null)}
+              className="inline-flex items-center px-6 py-2.5 rounded-full text-sm font-semibold border border-[#e5e5e5] text-[#374151] hover:border-[#d1d5db] transition-colors"
+            >
+              Cancel
+            </button>
+            <button
+              onClick={handleSaveEdit}
+              disabled={saving}
+              className="inline-flex items-center px-6 py-2.5 rounded-full text-sm font-semibold bg-[#fee198] text-[#1a1a1a] hover:bg-[#e6c46d] transition-colors disabled:opacity-50"
+            >
+              {saving ? "Saving..." : "Save"}
+            </button>
+          </>
+        }
+      >
+        {editModal && (
+          <div className="space-y-4">
+            <div>
+              <label className="block text-[12px] font-semibold text-[#374151] mb-1">Title</label>
+              <input
+                type="text"
+                value={editTitle}
+                onChange={(e) => setEditTitle(e.target.value)}
+                className="w-full px-3 py-2 text-[13px] border border-[#e5e5e5] bg-white text-[#374151]"
+              />
+            </div>
+            <div>
+              <label className="block text-[12px] font-semibold text-[#374151] mb-1">Status</label>
+              <select
+                value={editStatus}
+                onChange={(e) => setEditStatus(e.target.value)}
+                className="w-full px-3 py-2 text-[13px] border border-[#e5e5e5] bg-white text-[#374151]"
+              >
+                <option value="draft">Draft</option>
+                <option value="scheduled">Scheduled</option>
+                <option value="published">Published</option>
+                <option value="archived">Archived</option>
+              </select>
+            </div>
+          </div>
+        )}
+      </Modal>
     </>
   );
 }

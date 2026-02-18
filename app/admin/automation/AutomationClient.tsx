@@ -49,11 +49,18 @@ interface AutomationClientProps {
 
 const storyStatusMap: Record<string, "green" | "gold" | "blue" | "gray" | "purple" | "orange"> = {
   new: "blue",
-  scored: "gold",
-  in_progress: "orange",
+  assigned_blog: "gold",
+  assigned_script: "gold",
+  assigned_dual: "gold",
+  assigned_social: "gold",
+  draft_script: "orange",
+  draft_social: "orange",
   used: "green",
   banked: "purple",
-  expired: "gray",
+  reviewed: "blue",
+  queued: "blue",
+  skipped: "gray",
+  discarded: "gray",
 };
 
 const batchStatusMap: Record<string, "green" | "gold" | "gray" | "blue"> = {
@@ -67,7 +74,7 @@ export function AutomationClient({ stats, batches, recentStories }: AutomationCl
   const workflowSteps = useMemo(
     () => [
       { label: `New (${stats.newStories})`, status: stats.newStories > 0 ? "current" as const : "future" as const },
-      { label: `Scored (${stats.scoredStories})`, status: stats.scoredStories > 0 ? "current" as const : "future" as const },
+      { label: `Assigned (${stats.scoredStories})`, status: stats.scoredStories > 0 ? "current" as const : "future" as const },
       { label: `In Progress (${stats.inProgressStories})`, status: stats.inProgressStories > 0 ? "current" as const : "future" as const },
       { label: `Used (${stats.usedStories})`, status: "done" as const },
     ],
@@ -77,7 +84,7 @@ export function AutomationClient({ stats, batches, recentStories }: AutomationCl
   return (
     <>
       <PortalTopbar title="Automation" />
-      <div className="p-8 max-[899px]:pt-16 space-y-6">
+      <div className="p-8 space-y-6">
         <StatGrid columns={4}>
           <StatCard
             label="New Stories"

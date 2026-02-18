@@ -1,11 +1,14 @@
 "use client";
 
-import { useState, useMemo } from "react";
+import { useState, useMemo, useCallback } from "react";
+import { useRouter } from "next/navigation";
+import { Pencil, ExternalLink } from "lucide-react";
 import { PortalTopbar } from "@/components/portal/PortalTopbar";
 import { StatusBadge } from "@/components/portal/StatusBadge";
 import { FilterBar } from "@/components/portal/FilterBar";
 import { AdminDataTable } from "@/components/portal/AdminDataTable";
 import { Pagination } from "@/components/portal/Pagination";
+import { unpublishBlogPost } from "@/app/admin/actions";
 
 interface PostRow {
   id: string;
@@ -33,18 +36,32 @@ const ITEMS_PER_PAGE = 25;
 
 const statusBadgeMap: Record<string, "green" | "gray" | "blue" | "yellow" | "red"> = {
   published: "green",
-  approved: "blue",
+  draft: "gray",
+  ready_for_review: "blue",
   scheduled: "yellow",
-  archived: "gray",
-  rejected: "red",
+  archived: "red",
 };
 
 export function PostsClient({ posts, categories }: PostsClientProps) {
+  const router = useRouter();
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState("");
   const [typeFilter, setTypeFilter] = useState("");
   const [categoryFilter, setCategoryFilter] = useState("");
   const [page, setPage] = useState(1);
+  const [unpublishing, setUnpublishing] = useState<string | null>(null);
+
+  const handleUnpublish = useCallback(async (postId: string) => {
+    if (!confirm("Unpublish this post? It will be removed from the public site.")) return;
+    setUnpublishing(postId);
+    const result = await unpublishBlogPost(postId);
+    setUnpublishing(null);
+    if (result.error) {
+      alert("Error: " + result.error);
+      return;
+    }
+    router.refresh();
+  }, [router]);
 
   const filtered = useMemo(() => {
     let items = posts;
@@ -74,12 +91,35 @@ export function PostsClient({ posts, categories }: PostsClientProps) {
       header: "Title",
       width: "30%",
       render: (item: PostRow) => (
-        <span
-          className="font-display text-[14px] font-semibold text-black hover:text-[#c1121f] cursor-pointer transition-colors"
-          onClick={() => console.log("Open post:", item.id)}
-        >
-          {item.title}
-        </span>
+        <div className="flex items-center gap-2">
+          {item.status === "published" ? (
+            <>
+              <a
+                href={`/stories/${item.slug}`}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="font-display text-[14px] font-semibold text-black hover:text-[#c1121f] cursor-pointer transition-colors"
+              >
+                {item.title}
+                <ExternalLink size={11} className="inline ml-1 opacity-40" />
+              </a>
+              <button
+                onClick={() => router.push(`/admin/posts/${item.id}`)}
+                className="flex-shrink-0 p-1 text-[#6b7280] hover:text-black transition-colors"
+                title="Edit post"
+              >
+                <Pencil size={13} />
+              </button>
+            </>
+          ) : (
+            <span
+              className="font-display text-[14px] font-semibold text-black hover:text-[#c1121f] cursor-pointer transition-colors"
+              onClick={() => router.push(`/admin/posts/${item.id}`)}
+            >
+              {item.title}
+            </span>
+          )}
+        </div>
       ),
     },
     {
@@ -133,7 +173,7 @@ export function PostsClient({ posts, categories }: PostsClientProps) {
   return (
     <>
       <PortalTopbar title="Blog Posts" />
-      <div className="p-8 max-[899px]:pt-16 space-y-4">
+      <div className="p-8 space-y-4">
         <FilterBar
           filters={[
             {
@@ -141,9 +181,10 @@ export function PostsClient({ posts, categories }: PostsClientProps) {
               label: "All Status",
               value: statusFilter,
               options: [
-                { value: "published", label: "Published" },
-                { value: "approved", label: "Approved" },
+                { value: "draft", label: "Draft" },
+                { value: "ready_for_review", label: "Ready for Review" },
                 { value: "scheduled", label: "Scheduled" },
+                { value: "published", label: "Published" },
                 { value: "archived", label: "Archived" },
               ],
             },
@@ -175,12 +216,23 @@ export function PostsClient({ posts, categories }: PostsClientProps) {
           columns={columns}
           data={paginated}
           actions={(item) => (
-            <button
-              onClick={() => console.log("Edit post:", item.id)}
-              className="inline-flex items-center px-3 py-1 text-xs font-semibold rounded-full border border-[#e5e5e5] text-[#374151] hover:border-[#d1d5db] transition-colors"
-            >
-              Edit
-            </button>
+            <div className="flex items-center gap-2">
+              <button
+                onClick={() => router.push(`/admin/posts/${item.id}`)}
+                className="inline-flex items-center px-3 py-1 text-xs font-semibold rounded-full border border-[#e5e5e5] text-[#374151] hover:border-[#d1d5db] transition-colors"
+              >
+                Edit
+              </button>
+              {item.status === "published" && (
+                <button
+                  onClick={() => handleUnpublish(item.id)}
+                  disabled={unpublishing === item.id}
+                  className="inline-flex items-center px-3 py-1 text-xs font-semibold rounded-full border border-[#e5e5e5] text-[#c1121f] hover:border-[#c1121f] transition-colors disabled:opacity-50"
+                >
+                  {unpublishing === item.id ? "..." : "Unpublish"}
+                </button>
+              )}
+            </div>
           )}
           emptyMessage="No posts found."
         />

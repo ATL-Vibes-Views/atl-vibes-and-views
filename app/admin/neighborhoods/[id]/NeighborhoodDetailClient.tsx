@@ -1,8 +1,10 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useCallback } from "react";
+import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { ArrowLeft, Store, Newspaper, Calendar, Map } from "lucide-react";
+import { updateNeighborhood } from "@/app/admin/actions";
 import { PortalTopbar } from "@/components/portal/PortalTopbar";
 import { TabNav } from "@/components/portal/TabNav";
 import { StatusBadge } from "@/components/portal/StatusBadge";
@@ -60,12 +62,41 @@ function fieldBool(obj: Record<string, unknown> | null, key: string): boolean {
 }
 
 export function NeighborhoodDetailClient({ neighborhood: n, businesses, stories, events, areas }: NeighborhoodDetailClientProps) {
+  const router = useRouter();
+  const nId = n?.id as string | undefined;
   const [activeTab, setActiveTab] = useState("details");
+  const [saving, setSaving] = useState(false);
+
+  const handleToggle = useCallback(async (fieldName: string, currentValue: boolean) => {
+    if (!nId) return;
+    setSaving(true);
+    const result = await updateNeighborhood(nId, { [fieldName]: !currentValue });
+    setSaving(false);
+    if ("error" in result && result.error) { alert("Error: " + result.error); return; }
+    router.refresh();
+  }, [nId, router]);
+
+  const handleSaveDetails = useCallback(async () => {
+    if (!nId) return;
+    const form = document.querySelector('[data-tab="details"]') as HTMLElement | null;
+    if (!form) return;
+    const inputs = form.querySelectorAll("input, textarea, select");
+    const labels = ["name", "slug", "area_id", "tagline", "description", "hero_image_url", "map_center_lat", "map_center_lng"];
+    const data: Record<string, unknown> = {};
+    inputs.forEach((el, i) => { if (labels[i]) data[labels[i]] = (el as HTMLInputElement).value || null; });
+    if (data.map_center_lat) data.map_center_lat = parseFloat(data.map_center_lat as string);
+    if (data.map_center_lng) data.map_center_lng = parseFloat(data.map_center_lng as string);
+    setSaving(true);
+    const result = await updateNeighborhood(nId, data);
+    setSaving(false);
+    if ("error" in result && result.error) { alert("Error: " + result.error); return; }
+    router.refresh();
+  }, [nId, router]);
 
   return (
     <>
       <PortalTopbar title={field(n, "name", "Neighborhood")} />
-      <div className="p-8 max-[899px]:pt-16 space-y-6">
+      <div className="p-8 space-y-6">
         <Link href="/admin/neighborhoods" className="inline-flex items-center gap-1.5 text-[13px] text-[#6b7280] hover:text-black transition-colors">
           <ArrowLeft size={14} /> Back to Neighborhoods
         </Link>
@@ -80,7 +111,7 @@ export function NeighborhoodDetailClient({ neighborhood: n, businesses, stories,
 
         {/* Tab 1 — Details */}
         {activeTab === "details" && (
-          <div className="space-y-4">
+          <div className="space-y-4" data-tab="details">
             <FormGroup label="Name"><FormInput defaultValue={field(n, "name")} /></FormGroup>
             <FormGroup label="Slug"><FormInput defaultValue={field(n, "slug")} readOnly className="bg-[#f5f5f5]" /></FormGroup>
             <FormGroup label="Area">
@@ -91,17 +122,17 @@ export function NeighborhoodDetailClient({ neighborhood: n, businesses, stories,
             <FormGroup label="Hero Image URL"><FormInput defaultValue={field(n, "hero_image_url")} /></FormGroup>
             {field(n, "hero_image_url") && (
               <div className="w-full max-w-[400px] aspect-[16/9] border border-[#e5e5e5] overflow-hidden">
-                <img src={field(n, "hero_image_url")} alt="" className="w-full h-full object-cover" />
+                <img src={field(n, "hero_image_url")} alt={`${field(n, "name", "Neighborhood")} hero image`} className="w-full h-full object-cover" />
               </div>
             )}
             <FormRow columns={2}>
               <FormGroup label="Map Center Lat"><FormInput type="number" defaultValue={field(n, "map_center_lat")} /></FormGroup>
               <FormGroup label="Map Center Lng"><FormInput type="number" defaultValue={field(n, "map_center_lng")} /></FormGroup>
             </FormRow>
-            <ToggleSwitch label="Active" checked={fieldBool(n, "is_active")} onChange={() => console.log("Toggle active")} />
-            <ToggleSwitch label="Featured" checked={fieldBool(n, "is_featured")} onChange={() => console.log("Toggle featured")} />
+            <ToggleSwitch label="Active" checked={fieldBool(n, "is_active")} onChange={() => handleToggle("is_active", fieldBool(n, "is_active"))} />
+            <ToggleSwitch label="Featured" checked={fieldBool(n, "is_featured")} onChange={() => handleToggle("is_featured", fieldBool(n, "is_featured"))} />
             <ButtonBar>
-              <button onClick={() => console.log("Save neighborhood")} className="inline-flex items-center px-6 py-2.5 rounded-full text-sm font-semibold bg-[#fee198] text-[#1a1a1a] hover:bg-[#fdd870] transition-colors">Save Changes</button>
+              <button onClick={handleSaveDetails} disabled={saving} className="inline-flex items-center px-6 py-2.5 rounded-full text-sm font-semibold bg-[#fee198] text-[#1a1a1a] hover:bg-[#fdd870] transition-colors disabled:opacity-40 disabled:cursor-not-allowed">{saving ? "Saving..." : "Save Changes"}</button>
             </ButtonBar>
           </div>
         )}
@@ -161,14 +192,22 @@ export function NeighborhoodDetailClient({ neighborhood: n, businesses, stories,
 
         {/* Tab 3 — Map Data */}
         {activeTab === "map" && (
-          <div className="space-y-4">
+          <div className="space-y-4" data-tab="map">
             <FormGroup label="GeoJSON Key"><FormInput defaultValue={field(n, "geojson_key")} readOnly className="bg-[#f5f5f5]" /></FormGroup>
             <div className="border border-[#e5e5e5] p-6 flex items-center gap-3 text-[#6b7280]">
               <Map size={20} />
               <span className="text-[13px]">Map boundary editing will be available after Mapbox integration.</span>
             </div>
             <ButtonBar>
-              <button onClick={() => console.log("Save map data")} className="inline-flex items-center px-6 py-2.5 rounded-full text-sm font-semibold bg-[#fee198] text-[#1a1a1a] hover:bg-[#fdd870] transition-colors">Save Changes</button>
+              <button onClick={async () => {
+                if (!nId) return;
+                const geojsonInput = document.querySelector('[data-tab="map"] input') as HTMLInputElement | null;
+                setSaving(true);
+                const result = await updateNeighborhood(nId, { geojson_key: geojsonInput?.value || null });
+                setSaving(false);
+                if ("error" in result && result.error) { alert("Error: " + result.error); return; }
+                router.refresh();
+              }} disabled={saving} className="inline-flex items-center px-6 py-2.5 rounded-full text-sm font-semibold bg-[#fee198] text-[#1a1a1a] hover:bg-[#fdd870] transition-colors disabled:opacity-40 disabled:cursor-not-allowed">{saving ? "Saving..." : "Save Changes"}</button>
             </ButtonBar>
           </div>
         )}

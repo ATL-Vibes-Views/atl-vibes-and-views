@@ -1,0 +1,14 @@
+tbl,status,count
+blog_posts,draft,1
+blog_posts,published,18
+blog_posts,scheduled,1
+events,active,13
+events,completed,1
+business_listings,active,35
+media_items,published,18
+newsletters,sent,1
+newsletters,draft,1
+stories,reviewed,1
+stories,used,3
+stories,new,2
+stories,queued,2

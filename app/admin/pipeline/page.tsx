@@ -1,5 +1,5 @@
 import { Metadata } from "next";
-import { createServerClient } from "@/lib/supabase";
+import { createServiceRoleClient } from "@/lib/supabase";
 import { PipelineClient } from "./PipelineClient";
 
 export const metadata: Metadata = {
@@ -11,11 +11,13 @@ export const metadata: Metadata = {
 export const dynamic = 'force-dynamic';
 
 export default async function PipelinePage() {
-  const supabase = createServerClient();
+  const supabase = createServiceRoleClient();
 
+  // Exclude terminal statuses — used/discarded stories have no actions left
   const { data: stories, error: storiesErr } = (await supabase
     .from("stories")
     .select("*, categories(name)")
+    .not("status", "in", '("used","discarded")')
     .order("created_at", { ascending: false })) as {
     data: {
       id: string;
@@ -23,7 +25,7 @@ export default async function PipelinePage() {
       source_name: string | null;
       status: string;
       score: number | null;
-      tier: number | null;
+      tier: string | null;
       category_id: string | null;
       created_at: string;
       categories: { name: string } | null;

@@ -119,7 +119,7 @@ export function Header({ exploreData = [] }: HeaderProps) {
     <header className="w-full bg-white sticky top-0 z-50 border-b border-gray-200">
       {/* ROW 1 — Brand bar */}
       <div className="border-b border-gray-100">
-        <div className="site-container flex items-center justify-between h-[84px]">
+        <div className="site-container flex items-center justify-between h-[64px] md:h-[84px]">
           <div className="hidden md:flex items-center gap-5">
             {SOCIAL_LINKS.map(({ icon: Icon, label, count, href, hoverClass }) => (
               <a key={label} href={href} target="_blank" rel="noopener noreferrer" className="flex items-center gap-1.5 group" aria-label={label}>
@@ -135,8 +135,8 @@ export function Header({ exploreData = [] }: HeaderProps) {
           </Link>
 
           <div className="flex items-center gap-3 ml-auto">
-            <button onClick={() => setSearchOpen(!searchOpen)} className="p-2.5 rounded-full transition-colors duration-200 text-[#e6c46d] hover:text-black" aria-label="Search"><Search size={20} strokeWidth={1.5} /></button>
-            <Link href="/login" className="p-2.5 rounded-full transition-colors duration-200 text-[#e6c46d] hover:text-black" aria-label="Sign in"><User size={20} strokeWidth={1.5} /></Link>
+            <button onClick={() => setSearchOpen(!searchOpen)} className="p-3 rounded-full transition-colors duration-200 text-[#e6c46d] hover:text-black focus-visible:ring-2 focus-visible:ring-[#c1121f]" aria-label="Search"><Search size={20} strokeWidth={1.5} /></button>
+            <Link href="/login" className="p-3 rounded-full transition-colors duration-200 text-[#e6c46d] hover:text-black focus-visible:ring-2 focus-visible:ring-[#c1121f]" aria-label="Sign in"><User size={20} strokeWidth={1.5} /></Link>
           </div>
         </div>
       </div>
@@ -146,16 +146,16 @@ export function Header({ exploreData = [] }: HeaderProps) {
           <div className="site-container py-4">
             <div className="flex items-center gap-3 max-w-xl mx-auto">
               <Search size={18} className="text-gray-mid shrink-0" />
-              <input type="text" placeholder="Search stories, neighborhoods, businesses..." className="w-full bg-transparent text-sm outline-none placeholder:text-gray-mid" autoFocus />
-              <button onClick={() => setSearchOpen(false)} className="p-1 hover:bg-white rounded-full transition-colors"><X size={16} /></button>
+              <input type="text" placeholder="Search stories, neighborhoods, businesses..." className="w-full bg-transparent text-sm outline-none placeholder:text-gray-mid focus-visible:ring-2 focus-visible:ring-[#e6c46d] focus-visible:ring-offset-2 rounded" autoFocus aria-label="Search stories, neighborhoods, businesses" />
+              <button onClick={() => setSearchOpen(false)} className="p-3 hover:bg-white rounded-full transition-colors" aria-label="Close search"><X size={16} /></button>
             </div>
           </div>
         </div>
       )}
 
       {/* ROW 2 — Navigation */}
-      <div className="site-container flex items-center justify-between h-[60px]">
-        <button onClick={openDrawer} className="p-2.5 -ml-2 hover:bg-gray-100 rounded-full transition-colors" aria-label="Open menu"><Menu size={22} strokeWidth={1.5} /></button>
+      <div className="site-container flex items-center justify-between h-[48px] md:h-[60px]">
+        <button onClick={openDrawer} className="p-3 -ml-2 hover:bg-gray-100 rounded-full transition-colors focus-visible:ring-2 focus-visible:ring-[#c1121f]" aria-label="Open menu"><Menu size={22} strokeWidth={1.5} /></button>
 
         <nav className="hidden lg:flex items-center gap-10 absolute left-1/2 -translate-x-1/2">
           <NavLink href="/">Home</NavLink>
@@ -256,6 +256,7 @@ export function Header({ exploreData = [] }: HeaderProps) {
 
           <NavLink href="/city-watch">City Watch</NavLink>
           <NavLink href="/media">Media</NavLink>
+          <NavLink href="/dashboard">Client Portal</NavLink>
         </nav>
 
         <Link href="/submit" className="hidden md:inline-flex items-center px-5 py-2 bg-[#e6c46d] text-black text-xs font-semibold uppercase tracking-eyebrow rounded-full hover:bg-black hover:text-[#fee198] transition-colors">Submit Listing</Link>
@@ -280,11 +281,12 @@ export function Header({ exploreData = [] }: HeaderProps) {
             <div className="flex items-start justify-between p-8 pb-0">
               <Link href="/" onClick={closeDrawer} className="block">
                 <div className="font-logo text-2xl font-bold tracking-wide text-white leading-none">ATL VIBES &amp; VIEWS</div>
-                <div className="text-[10px] tracking-[0.15em] text-white/40 mt-2 uppercase">The City. The Culture. The Conversation.</div>
+                <div className="text-[10px] tracking-[0.15em] text-white/60 mt-2 uppercase">The City. The Culture. The Conversation.</div>
               </Link>
               <button
                 onClick={closeDrawer}
-                className="p-1 text-white/50 hover:text-white transition-all mt-1"
+                className="p-3 text-white/50 hover:text-white transition-all mt-1"
+                aria-label="Close menu"
                 style={{
                   transform: closeSpinning ? "rotate(90deg) scale(0.7)" : "rotate(0deg) scale(1)",
                   opacity: closeSpinning ? 0 : 1,
@@ -406,6 +408,7 @@ export function Header({ exploreData = [] }: HeaderProps) {
 
                 <MobileNavLink href="/city-watch" onClick={closeDrawer}>City Watch</MobileNavLink>
                 <MobileNavLink href="/media" onClick={closeDrawer}>Media</MobileNavLink>
+                <MobileNavLink href="/dashboard" onClick={closeDrawer}>Client Portal</MobileNavLink>
               </nav>
             </div>
 
@@ -433,7 +436,7 @@ export function Header({ exploreData = [] }: HeaderProps) {
                     <a key={label} href={href} target="_blank" rel="noopener noreferrer" className="text-white hover:text-gold-light transition-colors" aria-label={label}><Icon size={18} /></a>
                   ))}
                 </div>
-                <p className="text-white/30 text-xs">&copy; {new Date().getFullYear()} ATL Vibes &amp; Views. All Rights Reserved.</p>
+                <p className="text-white/50 text-xs">&copy; {new Date().getFullYear()} ATL Vibes &amp; Views. All Rights Reserved.</p>
                 <a href="https://avv-media.com" target="_blank" rel="noopener noreferrer" className="text-[#e6c46d] text-xs hover:text-[#fee198] transition-colors mt-1.5 inline-block">
                   Website by AVV Media
                 </a>

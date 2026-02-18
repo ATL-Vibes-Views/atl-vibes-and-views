@@ -1,5 +1,5 @@
 import { Metadata } from "next";
-import { createServerClient } from "@/lib/supabase";
+import { createServiceRoleClient } from "@/lib/supabase";
 import { SponsorDetailClient } from "./SponsorDetailClient";
 import type { SponsorData, DeliverableRow, FulfillmentLogRow, PostRow, CampaignRow, CreativeRow, FlightRow } from "./SponsorDetailClient";
 
@@ -17,7 +17,7 @@ export default async function SponsorDetailPage({
   params: Promise<{ id: string }>;
 }) {
   const { id } = await params;
-  const supabase = createServerClient();
+  const supabase = createServiceRoleClient();
 
   // Fetch sponsor
   const { data: sponsor } = await supabase

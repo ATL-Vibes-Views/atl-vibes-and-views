@@ -101,26 +101,28 @@ export function GeneralContactForm() {
       {/* Name row */}
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
         <div>
-          <label className="block text-sm font-semibold text-black mb-1.5">
+          <label htmlFor="contact-firstname" className="block text-sm font-semibold text-black mb-1.5">
             First Name
           </label>
           <input
+            id="contact-firstname"
             type="text"
             value={form.firstname}
             onChange={update("firstname")}
-            className="w-full border border-gray-300 px-4 py-3 text-sm bg-white focus:outline-none focus:border-[#c1121f] transition-colors"
+            className="w-full border border-gray-300 px-4 py-3 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-[#c1121f]/30 focus:border-[#c1121f] transition-colors"
             placeholder="First name"
           />
         </div>
         <div>
-          <label className="block text-sm font-semibold text-black mb-1.5">
+          <label htmlFor="contact-lastname" className="block text-sm font-semibold text-black mb-1.5">
             Last Name
           </label>
           <input
+            id="contact-lastname"
             type="text"
             value={form.lastname}
             onChange={update("lastname")}
-            className="w-full border border-gray-300 px-4 py-3 text-sm bg-white focus:outline-none focus:border-[#c1121f] transition-colors"
+            className="w-full border border-gray-300 px-4 py-3 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-[#c1121f]/30 focus:border-[#c1121f] transition-colors"
             placeholder="Last name"
           />
         </div>
@@ -128,29 +130,31 @@ export function GeneralContactForm() {
 
       {/* Email */}
       <div>
-        <label className="block text-sm font-semibold text-black mb-1.5">
+        <label htmlFor="contact-email" className="block text-sm font-semibold text-black mb-1.5">
           Email <span className="text-[#c1121f]">*</span>
         </label>
         <input
+          id="contact-email"
           type="email"
           required
           value={form.email}
           onChange={update("email")}
-          className="w-full border border-gray-300 px-4 py-3 text-sm bg-white focus:outline-none focus:border-[#c1121f] transition-colors"
+          className="w-full border border-gray-300 px-4 py-3 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-[#c1121f]/30 focus:border-[#c1121f] transition-colors"
           placeholder="your@email.com"
         />
       </div>
 
       {/* Subject Dropdown */}
       <div>
-        <label className="block text-sm font-semibold text-black mb-1.5">
+        <label htmlFor="contact-subject" className="block text-sm font-semibold text-black mb-1.5">
           Subject <span className="text-[#c1121f]">*</span>
         </label>
         <select
+          id="contact-subject"
           required
           value={form.subject_dropdown}
           onChange={update("subject_dropdown")}
-          className="w-full border border-gray-300 px-4 py-3 text-sm bg-white focus:outline-none focus:border-[#c1121f] transition-colors appearance-none"
+          className="w-full border border-gray-300 px-4 py-3 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-[#c1121f]/30 focus:border-[#c1121f] transition-colors appearance-none"
         >
           <option value="" disabled>
             Select a topic
@@ -165,14 +169,15 @@ export function GeneralContactForm() {
 
       {/* Message */}
       <div>
-        <label className="block text-sm font-semibold text-black mb-1.5">
+        <label htmlFor="contact-message" className="block text-sm font-semibold text-black mb-1.5">
           Message
         </label>
         <textarea
+          id="contact-message"
           rows={5}
           value={form.message}
           onChange={update("message")}
-          className="w-full border border-gray-300 px-4 py-3 text-sm bg-white focus:outline-none focus:border-[#c1121f] transition-colors resize-none"
+          className="w-full border border-gray-300 px-4 py-3 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-[#c1121f]/30 focus:border-[#c1121f] transition-colors resize-none"
           placeholder="How can we help?"
         />
       </div>

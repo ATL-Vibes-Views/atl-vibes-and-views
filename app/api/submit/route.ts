@@ -1,5 +1,7 @@
-import { createServerClient } from "@/lib/supabase";
+import { createServiceRoleClient } from "@/lib/supabase";
 import { NextResponse } from "next/server";
+import { withCors } from "@/lib/cors";
+import { sendSubmissionConfirmation, sendAdminNotification } from "@/lib/email";
 
 export async function POST(request: Request) {
   try {
@@ -33,7 +35,7 @@ export async function POST(request: Request) {
       );
     }
 
-    const supabase = createServerClient();
+    const supabase = createServiceRoleClient();
 
     const { data: submission, error } = await supabase
       .from("submissions" as never)
@@ -56,10 +58,21 @@ export async function POST(request: Request) {
       );
     }
 
-    // TODO (Developer): Send confirmation email to submitter
-    // TODO (Developer): Send admin alert email
+    // Fire-and-forget: send email notifications without blocking the response
+    await Promise.all([
+      sendSubmissionConfirmation(
+        submitter_email.trim().toLowerCase(),
+        submitter_name.trim(),
+        submission_type
+      ),
+      sendAdminNotification(
+        submission_type,
+        submitter_name.trim(),
+        submitter_email.trim().toLowerCase()
+      ),
+    ]);
 
-    return NextResponse.json(submission, { status: 201 });
+    return withCors(NextResponse.json(submission, { status: 201 }), request);
   } catch (err) {
     console.error("Submit API error:", err);
     return NextResponse.json(
@@ -67,4 +80,8 @@ export async function POST(request: Request) {
       { status: 500 }
     );
   }
+}
+
+export async function OPTIONS(request: Request) {
+  return withCors(new NextResponse(null, { status: 204 }), request);
 }

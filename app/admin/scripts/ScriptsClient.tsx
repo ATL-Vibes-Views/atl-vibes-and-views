@@ -1,6 +1,8 @@
 "use client";
 
 import { useState, useMemo, useCallback } from "react";
+import { useRouter } from "next/navigation";
+import Link from "next/link";
 import { PortalTopbar } from "@/components/portal/PortalTopbar";
 import { StatCard } from "@/components/portal/StatCard";
 import { StatGrid } from "@/components/portal/StatGrid";
@@ -8,8 +10,8 @@ import { StatusBadge } from "@/components/portal/StatusBadge";
 import { FilterBar } from "@/components/portal/FilterBar";
 import { Modal } from "@/components/portal/Modal";
 import { Pagination } from "@/components/portal/Pagination";
-import { createBrowserClient } from "@/lib/supabase";
 import { ChevronDown, ChevronUp } from "lucide-react";
+import { rejectScript, approveScript, updateScript } from "@/app/admin/actions";
 
 interface FilmingScript {
   id: string;
@@ -20,26 +22,15 @@ interface FilmingScript {
   platform: string;
   format: string;
   status: string;
+  platform_captions: Record<string, unknown> | null;
   scheduled_date: string | null;
   created_at: string;
   script_batches: { batch_name: string | null } | null;
   stories: { headline: string } | null;
 }
 
-interface CaptionRow {
-  id: string;
-  story_id: string | null;
-  platform: string;
-  caption: string | null;
-  description: string | null;
-  tags: string | null;
-  hashtags: string | null;
-  status: string;
-}
-
 interface ScriptsClientProps {
   filmingScripts: FilmingScript[];
-  captions: CaptionRow[];
   batches: { id: string; batch_name: string }[];
   counts: { pending: number; approved: number; published: number };
 }
@@ -47,8 +38,11 @@ interface ScriptsClientProps {
 const ITEMS_PER_PAGE = 10;
 
 const statusBadgeMap: Record<string, "yellow" | "green" | "red" | "blue" | "gray"> = {
-  pending: "yellow",
-  draft: "gray",
+  draft: "yellow",
+  approved: "green",
+  filmed: "blue",
+  posted: "green",
+  killed: "red",
 };
 
 const PLATFORM_ORDER = ["youtube", "instagram", "tiktok", "linkedin", "facebook", "x"];
@@ -62,25 +56,94 @@ const PLATFORM_LABELS: Record<string, string> = {
   x: "X (Twitter)",
 };
 
-export function ScriptsClient({ filmingScripts, captions, batches, counts }: ScriptsClientProps) {
+/** JSONB keys to check for each display platform (automation writes youtube_short) */
+const JSONB_KEYS: Record<string, string[]> = {
+  youtube: ["youtube_short", "youtube"],
+};
+
+/** Unwrap double-encoded JSONB (string stored inside JSONB column) */
+function parsePlatformCaptions(pc: unknown): Record<string, unknown> {
+  if (!pc) return {};
+  let parsed: unknown = pc;
+  if (typeof parsed === "string") {
+    try { parsed = JSON.parse(parsed); } catch { return {}; }
+  }
+  if (typeof parsed === "string") {
+    try { parsed = JSON.parse(parsed); } catch { return {}; }
+  }
+  if (parsed && typeof parsed === "object" && !Array.isArray(parsed)) return parsed as Record<string, unknown>;
+  return {};
+}
+
+/** Read a platform's caption data from the platform_captions JSONB */
+function getCaptionData(pc: unknown, key: string): Record<string, string> {
+  const parsed = parsePlatformCaptions(pc);
+  const keysToTry = JSONB_KEYS[key] ?? [key];
+  for (const k of keysToTry) {
+    const val = parsed[k];
+    if (typeof val === "string") {
+      try {
+        const inner = JSON.parse(val);
+        if (inner && typeof inner === "object" && Object.keys(inner).length > 0) return inner as Record<string, string>;
+      } catch { /* not JSON */ }
+    }
+    if (val && typeof val === "object" && Object.keys(val as object).length > 0) return val as Record<string, string>;
+  }
+  return {};
+}
+
+/** Count how many of the 6 platforms have caption data populated */
+function countPopulatedCaptions(pc: unknown): number {
+  const parsed = parsePlatformCaptions(pc);
+  if (!Object.keys(parsed).length) return 0;
+  return PLATFORM_ORDER.filter((p) => {
+    const data = getCaptionData(parsed, p);
+    return !!data.caption || !!data.title;
+  }).length;
+}
+
+export function ScriptsClient({ filmingScripts, batches, counts }: ScriptsClientProps) {
+  const router = useRouter();
   const [scripts, setScripts] = useState(filmingScripts);
   const [batchFilter, setBatchFilter] = useState("");
   const [page, setPage] = useState(1);
   const [expandedCaptions, setExpandedCaptions] = useState<Set<string>>(new Set());
   const [editModal, setEditModal] = useState<FilmingScript | null>(null);
+  const [editText, setEditText] = useState("");
   const [approving, setApproving] = useState<string | null>(null);
+  const [rejecting, setRejecting] = useState<string | null>(null);
+  const [savingEdit, setSavingEdit] = useState(false);
 
-  // Group captions by story_id using Map
-  const captionsByStory = useMemo(() => {
-    const map = new Map<string, CaptionRow[]>();
-    for (const cap of captions) {
-      if (!cap.story_id) continue;
-      const arr = map.get(cap.story_id) || [];
-      arr.push(cap);
-      map.set(cap.story_id, arr);
+  const openEditModal = useCallback((script: FilmingScript) => {
+    setEditText(script.script_text ?? "");
+    setEditModal(script);
+  }, []);
+
+  const handleReject = useCallback(async (id: string) => {
+    setRejecting(id);
+    const result = await rejectScript(id);
+    setRejecting(null);
+    if (result.error) {
+      alert("Error: " + result.error);
+      return;
     }
-    return map;
-  }, [captions]);
+    setScripts((prev) => prev.filter((s) => s.id !== id));
+  }, []);
+
+  const handleSaveEdit = useCallback(async () => {
+    if (!editModal) return;
+    setSavingEdit(true);
+    const result = await updateScript(editModal.id, { script_text: editText });
+    setSavingEdit(false);
+    if (result.error) {
+      alert("Error: " + result.error);
+      return;
+    }
+    setScripts((prev) =>
+      prev.map((s) => s.id === editModal.id ? { ...s, script_text: editText } : s)
+    );
+    setEditModal(null);
+  }, [editModal, editText]);
 
   const filtered = useMemo(() => {
     let items = scripts;
@@ -107,38 +170,14 @@ export function ScriptsClient({ filmingScripts, captions, batches, counts }: Scr
 
   const handleApprove = useCallback(async (script: FilmingScript) => {
     setApproving(script.id);
-    try {
-      const supabase = createBrowserClient();
-
-      // Update this script's status to approved
-      const { error: scriptErr } = await supabase
-        .from("scripts")
-        .update({ status: "approved" } as never)
-        .eq("id", script.id);
-
-      if (scriptErr) {
-        console.error("Failed to approve script:", scriptErr);
-        setApproving(null);
-        return;
-      }
-
-      // Also approve all caption rows for the same story
-      if (script.story_id) {
-        const { error: captionErr } = await supabase
-          .from("scripts")
-          .update({ status: "approved" } as never)
-          .eq("story_id", script.story_id);
-
-        if (captionErr) {
-          console.error("Failed to approve captions:", captionErr);
-        }
-      }
-
-      // Remove from local list — approved scripts belong in Social Queue now
-      setScripts((prev) => prev.filter((s) => s.id !== script.id));
-    } finally {
-      setApproving(null);
+    const result = await approveScript(script.id, script.story_id);
+    setApproving(null);
+    if (result.error) {
+      alert("Error: " + result.error);
+      return;
     }
+    // Remove from local list — approved scripts belong in Social Queue now
+    setScripts((prev) => prev.filter((s) => s.id !== script.id));
   }, []);
 
   return (
@@ -146,12 +185,15 @@ export function ScriptsClient({ filmingScripts, captions, batches, counts }: Scr
       <PortalTopbar
         title="Scripts"
         actions={
-          <span className="text-[12px] text-[#6b7280]">
-            Filming scripts and platform captions — delivered every Friday
-          </span>
+          <Link
+            href="/admin/scripts/new"
+            className="inline-flex items-center px-6 py-2.5 rounded-full text-sm font-semibold bg-[#fee198] text-[#1a1a1a] hover:bg-[#e6c46d] transition-colors"
+          >
+            + Add Script
+          </Link>
         }
       />
-      <div className="p-8 max-[899px]:pt-16 space-y-4">
+      <div className="p-8 space-y-4">
         <StatGrid columns={3}>
           <StatCard
             label="Pending Review"
@@ -186,10 +228,7 @@ export function ScriptsClient({ filmingScripts, captions, batches, counts }: Scr
             </div>
           )}
           {paginated.map((script) => {
-            const scriptCaptions = captionsByStory.get(script.story_id ?? "") || [];
-            const sortedCaptions = [...scriptCaptions].sort(
-              (a, b) => PLATFORM_ORDER.indexOf(a.platform) - PLATFORM_ORDER.indexOf(b.platform)
-            );
+            const captionCount = countPopulatedCaptions(script.platform_captions);
             const isExpanded = expandedCaptions.has(script.id);
             const borderColor = "border-l-[#f59e0b]";
 
@@ -226,7 +265,7 @@ export function ScriptsClient({ filmingScripts, captions, batches, counts }: Scr
                       </span>
                     )}
                     <span className="text-[11px] text-[#6b7280]">
-                      Captions: {sortedCaptions.length}/6
+                      Captions: {captionCount}/6
                     </span>
                   </div>
 
@@ -250,50 +289,71 @@ export function ScriptsClient({ filmingScripts, captions, batches, counts }: Scr
                       View Captions
                     </button>
                     <button
-                      onClick={() => setEditModal(script)}
+                      onClick={() => openEditModal(script)}
                       className="inline-flex items-center px-3 py-1 text-xs font-semibold rounded-full border border-[#e5e5e5] text-[#374151] hover:border-[#d1d5db] transition-colors"
                     >
                       Edit
                     </button>
                     <button
-                      onClick={() => console.log("Scripts: Reject script", script.id)}
-                      className="inline-flex items-center px-3 py-1 text-xs font-semibold rounded-full border border-[#c1121f] text-[#c1121f] hover:bg-[#fee2e2] transition-colors"
-                    >
-                      Reject
-                    </button>
-                    <button
                       onClick={() => handleApprove(script)}
                       disabled={approving === script.id}
-                      className="inline-flex items-center px-3 py-1 text-xs font-semibold rounded-full bg-[#fee198] text-[#1a1a1a] hover:bg-[#fdd870] transition-colors disabled:opacity-50"
+                      className="inline-flex items-center px-3 py-1 text-xs font-semibold rounded-full bg-[#16a34a] text-white hover:bg-[#15803d] transition-colors disabled:opacity-50"
                     >
                       {approving === script.id ? "Approving..." : "Approve"}
                     </button>
+                    <button
+                      onClick={() => handleReject(script.id)}
+                      disabled={rejecting === script.id}
+                      className="inline-flex items-center px-3 py-1 text-xs font-semibold rounded-full text-[#c1121f] hover:bg-[#fee2e2] transition-colors disabled:opacity-50"
+                    >
+                      {rejecting === script.id ? "Rejecting..." : "× Reject"}
+                    </button>
                   </div>
 
-                  {/* Expanded captions section */}
+                  {/* Expanded captions section — reads from platform_captions JSONB */}
                   {isExpanded && (
                     <div className="mt-4 border-t border-[#e5e5e5] pt-4">
                       <span className="text-[12px] font-semibold text-[#374151]">
-                        Platform Captions ({sortedCaptions.length}/6)
+                        Platform Captions ({captionCount}/6)
                       </span>
-                      {sortedCaptions.length > 0 ? (
+                      {captionCount > 0 ? (
                         <div className="grid grid-cols-1 lg:grid-cols-2 gap-2 mt-2">
-                          {sortedCaptions.map((cap) => (
-                            <div key={cap.id} className="bg-[#fafafa] border border-[#e5e5e5] p-3">
-                              <span className="text-[11px] font-semibold text-[#374151]">
-                                {PLATFORM_LABELS[cap.platform] ?? cap.platform}
-                              </span>
-                              {cap.caption ? (
-                                <p className="text-[12px] text-[#6b7280] mt-1 line-clamp-2">
-                                  {cap.caption}
-                                </p>
-                              ) : (
-                                <p className="text-[12px] text-[#9ca3af] mt-1 italic">
-                                  Awaiting generation
-                                </p>
-                              )}
-                            </div>
-                          ))}
+                          {PLATFORM_ORDER.map((p) => {
+                            const data = getCaptionData(script.platform_captions, p);
+                            const isYoutube = p === "youtube";
+                            const hasContent = isYoutube ? !!data.title : !!data.caption;
+                            return (
+                              <div key={p} className="bg-[#fafafa] border border-[#e5e5e5] p-3">
+                                <span className="text-[11px] font-semibold text-[#374151]">
+                                  {PLATFORM_LABELS[p] ?? p}
+                                </span>
+                                {hasContent ? (
+                                  <div className="mt-1 space-y-1">
+                                    {isYoutube ? (
+                                      <>
+                                        <p className="text-[12px] text-[#374151] font-medium line-clamp-1">{data.title}</p>
+                                        {data.description && (
+                                          <p className="text-[12px] text-[#6b7280] line-clamp-2">{data.description}</p>
+                                        )}
+                                        {data.tags && (
+                                          <p className="text-[11px] text-[#9ca3af]">Tags: {data.tags}</p>
+                                        )}
+                                      </>
+                                    ) : (
+                                      <p className="text-[12px] text-[#6b7280] line-clamp-2">{data.caption}</p>
+                                    )}
+                                    {data.hashtags && (
+                                      <p className="text-[11px] text-[#9ca3af] line-clamp-1">{data.hashtags}</p>
+                                    )}
+                                  </div>
+                                ) : (
+                                  <p className="text-[12px] text-[#9ca3af] mt-1 italic">
+                                    Awaiting generation
+                                  </p>
+                                )}
+                              </div>
+                            );
+                          })}
                         </div>
                       ) : (
                         <p className="text-[12px] text-[#9ca3af] mt-2 italic">
@@ -331,13 +391,11 @@ export function ScriptsClient({ filmingScripts, captions, batches, counts }: Scr
               Cancel
             </button>
             <button
-              onClick={() => {
-                console.log("Scripts: Save edit for script", editModal?.id);
-                setEditModal(null);
-              }}
-              className="inline-flex items-center px-6 py-2.5 rounded-full text-sm font-semibold bg-[#fee198] text-[#1a1a1a] hover:bg-[#fdd870] transition-colors"
+              onClick={handleSaveEdit}
+              disabled={savingEdit}
+              className="inline-flex items-center px-6 py-2.5 rounded-full text-sm font-semibold bg-[#fee198] text-[#1a1a1a] hover:bg-[#fdd870] transition-colors disabled:opacity-50"
             >
-              Save
+              {savingEdit ? "Saving..." : "Save"}
             </button>
           </>
         }
@@ -351,9 +409,9 @@ export function ScriptsClient({ filmingScripts, captions, batches, counts }: Scr
             <div>
               <label className="block text-[12px] font-semibold text-[#374151] mb-1">Filming Script</label>
               <textarea
-                readOnly
-                className="w-full h-[200px] p-3 text-[13px] border border-[#e5e5e5] bg-[#f5f5f5] text-[#374151] font-body resize-vertical"
-                defaultValue={editModal.script_text ?? ""}
+                className="w-full h-[200px] p-3 text-[13px] border border-[#e5e5e5] bg-white text-[#374151] font-body resize-vertical"
+                value={editText}
+                onChange={(e) => setEditText(e.target.value)}
               />
             </div>
           </div>

@@ -1,5 +1,5 @@
 import { Metadata } from "next";
-import { createServerClient } from "@/lib/supabase";
+import { createServiceRoleClient } from "@/lib/supabase";
 import { BusinessDetailClient } from "./BusinessDetailClient";
 
 export const metadata: Metadata = {
@@ -12,7 +12,7 @@ export const dynamic = 'force-dynamic';
 
 export default async function BusinessDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
-  const supabase = createServerClient();
+  const supabase = createServiceRoleClient();
   const isNew = id === "new";
 
   // Main business

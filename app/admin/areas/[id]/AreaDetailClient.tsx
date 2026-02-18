@@ -1,8 +1,10 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useCallback } from "react";
+import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { ArrowLeft, MapPin } from "lucide-react";
+import { updateArea } from "@/app/admin/actions";
 import { PortalTopbar } from "@/components/portal/PortalTopbar";
 import { TabNav } from "@/components/portal/TabNav";
 import { StatusBadge } from "@/components/portal/StatusBadge";
@@ -42,14 +44,43 @@ function fieldBool(obj: Record<string, unknown> | null, key: string): boolean {
 }
 
 export function AreaDetailClient({ area, isNew, neighborhoods, cities }: AreaDetailClientProps) {
+  const router = useRouter();
+  const areaId = area?.id as string | undefined;
   const [activeTab, setActiveTab] = useState("details");
+  const [saving, setSaving] = useState(false);
+
+  const handleToggle = useCallback(async (fieldName: string, currentValue: boolean) => {
+    if (!areaId) return;
+    setSaving(true);
+    const result = await updateArea(areaId, { [fieldName]: !currentValue });
+    setSaving(false);
+    if ("error" in result && result.error) { alert("Error: " + result.error); return; }
+    router.refresh();
+  }, [areaId, router]);
+
+  const handleSaveDetails = useCallback(async () => {
+    if (!areaId) return;
+    const form = document.querySelector('[data-tab="details"]') as HTMLElement | null;
+    if (!form) return;
+    const inputs = form.querySelectorAll("input, textarea, select");
+    const labels = ["name", "slug", "city_id", "tagline", "description", "hero_image_url", "map_center_lat", "map_center_lng"];
+    const data: Record<string, unknown> = {};
+    inputs.forEach((el, i) => { if (labels[i]) data[labels[i]] = (el as HTMLInputElement).value || null; });
+    if (data.map_center_lat) data.map_center_lat = parseFloat(data.map_center_lat as string);
+    if (data.map_center_lng) data.map_center_lng = parseFloat(data.map_center_lng as string);
+    setSaving(true);
+    const result = await updateArea(areaId, data);
+    setSaving(false);
+    if ("error" in result && result.error) { alert("Error: " + result.error); return; }
+    router.refresh();
+  }, [areaId, router]);
 
   const title = isNew ? "New Area" : field(area, "name", "Area");
 
   return (
     <>
       <PortalTopbar title={title} />
-      <div className="p-8 max-[899px]:pt-16 space-y-6">
+      <div className="p-8 space-y-6">
         <Link href="/admin/areas" className="inline-flex items-center gap-1.5 text-[13px] text-[#6b7280] hover:text-black transition-colors">
           <ArrowLeft size={14} /> Back to Areas
         </Link>
@@ -65,7 +96,7 @@ export function AreaDetailClient({ area, isNew, neighborhoods, cities }: AreaDet
 
         {/* Tab 1 — Details */}
         {activeTab === "details" && (
-          <div className="space-y-4">
+          <div className="space-y-4" data-tab="details">
             <FormGroup label="Name"><FormInput defaultValue={field(area, "name")} /></FormGroup>
             <FormGroup label="Slug"><FormInput defaultValue={field(area, "slug")} readOnly className="bg-[#f5f5f5]" /></FormGroup>
             <FormGroup label="City">
@@ -76,16 +107,16 @@ export function AreaDetailClient({ area, isNew, neighborhoods, cities }: AreaDet
             <FormGroup label="Hero Image URL"><FormInput defaultValue={field(area, "hero_image_url")} /></FormGroup>
             {field(area, "hero_image_url") && (
               <div className="w-full max-w-[400px] aspect-[16/9] border border-[#e5e5e5] overflow-hidden">
-                <img src={field(area, "hero_image_url")} alt="" className="w-full h-full object-cover" />
+                <img src={field(area, "hero_image_url")} alt={`${field(area, "name", "Area")} hero image`} className="w-full h-full object-cover" />
               </div>
             )}
             <FormRow columns={2}>
               <FormGroup label="Map Center Lat"><FormInput type="number" defaultValue={field(area, "map_center_lat")} /></FormGroup>
               <FormGroup label="Map Center Lng"><FormInput type="number" defaultValue={field(area, "map_center_lng")} /></FormGroup>
             </FormRow>
-            <ToggleSwitch label="Active" checked={fieldBool(area, "is_active")} onChange={() => console.log("Toggle active")} />
+            <ToggleSwitch label="Active" checked={fieldBool(area, "is_active")} onChange={() => handleToggle("is_active", fieldBool(area, "is_active"))} />
             <ButtonBar>
-              <button onClick={() => console.log("Save area")} className="inline-flex items-center px-6 py-2.5 rounded-full text-sm font-semibold bg-[#fee198] text-[#1a1a1a] hover:bg-[#fdd870] transition-colors">Save Changes</button>
+              <button onClick={handleSaveDetails} disabled={saving} className="inline-flex items-center px-6 py-2.5 rounded-full text-sm font-semibold bg-[#fee198] text-[#1a1a1a] hover:bg-[#fdd870] transition-colors disabled:opacity-40 disabled:cursor-not-allowed">{saving ? "Saving..." : "Save Changes"}</button>
             </ButtonBar>
           </div>
         )}

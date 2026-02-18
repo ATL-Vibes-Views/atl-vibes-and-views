@@ -1,3 +1,4 @@
+import type { Metadata } from "next";
 import Link from "next/link";
 import { Breadcrumbs } from "@/components/ui/Breadcrumbs";
 import { HeroSection } from "@/components/ui/HeroSection";
@@ -18,6 +19,18 @@ import {
 } from "@/components/Sidebar";
 import { HubArchiveClient } from "@/components/HubArchiveClient";
 import type { HubArchiveConfig } from "@/components/HubArchiveClient";
+
+export const metadata: Metadata = {
+  title: "Things To Do in Atlanta",
+  description:
+    "Museums, parks, landmarks, markets, and local favorites — discover the best of what Atlanta has to offer.",
+  openGraph: {
+    title: "Things To Do in Atlanta | ATL Vibes & Views",
+    description:
+      "Museums, parks, landmarks, markets, and local favorites — discover the best of what Atlanta has to offer.",
+    url: "https://atlvibesandviews.com/hub/things-to-do",
+  },
+};
 
 const HUB_CONFIG: HubArchiveConfig = {
   detailBasePath: "/places",

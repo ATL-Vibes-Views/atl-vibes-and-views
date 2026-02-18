@@ -88,82 +88,88 @@ export function PartnerContactForm() {
       {/* Name row */}
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
         <div>
-          <label className="block text-sm font-semibold text-black mb-1">
+          <label htmlFor="partner-firstname" className="block text-sm font-semibold text-black mb-1">
             First Name *
           </label>
           <input
+            id="partner-firstname"
             type="text"
             required
             value={form.firstname}
             onChange={update("firstname")}
-            className="w-full bg-transparent border-b border-black px-0 py-2 text-base focus:outline-none focus:border-[#c1121f] transition-colors"
+            className="w-full bg-transparent border-b border-black px-0 py-2 text-base focus:outline-none focus:ring-2 focus:ring-[#c1121f]/30 focus:border-[#c1121f] transition-colors"
           />
         </div>
         <div>
-          <label className="block text-sm font-semibold text-black mb-1">
+          <label htmlFor="partner-lastname" className="block text-sm font-semibold text-black mb-1">
             Last Name *
           </label>
           <input
+            id="partner-lastname"
             type="text"
             required
             value={form.lastname}
             onChange={update("lastname")}
-            className="w-full bg-transparent border-b border-black px-0 py-2 text-base focus:outline-none focus:border-[#c1121f] transition-colors"
+            className="w-full bg-transparent border-b border-black px-0 py-2 text-base focus:outline-none focus:ring-2 focus:ring-[#c1121f]/30 focus:border-[#c1121f] transition-colors"
           />
         </div>
       </div>
 
       {/* Email */}
       <div>
-        <label className="block text-sm font-semibold text-black mb-1">
+        <label htmlFor="partner-email" className="block text-sm font-semibold text-black mb-1">
           Email *
         </label>
         <input
+          id="partner-email"
           type="email"
           required
           value={form.email}
           onChange={update("email")}
-          className="w-full bg-transparent border-b border-black px-0 py-2 text-base focus:outline-none focus:border-[#c1121f] transition-colors"
+          className="w-full bg-transparent border-b border-black px-0 py-2 text-base focus:outline-none focus:ring-2 focus:ring-[#c1121f]/30 focus:border-[#c1121f] transition-colors"
         />
       </div>
 
       {/* Phone */}
       <div>
-        <label className="block text-sm font-semibold text-black mb-1">
+        <label htmlFor="partner-phone" className="block text-sm font-semibold text-black mb-1">
           Phone
         </label>
         <input
+          id="partner-phone"
           type="tel"
           value={form.phone}
           onChange={update("phone")}
-          className="w-full bg-transparent border-b border-black px-0 py-2 text-base focus:outline-none focus:border-[#c1121f] transition-colors"
+          className="w-full bg-transparent border-b border-black px-0 py-2 text-base focus:outline-none focus:ring-2 focus:ring-[#c1121f]/30 focus:border-[#c1121f] transition-colors"
         />
       </div>
 
       {/* Company */}
       <div>
-        <label className="block text-sm font-semibold text-black mb-1">
+        <label htmlFor="partner-company" className="block text-sm font-semibold text-black mb-1">
           Company / Brand
         </label>
         <input
+          id="partner-company"
           type="text"
           value={form.company}
           onChange={update("company")}
-          className="w-full bg-transparent border-b border-black px-0 py-2 text-base focus:outline-none focus:border-[#c1121f] transition-colors"
+          className="w-full bg-transparent border-b border-black px-0 py-2 text-base focus:outline-none focus:ring-2 focus:ring-[#c1121f]/30 focus:border-[#c1121f] transition-colors"
         />
       </div>
 
       {/* Message */}
       <div>
-        <label className="block text-sm font-semibold text-black mb-1">
+        <label htmlFor="partner-message" className="block text-sm font-semibold text-black mb-1">
           Message *
         </label>
         <textarea
+          id="partner-message"
           required
           rows={4}
           value={form.message}
           onChange={update("message")}
-          className="w-full bg-transparent border-b border-black px-0 py-2 text-base focus:outline-none focus:border-[#c1121f] transition-colors resize-none"
+          className="w-full bg-transparent border-b border-black px-0 py-2 text-base focus:outline-none focus:ring-2 focus:ring-[#c1121f]/30 focus:border-[#c1121f] transition-colors resize-none"
         />
       </div>
 

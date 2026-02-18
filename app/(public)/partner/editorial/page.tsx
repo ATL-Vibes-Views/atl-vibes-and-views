@@ -8,6 +8,10 @@ export const metadata: Metadata = {
   title: "Editorial Partnerships",
   description:
     "Connect your brand with Atlanta's most engaged audiences through editorial storytelling, social media, and authentic local content.",
+  openGraph: {
+    title: "Editorial Partnerships",
+    description: "Connect your brand with Atlanta's most engaged audiences through editorial storytelling, social media, and authentic local content.",
+  },
 };
 
 /* ============================================================
@@ -341,10 +345,10 @@ export default function EditorialPage() {
                 paid the price
               </h2>
               <Link
-                href="/partner/case-studies/smorgasburg"
+                href="/partner"
                 className="text-[#fee198] font-semibold text-[17px] tracking-[1px] border-b-2 border-[#fee198] pb-1 hover:text-white hover:border-white transition-all"
               >
-                See What Happened
+                Get Started
               </Link>
             </div>
           </section>

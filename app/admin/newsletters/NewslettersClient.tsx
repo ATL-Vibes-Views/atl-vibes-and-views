@@ -156,7 +156,7 @@ export function NewslettersClient({ newsletters, types }: NewslettersClientProps
   return (
     <>
       <PortalTopbar title="Newsletters" />
-      <div className="p-8 max-[899px]:pt-16 space-y-4">
+      <div className="p-8 space-y-4">
         <StatGrid columns={4}>
           <StatCard label="Total Issues" value={newsletters.length} />
           <StatCard label="Sent" value={sentCount} />

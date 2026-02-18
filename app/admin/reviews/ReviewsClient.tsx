@@ -1,6 +1,7 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useMemo, useState, useCallback } from "react";
+import { useRouter } from "next/navigation";
 import { PortalTopbar } from "@/components/portal/PortalTopbar";
 import { StatCard } from "@/components/portal/StatCard";
 import { StatGrid } from "@/components/portal/StatGrid";
@@ -8,6 +9,7 @@ import { FilterBar } from "@/components/portal/FilterBar";
 import { AdminDataTable } from "@/components/portal/AdminDataTable";
 import { StatusBadge } from "@/components/portal/StatusBadge";
 import { Pagination } from "@/components/portal/Pagination";
+import { updateReviewStatus } from "@/app/admin/actions";
 
 /* ============================================================
    REVIEWS — Moderation queue + stats
@@ -38,16 +40,29 @@ const ITEMS_PER_PAGE = 25;
 
 const statusBadgeMap: Record<string, "green" | "gold" | "gray" | "red" | "orange"> = {
   approved: "green",
-  pending: "gold",
+  pending_review: "gold",
   rejected: "red",
   flagged: "orange",
-  published: "green",
+  removed: "gray",
 };
 
 export function ReviewsClient({ reviews, businesses, users }: ReviewsClientProps) {
+  const router = useRouter();
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState("");
   const [page, setPage] = useState(1);
+  const [acting, setActing] = useState<string | null>(null);
+
+  const handleReviewAction = useCallback(async (id: string, status: string) => {
+    setActing(id);
+    const result = await updateReviewStatus(id, status);
+    setActing(null);
+    if (result.error) {
+      alert("Error: " + result.error);
+      return;
+    }
+    router.refresh();
+  }, [router]);
 
   const bizMap = useMemo(() => {
     const map: Record<string, string> = {};
@@ -79,7 +94,7 @@ export function ReviewsClient({ reviews, businesses, users }: ReviewsClientProps
   const totalPages = Math.max(1, Math.ceil(filtered.length / ITEMS_PER_PAGE));
   const paginated = filtered.slice((page - 1) * ITEMS_PER_PAGE, page * ITEMS_PER_PAGE);
 
-  const pendingCount = reviews.filter((r) => r.status === "pending").length;
+  const pendingCount = reviews.filter((r) => r.status === "pending_review").length;
   const flaggedCount = reviews.filter((r) => r.auto_flagged).length;
 
   const columns = useMemo(
@@ -151,7 +166,7 @@ export function ReviewsClient({ reviews, businesses, users }: ReviewsClientProps
   return (
     <>
       <PortalTopbar title="Reviews" />
-      <div className="p-8 max-[899px]:pt-16 space-y-4">
+      <div className="p-8 space-y-4">
         <StatGrid columns={4}>
           <StatCard label="Total Reviews" value={reviews.length} />
           <StatCard
@@ -177,10 +192,11 @@ export function ReviewsClient({ reviews, businesses, users }: ReviewsClientProps
               label: "All Status",
               value: statusFilter,
               options: [
-                { value: "pending", label: "Pending" },
+                { value: "pending_review", label: "Pending Review" },
                 { value: "approved", label: "Approved" },
-                { value: "published", label: "Published" },
+                { value: "flagged", label: "Flagged" },
                 { value: "rejected", label: "Rejected" },
+                { value: "removed", label: "Removed" },
               ],
             },
           ]}
@@ -198,14 +214,16 @@ export function ReviewsClient({ reviews, businesses, users }: ReviewsClientProps
           actions={(item) => (
             <div className="flex gap-2">
               <button
-                onClick={() => console.log("Approve review:", item.id)}
-                className="text-[#16a34a] text-xs font-semibold hover:underline"
+                onClick={() => handleReviewAction(item.id, "approved")}
+                disabled={acting === item.id}
+                className="text-[#16a34a] text-xs font-semibold hover:underline disabled:opacity-50"
               >
                 Approve
               </button>
               <button
-                onClick={() => console.log("Reject review:", item.id)}
-                className="text-[#c1121f] text-xs font-semibold hover:underline"
+                onClick={() => handleReviewAction(item.id, "rejected")}
+                disabled={acting === item.id}
+                className="text-[#c1121f] text-xs font-semibold hover:underline disabled:opacity-50"
               >
                 Reject
               </button>

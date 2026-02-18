@@ -1,5 +1,5 @@
 import { Metadata } from "next";
-import { createServerClient } from "@/lib/supabase";
+import { createServiceRoleClient } from "@/lib/supabase";
 import { PostsClient } from "./PostsClient";
 
 export const metadata: Metadata = {
@@ -11,13 +11,14 @@ export const metadata: Metadata = {
 export const dynamic = 'force-dynamic';
 
 export default async function PostsPage() {
-  const supabase = createServerClient();
+  const supabase = createServiceRoleClient();
 
-  // Exclude drafts — they enter via the publishing queue
+  // Show published, scheduled, ready_for_review; also archived only if previously published.
+  // Excludes drafts (handled by Publishing Queue) and never-published archived posts (rejected drafts).
   const { data: posts, error: postsErr } = (await supabase
     .from("blog_posts")
     .select("*, categories(name), neighborhoods(name)")
-    .neq("status", "draft")
+    .or("status.in.(published,scheduled,ready_for_review),and(status.eq.archived,published_at.not.is.null)")
     .order("created_at", { ascending: false })) as {
     data: {
       id: string;

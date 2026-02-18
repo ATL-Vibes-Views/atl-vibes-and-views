@@ -29,6 +29,7 @@ import {
   getNeighborhoods,
 } from "@/lib/queries";
 import type { BlogPostFull } from "@/lib/types";
+import { MarkdownArticle } from "@/components/ui/MarkdownArticle";
 
 /* ============================================================
    BLOG POST DETAIL PAGE — /stories/[slug]
@@ -220,7 +221,9 @@ export default async function BlogPostDetailPage({
   const readTime = estimateReadTime(post);
 
   /* ── Article body ── */
-  const articleHtml = post.content_html || post.content_md || "";
+  // Prefer content_md (render as markdown). Fallback to content_html (render as HTML).
+  const useMarkdown = !!post.content_md;
+  const articleContent = post.content_md || post.content_html || "";
 
   /* ── JSON-LD Article schema ── */
   const articleSchema = {
@@ -312,29 +315,36 @@ export default async function BlogPostDetailPage({
             )}
 
             {/* 7. Article body */}
-            <div
-              className="article-body max-w-none"
-              dangerouslySetInnerHTML={{ __html: articleHtml }}
-            />
-
-            {/* 8. Source attribution */}
-            {post.content_source && (
-              <p className="text-sm text-gray-mid mt-8">
-                Source:{" "}
-                {post.source_url ? (
-                  <a
-                    href={post.source_url}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="text-[#c1121f] underline hover:text-black transition-colors"
-                  >
-                    {post.content_source}
-                  </a>
-                ) : (
-                  post.content_source
-                )}
-              </p>
+            {useMarkdown ? (
+              <MarkdownArticle content={articleContent} />
+            ) : (
+              <div
+                className="article-body max-w-none"
+                dangerouslySetInnerHTML={{ __html: articleContent }}
+              />
             )}
+
+            {/* 8. Source attribution — only show if source_url is valid */}
+            {post.source_url && (() => {
+              try {
+                const domain = new URL(post.source_url).hostname.replace(/^www\./, "");
+                return (
+                  <p className="text-sm text-gray-mid mt-8">
+                    Source:{" "}
+                    <a
+                      href={post.source_url}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="text-[#c1121f] underline hover:text-black transition-colors"
+                    >
+                      {domain}
+                    </a>
+                  </p>
+                );
+              } catch {
+                return null;
+              }
+            })()}
 
             {/* 9. Featured image credit */}
             {post.featured_image_credit && (
