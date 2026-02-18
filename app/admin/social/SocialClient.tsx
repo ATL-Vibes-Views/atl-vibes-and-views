@@ -5,8 +5,8 @@ import { useRouter } from "next/navigation";
 import { PortalTopbar } from "@/components/portal/PortalTopbar";
 import { StatCard } from "@/components/portal/StatCard";
 import { StatGrid } from "@/components/portal/StatGrid";
-import { AlertTriangle, Play, Paperclip, Check, Loader2 } from "lucide-react";
-import { rejectSocialItem, savePlatformCaption, uploadScriptMedia } from "@/app/admin/actions";
+import { AlertTriangle, Play, Paperclip, Check, Loader2, Trash2 } from "lucide-react";
+import { rejectSocialItem, savePlatformCaption, uploadScriptMedia, removeScriptMedia } from "@/app/admin/actions";
 import { createBrowserClient } from "@/lib/supabase";
 
 /* ──────────────────────────────────────────────────────────────
@@ -122,6 +122,7 @@ export function SocialClient({ scripts }: SocialClientProps) {
   const [saveSuccess, setSaveSuccess] = useState<string | null>(null);
   const [rejecting, setRejecting] = useState<string | null>(null);
   const [uploadingId, setUploadingId] = useState<string | null>(null);
+  const [removingId, setRemovingId] = useState<string | null>(null);
 
   /* ── Stats ── */
   const totalQueue = scripts.length;
@@ -243,6 +244,24 @@ export function SocialClient({ scripts }: SocialClientProps) {
       }
     };
     input.click();
+  }, [router]);
+
+  /* ── Remove video handler ── */
+  const handleRemoveVideo = useCallback(async (script: ScriptRow) => {
+    if (!script.media_url) return;
+    if (!confirm("Remove this video? The file will be deleted from storage.")) return;
+    setRemovingId(script.id);
+    // Extract storage path from public URL (everything after /site-images/)
+    let storagePath: string | null = null;
+    const match = script.media_url.match(/\/site-images\/(.+)$/);
+    if (match) storagePath = match[1];
+    const result = await removeScriptMedia(script.id, "media_url", storagePath);
+    setRemovingId(null);
+    if (result.error) {
+      alert("Failed to remove video: " + result.error);
+    } else {
+      router.refresh();
+    }
   }, [router]);
 
   /* ── Char count helper ── */
@@ -386,12 +405,24 @@ export function SocialClient({ scripts }: SocialClientProps) {
                   <div className="mt-3">
                     {hasMedia ? (
                       <div className="flex items-center gap-3">
-                        <div className="relative w-[120px] h-[80px] bg-black flex items-center justify-center overflow-hidden flex-shrink-0">
+                        <div className="relative w-[120px] h-[80px] bg-black flex items-center justify-center overflow-hidden flex-shrink-0 group/thumb">
                           {script.thumbnail_url ? (
                             // eslint-disable-next-line @next/next/no-img-element
                             <img src={script.thumbnail_url} alt="" className="w-full h-full object-cover" />
                           ) : null}
                           <Play size={24} className="absolute text-white/80" />
+                          <button
+                            onClick={() => handleRemoveVideo(script)}
+                            disabled={removingId === script.id}
+                            className="absolute top-1 right-1 w-5 h-5 rounded-full bg-black/70 text-white flex items-center justify-center opacity-0 group-hover/thumb:opacity-100 hover:bg-[#c1121f] transition-all disabled:opacity-50"
+                            title="Remove video"
+                          >
+                            {removingId === script.id ? (
+                              <Loader2 size={10} className="animate-spin" />
+                            ) : (
+                              <Trash2 size={10} />
+                            )}
+                          </button>
                         </div>
                         <div>
                           <p className="text-sm text-gray-700">
