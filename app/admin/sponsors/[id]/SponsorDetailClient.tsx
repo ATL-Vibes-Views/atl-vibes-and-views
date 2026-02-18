@@ -510,6 +510,20 @@ export function SponsorDetailClient({
     [fulfillmentLog],
   );
 
+  /* ── Tab 5: Reel entries from fulfillment log ── */
+  const reelEntries = useMemo(
+    () => fulfillmentLog.filter((e) => e.deliverable_type === "reel" && !e.voided),
+    [fulfillmentLog],
+  );
+
+  /* ── Tab 5: Social post entries from fulfillment log ── */
+  const socialEntries = useMemo(
+    () => fulfillmentLog.filter((e) =>
+      (e.deliverable_type === "story_boost" || e.deliverable_type === "pinned_post") && !e.voided
+    ),
+    [fulfillmentLog],
+  );
+
   /* ── Tab 4: Ad Campaign/Creative/Flight state (Phase 3C) ── */
   const campaignCreativesMap = useMemo(() => {
     const map: Record<string, CreativeRow[]> = {};
@@ -1564,19 +1578,52 @@ export function SponsorDetailClient({
               )}
             </div>
 
-            {/* Scripts section */}
+            {/* Reels section */}
             <div>
               <h3 className="font-display text-[16px] font-semibold text-black mb-3">
-                Scripts
-                <span className="ml-2 text-[13px] font-normal text-[#6b7280]">(0)</span>
+                Reels
+                <span className="ml-2 text-[13px] font-normal text-[#6b7280]">({reelEntries.length})</span>
               </h3>
-              {/* TODO: Scripts link to sponsors indirectly via story → story_businesses → business_listings.
-                  No direct sponsor_id on scripts table. Would need to query via fulfillment log
-                  entries with deliverable_type IN ('reel', 'script') or via the indirect join path.
-                  Showing placeholder for now. */}
-              <div className="bg-white border border-[#e5e5e5] p-6 text-center">
-                <p className="text-[13px] text-[#6b7280]">No sponsored scripts yet.</p>
-              </div>
+              {reelEntries.length === 0 ? (
+                <div className="bg-white border border-[#e5e5e5] p-6 text-center">
+                  <p className="text-[13px] text-[#6b7280]">No reels yet.</p>
+                </div>
+              ) : (
+                <div className="space-y-2">
+                  {reelEntries.map((entry) => (
+                    <div key={entry.id} className="bg-white border border-[#e5e5e5] p-4 flex items-center justify-between">
+                      <div className="flex-1 min-w-0 mr-4">
+                        <span className="font-display text-[14px] font-semibold text-black">
+                          {entry.title ?? "Untitled Reel"}
+                        </span>
+                        <div className="flex items-center gap-2 mt-1">
+                          {entry.delivered_at && (
+                            <span className="text-[11px] text-[#6b7280]">
+                              {new Date(entry.delivered_at).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })}
+                            </span>
+                          )}
+                          {entry.channel && (
+                            <span className="text-[10px] bg-[#f5f5f5] px-2 py-0.5 rounded-full uppercase text-[#6b7280]">{entry.channel}</span>
+                          )}
+                          {entry.platform && (
+                            <span className="text-[10px] bg-[#f5f5f5] px-2 py-0.5 rounded-full uppercase text-[#6b7280]">{entry.platform}</span>
+                          )}
+                        </div>
+                      </div>
+                      {entry.content_url && (
+                        <a
+                          href={entry.content_url}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="inline-flex items-center gap-1 px-3 py-1 rounded-full text-[11px] font-semibold border border-[#e5e5e5] text-[#374151] hover:border-[#e6c46d] transition-colors flex-shrink-0"
+                        >
+                          View Content <ExternalLink size={11} />
+                        </a>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              )}
             </div>
 
             {/* Podcast section */}
@@ -1631,11 +1678,48 @@ export function SponsorDetailClient({
             <div>
               <h3 className="font-display text-[16px] font-semibold text-black mb-3">
                 Social Posts
-                <span className="ml-2 text-[13px] font-normal text-[#6b7280]">(0)</span>
+                <span className="ml-2 text-[13px] font-normal text-[#6b7280]">({socialEntries.length})</span>
               </h3>
-              <div className="bg-white border border-[#e5e5e5] p-6 text-center">
-                <p className="text-[13px] text-[#6b7280]">Coming soon.</p>
-              </div>
+              {socialEntries.length === 0 ? (
+                <div className="bg-white border border-[#e5e5e5] p-6 text-center">
+                  <p className="text-[13px] text-[#6b7280]">No social posts yet.</p>
+                </div>
+              ) : (
+                <div className="space-y-2">
+                  {socialEntries.map((entry) => (
+                    <div key={entry.id} className="bg-white border border-[#e5e5e5] p-4 flex items-center justify-between">
+                      <div className="flex-1 min-w-0 mr-4">
+                        <span className="font-display text-[14px] font-semibold text-black">
+                          {entry.title ?? "Untitled Post"}
+                        </span>
+                        <div className="flex items-center gap-2 mt-1">
+                          {entry.delivered_at && (
+                            <span className="text-[11px] text-[#6b7280]">
+                              {new Date(entry.delivered_at).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })}
+                            </span>
+                          )}
+                          {entry.channel && (
+                            <span className="text-[10px] bg-[#f5f5f5] px-2 py-0.5 rounded-full uppercase text-[#6b7280]">{entry.channel}</span>
+                          )}
+                          {entry.platform && (
+                            <span className="text-[10px] bg-[#f5f5f5] px-2 py-0.5 rounded-full uppercase text-[#6b7280]">{entry.platform}</span>
+                          )}
+                        </div>
+                      </div>
+                      {entry.content_url && (
+                        <a
+                          href={entry.content_url}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="inline-flex items-center gap-1 px-3 py-1 rounded-full text-[11px] font-semibold border border-[#e5e5e5] text-[#374151] hover:border-[#e6c46d] transition-colors flex-shrink-0"
+                        >
+                          View Content <ExternalLink size={11} />
+                        </a>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              )}
             </div>
           </div>
         )}
