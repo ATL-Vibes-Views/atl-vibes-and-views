@@ -47,19 +47,15 @@ export default async function SponsorDetailPage({
 
   const s = sponsor as SponsorData;
 
-  // Fetch related blog posts via post_sponsors
-  const { data: postSponsors } = await supabase
-    .from("post_sponsors")
-    .select("post_id, tier, published_at")
-    .eq("sponsor_id", id);
-
-  const postIds = (postSponsors ?? []).map((ps: { post_id: string }) => ps.post_id);
+  // Fetch related blog posts via sponsor_business_id
   let posts: PostRow[] = [];
-  if (postIds.length > 0) {
+  if (s.business_id) {
     const { data } = await supabase
       .from("blog_posts")
       .select("id, title, slug, status, published_at")
-      .in("id", postIds);
+      .eq("sponsor_business_id", s.business_id)
+      .eq("is_sponsored", true)
+      .order("published_at", { ascending: false });
     posts = (data ?? []) as PostRow[];
   }
 
