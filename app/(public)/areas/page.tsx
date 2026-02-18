@@ -1,4 +1,5 @@
 import { AreaLandingContent } from "@/components/AreaLandingContent";
+import { HeroSection } from "@/components/ui/HeroSection";
 import {
   getAreas,
   getBlogPosts,
@@ -58,6 +59,7 @@ export default async function AreasLandingPage({
     businesses,
     upcomingEvents,
     topNeighborhoods,
+    ci,
   ] = await Promise.all([
     getAreas(),
     getMediaItems({ limit: 3, mediaType: "video" }),
@@ -66,8 +68,14 @@ export default async function AreasLandingPage({
     getBusinesses({ featured: true, limit: 6 }),
     getUpcomingEvents({ limit: 4 }),
     getNeighborhoodsByPopularity({ limit: 8 }),
+    getContentIndexByToken("page-areas", { targetType: "area", activeUrl: "/areas" }).catch(() => null),
   ]);
   console.log(`[/areas] All queries completed in ${Date.now() - fetchStart}ms`);
+
+  /* ── Hero fields ── */
+  const heroTitle = ci?.page_title || "Explore Atlanta by Area";
+  const heroIntro = ci?.page_intro || "Discover Atlanta's neighborhoods, restaurants, events, and culture across every area of the city.";
+  const heroImageUrl = ci?.hero_image_url || "https://placehold.co/1920x600/1a1a1a/e6c46d?text=Explore+Areas";
 
   /* ── Search: filter areas ── */
   const filteredAreas = search
@@ -83,6 +91,15 @@ export default async function AreasLandingPage({
       cardLinkPrefix="/areas/"
       mapCtaText="Explore All 261 Neighborhoods →"
       mapCtaHref="/neighborhoods"
+      heroContent={
+        <HeroSection
+          variant="overlay"
+          backgroundImage={heroImageUrl}
+          eyebrow="Explore Atlanta"
+          title={heroTitle}
+          description={heroIntro}
+        />
+      }
       videos={videos}
       stories={stories}
       guides={guides}
