@@ -179,7 +179,7 @@ export function PipelineClient({ stories, categories }: PipelineClientProps) {
 
   const handleActivateNew = useCallback(async (id: string) => {
     setActivating(id);
-    const result = await updateStoryStatus(id, "scored");
+    const result = await updateStoryStatus(id, "reviewed");
     setActivating(null);
     if (result.error) {
       alert("Error: " + result.error);
