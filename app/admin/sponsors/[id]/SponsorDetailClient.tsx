@@ -17,6 +17,7 @@ import {
   createAdCampaign,
   createAdCreative,
   createAdFlight,
+  logPinnedPost,
 } from "@/app/admin/actions";
 import { Modal } from "@/components/portal/Modal";
 import { PortalTopbar } from "@/components/portal/PortalTopbar";
@@ -144,6 +145,7 @@ export interface FulfillmentLogRow {
   voided: boolean;
   voided_at: string | null;
   void_reason: string | null;
+  unpinned_at: string | null;
   blog_title: string | null;
   blog_slug: string | null;
 }
@@ -623,6 +625,33 @@ export function SponsorDetailClient({
   const [newFlightSov, setNewFlightSov] = useState("100");
   const [newFlightPriority, setNewFlightPriority] = useState("0");
   const [savingFlight, setSavingFlight] = useState(false);
+
+  /* ── Pinned Post modal state ── */
+  const [showPinnedPostModal, setShowPinnedPostModal] = useState(false);
+  const [pinnedPostUrl, setPinnedPostUrl] = useState("");
+  const [pinnedPostDate, setPinnedPostDate] = useState(() => new Date().toISOString().slice(0, 10));
+  const [pinnedPostNotes, setPinnedPostNotes] = useState("");
+  const [savingPinnedPost, setSavingPinnedPost] = useState(false);
+
+  const activePinnedPosts = useMemo(
+    () => fulfillmentLog.filter((e) => e.deliverable_type === "pinned_post" && !e.voided),
+    [fulfillmentLog],
+  );
+
+  const handleLogPinnedPost = useCallback(async () => {
+    setSavingPinnedPost(true);
+    const result = await logPinnedPost(sponsor.id, {
+      content_url: pinnedPostUrl.trim() || null,
+      pinned_at: pinnedPostDate,
+      notes: pinnedPostNotes.trim() || null,
+    });
+    setSavingPinnedPost(false);
+    if ("error" in result && result.error) { alert("Error: " + result.error); return; }
+    setShowPinnedPostModal(false);
+    setPinnedPostUrl(""); setPinnedPostDate(new Date().toISOString().slice(0, 10)); setPinnedPostNotes("");
+    setToast("Pinned post logged successfully.");
+    router.refresh();
+  }, [sponsor.id, pinnedPostUrl, pinnedPostDate, pinnedPostNotes, router]);
 
   const handleCreateFlight = useCallback(async () => {
     if (!showFlightModal || !newFlightPlacement || !newFlightStart || !newFlightEnd) return;
@@ -1260,7 +1289,15 @@ export function SponsorDetailClient({
             ═══════════════════════════════════════════ */}
         {activeTab === "log" && (
           <div className="space-y-4">
-            <h3 className="font-display text-[16px] font-semibold text-black">Fulfillment Timeline</h3>
+            <div className="flex items-center justify-between">
+              <h3 className="font-display text-[16px] font-semibold text-black">Fulfillment Timeline</h3>
+              <button
+                onClick={() => setShowPinnedPostModal(true)}
+                className="inline-flex items-center px-4 py-1.5 rounded-full text-[13px] font-semibold bg-[#fee198] text-[#1a1a1a] hover:bg-[#e6c46d] transition-colors"
+              >
+                Log Pinned Post
+              </button>
+            </div>
             {fulfillmentLog.length === 0 ? (
               <div className="bg-white border border-[#e5e5e5] p-8 text-center">
                 <p className="text-[13px] text-[#6b7280]">No fulfillment activity logged yet.</p>
@@ -1924,6 +1961,59 @@ export function SponsorDetailClient({
               <FormInput type="number" value={newFlightPriority} onChange={(e) => setNewFlightPriority(e.target.value)} />
             </FormGroup>
           </FormRow>
+        </div>
+      </Modal>
+
+      {/* Log Pinned Post Modal (Phase 3F) */}
+      <Modal
+        isOpen={showPinnedPostModal}
+        onClose={() => setShowPinnedPostModal(false)}
+        title="Log Pinned Post"
+        maxWidth="440px"
+        footer={
+          <>
+            <button
+              onClick={() => setShowPinnedPostModal(false)}
+              className="inline-flex items-center px-5 py-2 rounded-full text-sm font-semibold border border-[#e5e5e5] text-[#374151] hover:border-[#d1d5db] transition-colors"
+            >
+              Cancel
+            </button>
+            <button
+              onClick={handleLogPinnedPost}
+              disabled={savingPinnedPost || !pinnedPostUrl.trim()}
+              className="inline-flex items-center px-5 py-2 rounded-full text-sm font-semibold bg-[#fee198] text-[#1a1a1a] hover:bg-[#e6c46d] transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+            >
+              {savingPinnedPost ? "Saving..." : "Log Pinned Post"}
+            </button>
+          </>
+        }
+      >
+        <div className="space-y-4">
+          <p className="text-[13px] text-[#6b7280]">
+            Active pinned posts: {activePinnedPosts.length}/3
+          </p>
+          <FormGroup label="Pinned At">
+            <FormInput
+              type="date"
+              value={pinnedPostDate}
+              onChange={(e) => setPinnedPostDate(e.target.value)}
+            />
+          </FormGroup>
+          <FormGroup label="Post URL">
+            <FormInput
+              value={pinnedPostUrl}
+              onChange={(e) => setPinnedPostUrl(e.target.value)}
+              placeholder="https://instagram.com/p/..."
+            />
+          </FormGroup>
+          <FormGroup label="Notes">
+            <FormTextarea
+              value={pinnedPostNotes}
+              onChange={(e) => setPinnedPostNotes(e.target.value)}
+              rows={3}
+              placeholder="Optional notes about this pinned post..."
+            />
+          </FormGroup>
         </div>
       </Modal>
     </>
