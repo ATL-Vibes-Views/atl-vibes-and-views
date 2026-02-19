@@ -11,7 +11,7 @@ import { StatusBadge } from "@/components/portal/StatusBadge";
 import { FilterBar } from "@/components/portal/FilterBar";
 import { AdminDataTable } from "@/components/portal/AdminDataTable";
 import { Pagination } from "@/components/portal/Pagination";
-import { resetStoryToNew } from "@/app/admin/actions";
+import { resetStoryToNew, triggerBlogGeneration } from "@/app/admin/actions";
 
 interface StoryRow {
   id: string;
@@ -68,6 +68,8 @@ export function PipelineClient({ stories, categories }: PipelineClientProps) {
   const [tierFilter, setTierFilter] = useState("");
   const [page, setPage] = useState(1);
   const [activating, setActivating] = useState<string | null>(null);
+  const [writingNow, setWritingNow] = useState<string | null>(null);
+  const [toast, setToast] = useState<string | null>(null);
 
   const handleActivate = useCallback(async (id: string) => {
     setActivating(id);
@@ -79,6 +81,18 @@ export function PipelineClient({ stories, categories }: PipelineClientProps) {
     }
     router.refresh();
   }, [router]);
+
+  const handleWriteNow = useCallback(async (id: string) => {
+    setWritingNow(id);
+    const result = await triggerBlogGeneration(id);
+    setWritingNow(null);
+    if ("error" in result && result.error) {
+      alert("Error: " + result.error);
+      return;
+    }
+    setToast("Blog post generation triggered for this story");
+    setTimeout(() => setToast(null), 3000);
+  }, []);
 
   // Stats
   const newCount = stories.filter((s) => s.status === "new").length;
@@ -176,17 +190,32 @@ export function PipelineClient({ stories, categories }: PipelineClientProps) {
   ];
 
   const renderActions = (item: StoryRow) => {
-    if (item.status === "new" || item.status === "used") {
-      return null;
-    }
+    const showWriteNow = item.status === "new" || item.status === "scored";
+    const showReset = item.status !== "new" && item.status !== "used";
+
+    if (!showWriteNow && !showReset) return null;
+
     return (
-      <button
-        onClick={() => handleActivate(item.id)}
-        disabled={activating === item.id}
-        className="inline-flex items-center px-3 py-1 text-xs font-semibold rounded-full bg-[#fee198] text-[#1a1a1a] hover:bg-[#e6c46d] transition-colors disabled:opacity-50"
-      >
-        {activating === item.id ? "Resetting..." : "Reset to New"}
-      </button>
+      <div className="flex items-center gap-2">
+        {showWriteNow && (
+          <button
+            onClick={() => handleWriteNow(item.id)}
+            disabled={writingNow === item.id}
+            className="inline-flex items-center px-3 py-1 text-xs font-semibold rounded-full bg-[#fee198] text-[#1a1a1a] hover:bg-[#e6c46d] transition-colors disabled:opacity-50"
+          >
+            {writingNow === item.id ? "Triggering\u2026" : "Write Now"}
+          </button>
+        )}
+        {showReset && (
+          <button
+            onClick={() => handleActivate(item.id)}
+            disabled={activating === item.id}
+            className="inline-flex items-center px-3 py-1 text-xs font-semibold rounded-full bg-[#fee198] text-[#1a1a1a] hover:bg-[#e6c46d] transition-colors disabled:opacity-50"
+          >
+            {activating === item.id ? "Resetting\u2026" : "Reset to New"}
+          </button>
+        )}
+      </div>
     );
   };
 
@@ -198,6 +227,15 @@ export function PipelineClient({ stories, categories }: PipelineClientProps) {
 
   return (
     <>
+      {/* Toast */}
+      {toast && (
+        <div className="fixed top-4 right-4 z-50">
+          <div className="bg-[#1a1a1a] text-white px-5 py-3 rounded-full text-[13px] font-semibold shadow-lg">
+            {toast}
+          </div>
+        </div>
+      )}
+
       <PortalTopbar
         title="Pipeline — Story Bank"
         actions={
