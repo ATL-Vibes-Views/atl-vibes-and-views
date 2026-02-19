@@ -27,6 +27,7 @@ interface NewsletterRow {
   send_count: number | null;
   newsletter_type_id: string;
   sponsor_business_id: string | null;
+  html_body: string | null;
   created_at: string;
 }
 
@@ -50,6 +51,7 @@ export function NewslettersClient({ newsletters, types }: NewslettersClientProps
   const [statusFilter, setStatusFilter] = useState("");
   const [typeFilter, setTypeFilter] = useState("");
   const [page, setPage] = useState(1);
+  const [copiedId, setCopiedId] = useState<string | null>(null);
 
   const typeMap = useMemo(() => {
     const map: Record<string, string> = {};
@@ -149,8 +151,26 @@ export function NewslettersClient({ newsletters, types }: NewslettersClientProps
           </StatusBadge>
         ),
       },
+      {
+        key: "copy_html",
+        header: "HTML",
+        render: (item: NewsletterRow) => (
+          <button
+            disabled={!item.html_body}
+            onClick={() => {
+              if (!item.html_body) return;
+              navigator.clipboard.writeText(item.html_body);
+              setCopiedId(item.id);
+              setTimeout(() => setCopiedId(null), 1500);
+            }}
+            className="px-3 py-1 rounded-full text-[11px] font-semibold border border-[#e5e5e5] text-[#374151] hover:border-[#e6c46d] transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+          >
+            {copiedId === item.id ? "Copied!" : "Copy HTML"}
+          </button>
+        ),
+      },
     ],
-    [typeMap]
+    [typeMap, copiedId]
   );
 
   return (

@@ -15,7 +15,7 @@ export default async function NewslettersPage() {
 
   const { data: newsletters, error } = (await supabase
     .from("newsletters")
-    .select("id, name, slug, issue_date, issue_slug, subject_line, status, is_public, open_rate, click_rate, send_count, newsletter_type_id, sponsor_business_id, created_at")
+    .select("id, name, slug, issue_date, issue_slug, subject_line, status, is_public, open_rate, click_rate, send_count, newsletter_type_id, sponsor_business_id, html_body, created_at")
     .order("issue_date", { ascending: false })
   ) as {
     data: {
@@ -32,6 +32,7 @@ export default async function NewslettersPage() {
       send_count: number | null;
       newsletter_type_id: string;
       sponsor_business_id: string | null;
+      html_body: string | null;
       created_at: string;
     }[] | null;
     error: unknown;
