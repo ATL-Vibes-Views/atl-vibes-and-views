@@ -447,6 +447,7 @@ export async function createMediaItem(formData: FormData) {
   const embed_url = (formData.get("embed_url") as string) || null;
   const seo_title = (formData.get("seo_title") as string) || null;
   const meta_description = (formData.get("meta_description") as string) || null;
+  const sponsor_id = (formData.get("sponsor_id") as string) || null;
 
   const { error } = await supabase.from("media_items").insert({
     title,
@@ -458,6 +459,7 @@ export async function createMediaItem(formData: FormData) {
     embed_url,
     seo_title,
     meta_description,
+    sponsor_id,
     status: "draft",
   } as never);
 

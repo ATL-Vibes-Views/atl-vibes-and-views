@@ -1293,9 +1293,10 @@ export function SponsorDetailClient({
               <h3 className="font-display text-[16px] font-semibold text-black">Fulfillment Timeline</h3>
               <button
                 onClick={() => setShowPinnedPostModal(true)}
-                className="inline-flex items-center px-4 py-1.5 rounded-full text-[13px] font-semibold bg-[#fee198] text-[#1a1a1a] hover:bg-[#e6c46d] transition-colors"
+                disabled={activePinnedPosts.length >= 3}
+                className="inline-flex items-center px-4 py-1.5 rounded-full text-[13px] font-semibold bg-[#fee198] text-[#1a1a1a] hover:bg-[#e6c46d] transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
               >
-                Log Pinned Post
+                Log Pinned Post ({activePinnedPosts.length}/3)
               </button>
             </div>
             {fulfillmentLog.length === 0 ? (

@@ -19,5 +19,11 @@ export default async function MediaAddPage() {
     .eq("is_active", true)
     .order("name")) as { data: { id: string; name: string }[] | null };
 
-  return <MediaAddClient neighborhoods={neighborhoods ?? []} />;
+  const { data: sponsors } = (await supabase
+    .from("sponsors")
+    .select("id, sponsor_name")
+    .eq("is_active", true)
+    .order("sponsor_name")) as { data: { id: string; sponsor_name: string }[] | null };
+
+  return <MediaAddClient neighborhoods={neighborhoods ?? []} sponsors={sponsors ?? []} />;
 }
