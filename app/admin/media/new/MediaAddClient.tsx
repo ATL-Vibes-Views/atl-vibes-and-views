@@ -10,8 +10,9 @@ import { FormRow } from "@/components/portal/FormRow";
 import { FormInput } from "@/components/portal/FormInput";
 import { FormTextarea } from "@/components/portal/FormTextarea";
 import { ButtonBar } from "@/components/portal/ButtonBar";
-import { UploadZone } from "@/components/portal/UploadZone";
+import { MediaPicker } from "@/components/admin/MediaPicker";
 import { createMediaItem } from "@/app/admin/actions";
+import { createBrowserClient } from "@/lib/supabase";
 
 interface MediaAddClientProps {
   neighborhoods: { id: string; name: string }[];
@@ -22,16 +23,30 @@ export function MediaAddClient({ neighborhoods, sponsors }: MediaAddClientProps)
   const router = useRouter();
   const [saving, setSaving] = useState(false);
   const [mediaType, setMediaType] = useState("");
+  const [thumbnailAsset, setThumbnailAsset] = useState<{ id: string; url: string } | null>(null);
 
   async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
     setSaving(true);
     const formData = new FormData(e.currentTarget);
+    // Write thumbnail_url for backward compat
+    if (thumbnailAsset) formData.set("thumbnail_url", thumbnailAsset.url);
     const result = await createMediaItem(formData);
     setSaving(false);
     if (result.error) {
       alert("Error: " + result.error);
       return;
+    }
+    // Insert media_item_assets row if thumbnail was selected
+    if (thumbnailAsset && result.id) {
+      const sb = createBrowserClient();
+      await (sb.from("media_item_assets").insert({
+        media_item_id: result.id,
+        asset_id: thumbnailAsset.id,
+        role: "thumbnail",
+        is_primary: true,
+        sort_order: 0,
+      } as never) as unknown as Promise<unknown>);
     }
     router.push("/admin/media");
   }
@@ -101,11 +116,13 @@ export function MediaAddClient({ neighborhoods, sponsors }: MediaAddClientProps)
           </FormRow>
 
           <FormGroup label="Thumbnail">
-            <UploadZone
-              onUpload={(files) => console.log("Upload thumbnail:", files)}
-              accept="image/*"
-              label="Drop thumbnail image here"
-              hint="PNG, JPG, WebP up to 5MB — file upload deferred"
+            <MediaPicker
+              bucket="blog-media"
+              folder="thumbnails"
+              allowedTypes={["image"]}
+              label="Choose Thumbnail"
+              value={thumbnailAsset}
+              onChange={setThumbnailAsset}
             />
           </FormGroup>
 
