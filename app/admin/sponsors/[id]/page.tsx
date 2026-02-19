@@ -149,6 +149,13 @@ export default async function SponsorDetailPage({
     .order("name")
   ) as { data: AdPlacementRow[] | null };
 
+  // Fetch newsletter types (for Tab 2 newsletter_mention targeting)
+  const { data: newsletterTypes } = (await supabase
+    .from("newsletter_types")
+    .select("id, name")
+    .eq("is_active", true)
+    .order("name")) as { data: { id: string; name: string }[] | null };
+
   // ─── Phase 3B additions ────────────────────────────────────
 
   // Stat card: Content Pieces — count published blog posts via sponsor_business_id
@@ -213,6 +220,7 @@ export default async function SponsorDetailPage({
       sponsorNotes={(sponsorNotes ?? []) as SponsorNoteRow[]}
       businessContact={businessContact}
       adPlacements={(adPlacements ?? []) as AdPlacementRow[]}
+      newsletterTypes={newsletterTypes ?? []}
     />
   );
 }

@@ -16,13 +16,14 @@ export default async function CreativesPage() {
   // Fetch all creatives with campaign info
   const { data: creatives, error } = (await supabase
     .from("ad_creatives")
-    .select("id, campaign_id, creative_type, headline, body, cta_text, target_url, image_url, alt_text, utm_campaign, is_active, created_at")
+    .select("id, campaign_id, creative_type, placement, headline, body, cta_text, target_url, image_url, alt_text, utm_campaign, is_active, created_at")
     .order("created_at", { ascending: false })
   ) as {
     data: {
       id: string;
       campaign_id: string;
       creative_type: string;
+      placement: string | null;
       headline: string | null;
       body: string | null;
       cta_text: string | null;

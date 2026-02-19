@@ -1078,6 +1078,19 @@ export async function autoCreateDeliverables(sponsorId: string, packageId: strin
   return { success: true, message: `Package updated — ${parts.join(", ")}.` };
 }
 
+// ─── UPDATE SINGLE DELIVERABLE ────────────────────────────────
+
+export async function updateDeliverable(id: string, data: Record<string, unknown>) {
+  const supabase = createServiceRoleClient();
+  const { error } = await supabase
+    .from("sponsor_deliverables")
+    .update({ ...data, updated_at: new Date().toISOString() } as never)
+    .eq("id", id);
+  if (error) return { error: error.message };
+  revalidatePath("/admin/sponsors");
+  return { success: true };
+}
+
 // ─── CITIES (Beyond ATL) ──────────────────────────────────────
 
 export async function updateCity(id: string, data: Record<string, unknown>) {
@@ -1458,31 +1471,34 @@ export async function createAdCampaign(
 
 // ─── AD CREATIVES — CREATE (Phase 3C) ─────────────────────────
 
-export async function createAdCreative(
-  campaignId: string,
-  sponsorId: string,
-  data: {
-    creative_type: string;
-    headline: string | null;
-    body: string | null;
-    cta_text: string | null;
-    target_url: string;
-    alt_text: string | null;
-  },
-) {
+export async function createAdCreative(data: {
+  campaign_id: string;
+  creative_type: string;
+  placement?: string | null;
+  headline?: string | null;
+  body?: string | null;
+  cta_text?: string | null;
+  target_url: string;
+  image_url?: string | null;
+  alt_text?: string | null;
+  is_active?: boolean;
+}) {
   const supabase = createServiceRoleClient();
   const { error } = await supabase.from("ad_creatives").insert({
-    campaign_id: campaignId,
+    campaign_id: data.campaign_id,
     creative_type: data.creative_type,
-    headline: data.headline,
-    body: data.body,
-    cta_text: data.cta_text,
+    placement: data.placement ?? null,
+    headline: data.headline ?? null,
+    body: data.body ?? null,
+    cta_text: data.cta_text ?? null,
     target_url: data.target_url,
-    alt_text: data.alt_text,
-    is_active: true,
+    image_url: data.image_url ?? null,
+    alt_text: data.alt_text ?? null,
+    is_active: data.is_active ?? true,
   } as never);
   if (error) return { error: error.message };
-  revalidatePath(`/admin/sponsors/${sponsorId}`);
+  revalidatePath("/admin/sponsors");
+  revalidatePath("/admin/sponsors/creatives");
   return { success: true };
 }
 
