@@ -74,16 +74,8 @@ function deriveFileType(mimeType: string): string {
   return "other";
 }
 
-async function getImageDimensions(file: File): Promise<{ width: number; height: number } | null> {
-  try {
-    const sharp = (await import("sharp")).default;
-    const buffer = Buffer.from(await file.arrayBuffer());
-    const { width, height } = await sharp(buffer).metadata();
-    if (width && height) return { width, height };
-    return null;
-  } catch {
-    return null;
-  }
+async function getImageDimensions(_file: File): Promise<{ width: number; height: number } | null> {
+  return null;
 }
 
 export async function uploadAsset(
