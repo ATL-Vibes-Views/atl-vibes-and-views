@@ -447,6 +447,7 @@ export async function createMediaItem(formData: FormData) {
   const embed_url = (formData.get("embed_url") as string) || null;
   const seo_title = (formData.get("seo_title") as string) || null;
   const meta_description = (formData.get("meta_description") as string) || null;
+  const sponsor_id = (formData.get("sponsor_id") as string) || null;
 
   const { error } = await supabase.from("media_items").insert({
     title,
@@ -458,6 +459,7 @@ export async function createMediaItem(formData: FormData) {
     embed_url,
     seo_title,
     meta_description,
+    sponsor_id,
     status: "draft",
   } as never);
 
@@ -468,11 +470,73 @@ export async function createMediaItem(formData: FormData) {
 
 export async function updateMediaItem(id: string, data: Record<string, unknown>) {
   const supabase = createServiceRoleClient();
+  const now = new Date().toISOString();
   const { error } = await supabase
     .from("media_items")
-    .update({ ...data, updated_at: new Date().toISOString() } as never)
+    .update({ ...data, updated_at: now } as never)
     .eq("id", id);
   if (error) return { error: error.message };
+
+  // ── podcast_segment fulfillment when status changes to "published" ──
+  if (data.status === "published") {
+    const { data: mediaRow } = (await supabase
+      .from("media_items")
+      .select("title, sponsor_id, media_type")
+      .eq("id", id)
+      .single()) as { data: { title: string; sponsor_id: string | null; media_type: string } | null };
+
+    if (mediaRow?.sponsor_id && mediaRow.media_type === "podcast") {
+      const sponsorId = mediaRow.sponsor_id;
+
+      // Find active podcast_segment deliverable
+      const { data: podDel } = (await supabase
+        .from("sponsor_deliverables")
+        .select("id")
+        .eq("sponsor_id", sponsorId)
+        .eq("deliverable_type", "podcast_segment")
+        .eq("status", "active")
+        .limit(1)
+        .single()) as { data: { id: string } | null };
+
+      // Insert fulfillment log entry
+      await supabase.from("sponsor_fulfillment_log").insert({
+        sponsor_id: sponsorId,
+        deliverable_id: podDel?.id ?? null,
+        deliverable_type: "podcast_segment",
+        title: mediaRow.title,
+        channel: "podcast",
+        platform: "podcast",
+        delivered_at: now,
+      } as never);
+
+      // Increment quantity_delivered if deliverable exists
+      if (podDel) {
+        const { data: delRow } = (await supabase
+          .from("sponsor_deliverables")
+          .select("quantity_delivered")
+          .eq("id", podDel.id)
+          .single()) as { data: { quantity_delivered: number } | null };
+        if (delRow) {
+          await supabase
+            .from("sponsor_deliverables")
+            .update({ quantity_delivered: delRow.quantity_delivered + 1, updated_at: now } as never)
+            .eq("id", podDel.id);
+        }
+      }
+
+      // Increment placements_used on sponsor
+      const { data: sponsorRow } = (await supabase
+        .from("sponsors")
+        .select("placements_used")
+        .eq("id", sponsorId)
+        .single()) as { data: { placements_used: number | null } | null };
+      await supabase
+        .from("sponsors")
+        .update({ placements_used: (sponsorRow?.placements_used ?? 0) + 1, updated_at: now } as never)
+        .eq("id", sponsorId);
+    }
+  }
+
   revalidatePath("/admin/media");
   return { success: true };
 }
@@ -481,11 +545,79 @@ export async function updateMediaItem(id: string, data: Record<string, unknown>)
 
 export async function updateBusiness(id: string, data: Record<string, unknown>) {
   const supabase = createServiceRoleClient();
+  const now = new Date().toISOString();
   const { error } = await supabase
     .from("business_listings")
-    .update({ ...data, updated_at: new Date().toISOString() } as never)
+    .update({ ...data, updated_at: now } as never)
     .eq("id", id);
   if (error) return { error: error.message };
+
+  // ── directory_boost fulfillment when is_featured toggled ON ──
+  if (data.is_featured === true) {
+    // Check for active sponsor linked to this business
+    const { data: sponsor } = (await supabase
+      .from("sponsors")
+      .select("id")
+      .eq("business_id", id)
+      .eq("is_active", true)
+      .limit(1)
+      .single()) as { data: { id: string } | null };
+
+    if (sponsor) {
+      // Find active directory_boost deliverable
+      const { data: boostDel } = (await supabase
+        .from("sponsor_deliverables")
+        .select("id")
+        .eq("sponsor_id", sponsor.id)
+        .eq("deliverable_type", "directory_boost")
+        .eq("status", "active")
+        .limit(1)
+        .single()) as { data: { id: string } | null };
+
+      if (boostDel) {
+        // Get business name for the log title
+        const { data: biz } = (await supabase
+          .from("business_listings")
+          .select("business_name")
+          .eq("id", id)
+          .single()) as { data: { business_name: string } | null };
+
+        await supabase.from("sponsor_fulfillment_log").insert({
+          sponsor_id: sponsor.id,
+          deliverable_id: boostDel.id,
+          deliverable_type: "directory_boost",
+          title: `Featured: ${biz?.business_name ?? "Business Listing"}`,
+          channel: "website",
+          delivered_at: now,
+        } as never);
+
+        // Increment quantity_delivered
+        const { data: delRow } = (await supabase
+          .from("sponsor_deliverables")
+          .select("quantity_delivered")
+          .eq("id", boostDel.id)
+          .single()) as { data: { quantity_delivered: number } | null };
+        if (delRow) {
+          await supabase
+            .from("sponsor_deliverables")
+            .update({ quantity_delivered: delRow.quantity_delivered + 1, updated_at: now } as never)
+            .eq("id", boostDel.id);
+        }
+
+        // Increment placements_used on sponsor
+        const { data: sponsorRow } = (await supabase
+          .from("sponsors")
+          .select("placements_used")
+          .eq("id", sponsor.id)
+          .single()) as { data: { placements_used: number | null } | null };
+        await supabase
+          .from("sponsors")
+          .update({ placements_used: (sponsorRow?.placements_used ?? 0) + 1, updated_at: now } as never)
+          .eq("id", sponsor.id);
+      }
+    }
+  }
+
   revalidatePath(`/admin/businesses/${id}`);
   revalidatePath("/admin/businesses");
   return { success: true };
@@ -1461,5 +1593,84 @@ export async function triggerBlogGeneration(storyId: string) {
   }
 
   revalidatePath("/admin/pipeline");
+  return { success: true };
+}
+
+// ─── PINNED POST FULFILLMENT ─────────────────────────────────
+
+export async function logPinnedPost(
+  sponsorId: string,
+  data: {
+    content_url: string | null;
+    pinned_at: string;
+    notes: string | null;
+  },
+) {
+  const supabase = createServiceRoleClient();
+  const now = new Date().toISOString();
+
+  // Enforce 3-slot cap globally (not per-sponsor)
+  const { data: activeRows } = (await supabase
+    .from("sponsor_fulfillment_log")
+    .select("id")
+    .eq("deliverable_type", "pinned_post")
+    .eq("voided", false)
+    .is("unpinned_at", null)) as { data: { id: string }[] | null };
+
+  if ((activeRows?.length ?? 0) >= 3) {
+    return { error: "Maximum 3 active pinned posts. Unpin or void an existing post first." };
+  }
+
+  // Find active pinned_post deliverable
+  const { data: pinDel } = (await supabase
+    .from("sponsor_deliverables")
+    .select("id")
+    .eq("sponsor_id", sponsorId)
+    .eq("deliverable_type", "pinned_post")
+    .eq("status", "active")
+    .limit(1)
+    .single()) as { data: { id: string } | null };
+
+  // Insert fulfillment log entry
+  await supabase.from("sponsor_fulfillment_log").insert({
+    sponsor_id: sponsorId,
+    deliverable_id: pinDel?.id ?? null,
+    deliverable_type: "pinned_post",
+    title: "Pinned Post",
+    description: data.notes || null,
+    channel: "social",
+    platform: "social",
+    content_url: data.content_url || null,
+    delivered_at: data.pinned_at ? new Date(data.pinned_at + "T12:00:00").toISOString() : now,
+  } as never);
+
+  // Increment quantity_delivered if deliverable exists
+  if (pinDel) {
+    const { data: delRow } = (await supabase
+      .from("sponsor_deliverables")
+      .select("quantity_delivered")
+      .eq("id", pinDel.id)
+      .single()) as { data: { quantity_delivered: number } | null };
+    if (delRow) {
+      await supabase
+        .from("sponsor_deliverables")
+        .update({ quantity_delivered: delRow.quantity_delivered + 1, updated_at: now } as never)
+        .eq("id", pinDel.id);
+    }
+
+    // Increment placements_used on sponsor
+    const { data: sponsorRow } = (await supabase
+      .from("sponsors")
+      .select("placements_used")
+      .eq("id", sponsorId)
+      .single()) as { data: { placements_used: number | null } | null };
+    await supabase
+      .from("sponsors")
+      .update({ placements_used: (sponsorRow?.placements_used ?? 0) + 1, updated_at: now } as never)
+      .eq("id", sponsorId);
+  }
+
+  revalidatePath(`/admin/sponsors/${sponsorId}`);
+  revalidatePath("/admin/sponsors");
   return { success: true };
 }

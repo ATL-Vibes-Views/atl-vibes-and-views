@@ -15,11 +15,13 @@ import { createMediaItem } from "@/app/admin/actions";
 
 interface MediaAddClientProps {
   neighborhoods: { id: string; name: string }[];
+  sponsors: { id: string; sponsor_name: string }[];
 }
 
-export function MediaAddClient({ neighborhoods }: MediaAddClientProps) {
+export function MediaAddClient({ neighborhoods, sponsors }: MediaAddClientProps) {
   const router = useRouter();
   const [saving, setSaving] = useState(false);
+  const [mediaType, setMediaType] = useState("");
 
   async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
@@ -49,7 +51,7 @@ export function MediaAddClient({ neighborhoods }: MediaAddClientProps) {
 
           <FormRow columns={2}>
             <FormGroup label="Media Type">
-              <select name="media_type" className="w-full h-[40px] px-3 text-[13px] border border-[#e5e5e5] bg-white text-[#374151] focus:outline-none focus:border-[#1a1a1a]" required>
+              <select name="media_type" value={mediaType} onChange={(e) => setMediaType(e.target.value)} className="w-full h-[40px] px-3 text-[13px] border border-[#e5e5e5] bg-white text-[#374151] focus:outline-none focus:border-[#1a1a1a]" required>
                 <option value="">Select type</option>
                 <option value="video">Video</option>
                 <option value="audio">Audio</option>
@@ -65,6 +67,17 @@ export function MediaAddClient({ neighborhoods }: MediaAddClientProps) {
               </select>
             </FormGroup>
           </FormRow>
+
+          {mediaType === "podcast" && (
+            <FormGroup label="Sponsor" hint="Link this podcast episode to a sponsor for fulfillment tracking">
+              <select name="sponsor_id" className="w-full h-[40px] px-3 text-[13px] border border-[#e5e5e5] bg-white text-[#374151] focus:outline-none focus:border-[#1a1a1a]">
+                <option value="">None</option>
+                {sponsors.map((s) => (
+                  <option key={s.id} value={s.id}>{s.sponsor_name}</option>
+                ))}
+              </select>
+            </FormGroup>
+          )}
 
           <FormGroup label="Embed URL">
             <FormInput name="embed_url" placeholder="https://youtube.com/watch?v=..." />
