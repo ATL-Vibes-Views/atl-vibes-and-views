@@ -3,7 +3,6 @@
 import { useState, useRef } from "react";
 import { Search, Upload, X, Copy, Check, Trash2, Image as ImageIcon, FileVideo, FileText, File, Images } from "lucide-react";
 import { PortalTopbar } from "@/components/portal/PortalTopbar";
-import { uploadAsset } from "@/lib/supabase-storage";
 import { createBrowserClient } from "@/lib/supabase";
 
 interface MediaAssetRow {
@@ -98,7 +97,15 @@ export function MediaLibraryClient({ initialAssets }: MediaLibraryClientProps) {
     if (!upTitle.trim()) { setUpError("Title is required."); return; }
     if (upFile.type.startsWith("image/") && !upAlt.trim()) { setUpError("Alt text is required for images."); return; }
     setUploading(true); setUpError("");
-    const result = await uploadAsset(upFile, { bucket: upBucket, folder: upFolder, title: upTitle.trim(), alt_text: upAlt.trim()||undefined, caption: upCaption.trim()||undefined, source: "user_uploaded" });
+    const fd = new FormData();
+    fd.append("file", upFile);
+    fd.append("bucket", upBucket);
+    fd.append("folder", upFolder);
+    fd.append("title", upTitle.trim());
+    if (upAlt.trim()) fd.append("alt_text", upAlt.trim());
+    if (upCaption.trim()) fd.append("caption", upCaption.trim());
+    const res = await fetch("/api/admin/upload-asset", { method: "POST", body: fd });
+    const result = await res.json() as { id: string; url: string; file_name: string; file_type: string; mime_type: string; file_size: number; width?: number; height?: number; bucket: string; folder: string } | { error: string };
     setUploading(false);
     if ("error" in result) { setUpError(result.error); return; }
     const newAsset: MediaAssetRow = { id: result.id, file_url: result.url, file_name: result.file_name, file_type: result.file_type, mime_type: result.mime_type, file_size: result.file_size, width: result.width??null, height: result.height??null, bucket: result.bucket, folder: result.folder, title: upTitle.trim(), alt_text: upAlt.trim()||null, caption: upCaption.trim()||null, created_at: new Date().toISOString(), is_active: true };

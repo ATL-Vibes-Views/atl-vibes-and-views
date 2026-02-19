@@ -2,7 +2,6 @@
 
 import { useState, useRef, useEffect, useCallback } from "react";
 import { Upload, X, Search, FolderOpen, Image as ImageIcon, FileVideo, FileText, File, Check } from "lucide-react";
-import { uploadAsset } from "@/lib/supabase-storage";
 import { createBrowserClient } from "@/lib/supabase";
 
 /* ============================================================
@@ -177,14 +176,16 @@ export function MediaPicker({
     setUploading(true);
     setUploadError("");
 
-    const result = await uploadAsset(selectedFile, {
-      bucket,
-      folder,
-      title: uploadTitle.trim(),
-      alt_text: uploadAlt.trim() || undefined,
-      caption: uploadCaption.trim() || undefined,
-      source: "user_uploaded",
-    });
+    const fd = new FormData();
+    fd.append("file", selectedFile);
+    fd.append("bucket", bucket);
+    fd.append("folder", folder);
+    fd.append("title", uploadTitle.trim());
+    if (uploadAlt.trim()) fd.append("alt_text", uploadAlt.trim());
+    if (uploadCaption.trim()) fd.append("caption", uploadCaption.trim());
+
+    const res = await fetch("/api/admin/upload-asset", { method: "POST", body: fd });
+    const result = await res.json() as { id: string; url: string } | { error: string };
 
     setUploading(false);
     if ("error" in result) {
