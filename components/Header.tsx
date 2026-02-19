@@ -18,7 +18,7 @@ interface ExploreGroup {
   neighborhoods: { id: string; name: string; slug: string }[];
 }
 
-const MAX_NEIGHBORHOODS = 12;
+const MAX_NEIGHBORHOODS = 10;
 
 const HUB_ITEMS = [
   { name: "Businesses", slug: "businesses", image: "https://placehold.co/200x120/1a1a1a/e6c46d?text=Businesses" },
@@ -72,6 +72,7 @@ export function Header({ exploreData = [] }: HeaderProps) {
   const [mobileExploreAreaSlug, setMobileExploreAreaSlug] = useState<string | null>(null);
   const [mobileHubOpen, setMobileHubOpen] = useState(false);
   const [mobileBeyondOpen, setMobileBeyondOpen] = useState(false);
+  const [mobileMediaOpen, setMobileMediaOpen] = useState(false);
   const dropdownTimeout = useRef<NodeJS.Timeout | null>(null);
 
   /* Auto-select first area when Explore dropdown opens */
@@ -205,10 +206,10 @@ export function Header({ exploreData = [] }: HeaderProps) {
                       </div>
                       <div className="px-5 pt-2 mt-1 border-t border-gray-100">
                         <Link
-                          href={`/neighborhoods?area=${activeAreaGroup.area_slug}`}
+                          href={`/areas/${activeAreaGroup.area_slug}`}
                           className="text-[#c1121f] text-sm font-semibold hover:underline"
                         >
-                          See All Neighborhoods &rarr;
+                          See All {activeAreaGroup.area_name} Neighborhoods &rarr;
                         </Link>
                       </div>
                     </>
@@ -239,11 +240,25 @@ export function Header({ exploreData = [] }: HeaderProps) {
             )}
           </div>
 
-          {/* Beyond ATL */}
+          <NavLink href="/city-watch">City Watch</NavLink>
+
+          {/* MEDIA — dropdown with Videos + Newsletters */}
+          <div className="relative" onMouseEnter={() => handleDropdownEnter("media")} onMouseLeave={handleDropdownLeave}>
+            <NavDropdownTriggerLink href="/media" active={activeDropdown === "media"}>Media</NavDropdownTriggerLink>
+            {activeDropdown === "media" && (
+              <DropdownPanel>
+                <DropdownLink href="/media">Videos</DropdownLink>
+                <DropdownLink href="/newsletters">Newsletters</DropdownLink>
+              </DropdownPanel>
+            )}
+          </div>
+
+          {/* BEYOND ATL — with Explore Other Cities label */}
           <div className="relative" onMouseEnter={() => handleDropdownEnter("beyond")} onMouseLeave={handleDropdownLeave}>
             <NavDropdownTriggerLink href="/beyond-atl" active={activeDropdown === "beyond"}>Beyond ATL</NavDropdownTriggerLink>
             {activeDropdown === "beyond" && (
               <DropdownPanel>
+                <div className="px-5 py-2 text-[10px] font-semibold uppercase tracking-eyebrow text-[#c1121f]">Explore Other Cities</div>
                 {BEYOND_ATL_CITIES.map((city) => (
                   <DropdownLink key={city.slug} href={`/beyond-atl/${city.slug}`}>{city.name}</DropdownLink>
                 ))}
@@ -253,13 +268,9 @@ export function Header({ exploreData = [] }: HeaderProps) {
               </DropdownPanel>
             )}
           </div>
-
-          <NavLink href="/city-watch">City Watch</NavLink>
-          <NavLink href="/media">Media</NavLink>
-          <NavLink href="/dashboard">Client Portal</NavLink>
         </nav>
 
-        <Link href="/submit" className="hidden md:inline-flex items-center px-5 py-2 bg-[#e6c46d] text-black text-xs font-semibold uppercase tracking-eyebrow rounded-full hover:bg-black hover:text-[#fee198] transition-colors">Submit Listing</Link>
+        <Link href="/submit" className="hidden md:inline-flex items-center px-5 py-2 bg-[#e6c46d] text-black text-xs font-semibold uppercase tracking-eyebrow rounded-full hover:bg-black hover:text-[#fee198] transition-colors">Submit Your Listing</Link>
       </div>
 
       {/* ===== CHRONICLE-STYLE DRAWER ===== */}
@@ -360,11 +371,11 @@ export function Header({ exploreData = [] }: HeaderProps) {
                                 </Link>
                               ))}
                               <Link
-                                href={`/neighborhoods?area=${group.area_slug}`}
+                                href={`/areas/${group.area_slug}`}
                                 onClick={closeDrawer}
                                 className="block py-1.5 text-[#c1121f] text-sm font-semibold hover:text-gold-light transition-colors"
                               >
-                                See All Neighborhoods &rarr;
+                                See All {group.area_name} Neighborhoods &rarr;
                               </Link>
                             </div>
                           )}
@@ -390,7 +401,23 @@ export function Header({ exploreData = [] }: HeaderProps) {
                   )}
                 </div>
 
-                {/* Beyond ATL — expandable with flat city list */}
+                <MobileNavLink href="/city-watch" onClick={closeDrawer}>City Watch</MobileNavLink>
+
+                {/* Media — expandable */}
+                <div>
+                  <button onClick={() => setMobileMediaOpen(!mobileMediaOpen)} className="flex items-center justify-between w-full py-3 text-white text-[15px] font-semibold hover:text-gold-light transition-colors">
+                    <span>Media</span>
+                    <ChevronDown size={16} className={`transition-transform duration-200 ${mobileMediaOpen ? "rotate-180" : ""}`} />
+                  </button>
+                  {mobileMediaOpen && (
+                    <div className="pl-4 pb-2 space-y-0.5">
+                      <Link href="/media" onClick={closeDrawer} className="block py-2 text-white/60 text-sm hover:text-gold-light transition-colors">Videos</Link>
+                      <Link href="/newsletters" onClick={closeDrawer} className="block py-2 text-white/60 text-sm hover:text-gold-light transition-colors">Newsletters</Link>
+                    </div>
+                  )}
+                </div>
+
+                {/* Beyond ATL — expandable with Explore Other Cities label */}
                 <div>
                   <button onClick={() => setMobileBeyondOpen(!mobileBeyondOpen)} className="flex items-center justify-between w-full py-3 text-white text-[15px] font-semibold hover:text-gold-light transition-colors">
                     <span>Beyond ATL</span>
@@ -398,6 +425,7 @@ export function Header({ exploreData = [] }: HeaderProps) {
                   </button>
                   {mobileBeyondOpen && (
                     <div className="pl-4 pb-2 space-y-0.5">
+                      <p className="py-1 text-[10px] font-semibold uppercase tracking-eyebrow text-[#c1121f]">Explore Other Cities</p>
                       {BEYOND_ATL_CITIES.map((city) => (
                         <Link key={city.slug} href={`/beyond-atl/${city.slug}`} onClick={closeDrawer} className="block py-2 text-white/60 text-sm hover:text-gold-light transition-colors">{city.name}</Link>
                       ))}
@@ -405,10 +433,6 @@ export function Header({ exploreData = [] }: HeaderProps) {
                     </div>
                   )}
                 </div>
-
-                <MobileNavLink href="/city-watch" onClick={closeDrawer}>City Watch</MobileNavLink>
-                <MobileNavLink href="/media" onClick={closeDrawer}>Media</MobileNavLink>
-                <MobileNavLink href="/dashboard" onClick={closeDrawer}>Client Portal</MobileNavLink>
               </nav>
             </div>
 

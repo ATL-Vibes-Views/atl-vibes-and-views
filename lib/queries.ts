@@ -783,6 +783,19 @@ export async function getNeighborhoodsGrouped(): Promise<NeighborhoodGrouped[]> 
   if (error) throw error;
   if (!data?.length) return [];
 
+  /* Count published posts per neighborhood via post_neighborhoods join */
+  const { data: postLinks } = await sb()
+    .from("post_neighborhoods")
+    .select("neighborhood_id")
+    .returns<{ neighborhood_id: string }[]>();
+
+  const storyCount = new Map<string, number>();
+  if (postLinks) {
+    for (const row of postLinks) {
+      storyCount.set(row.neighborhood_id, (storyCount.get(row.neighborhood_id) ?? 0) + 1);
+    }
+  }
+
   const grouped = new Map<string, NeighborhoodGrouped>();
   for (const n of data) {
     const areaName = n.areas?.name ?? "Other";
@@ -792,6 +805,16 @@ export async function getNeighborhoodsGrouped(): Promise<NeighborhoodGrouped[]> 
     }
     grouped.get(areaSlug)!.neighborhoods.push({ id: n.id, name: n.name, slug: n.slug });
   }
+
+  /* Sort each area's neighborhoods by story count desc, then name asc; keep top 10 */
+  for (const group of grouped.values()) {
+    group.neighborhoods.sort((a, b) => {
+      const diff = (storyCount.get(b.id) ?? 0) - (storyCount.get(a.id) ?? 0);
+      return diff !== 0 ? diff : a.name.localeCompare(b.name);
+    });
+    group.neighborhoods = group.neighborhoods.slice(0, 10);
+  }
+
   return Array.from(grouped.values()).sort((a, b) => a.area_name.localeCompare(b.area_name));
 }
 
