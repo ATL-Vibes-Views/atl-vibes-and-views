@@ -1044,8 +1044,127 @@ export async function distributeScript(
     status: calendarStatus,
   } as never);
 
+  // ── Sponsor fulfillment tracking (publish now only) ──
+  if (data.scheduleMode === "now") {
+    // Fetch script title + story_id
+    const { data: scriptRow } = (await supabase
+      .from("scripts")
+      .select("title, story_id")
+      .eq("id", scriptId)
+      .single()) as { data: { title: string; story_id: string | null } | null };
+
+    const storyId = scriptRow?.story_id ?? data.storyId ?? null;
+
+    if (storyId) {
+      // Look up story_businesses to find linked business
+      const { data: storyBiz } = (await supabase
+        .from("story_businesses")
+        .select("business_id")
+        .eq("story_id", storyId)
+        .limit(1)
+        .single()) as { data: { business_id: string } | null };
+
+      if (storyBiz?.business_id) {
+        // Check for active sponsor with this business_id
+        const { data: sponsor } = (await supabase
+          .from("sponsors")
+          .select("id")
+          .eq("business_id", storyBiz.business_id)
+          .eq("is_active", true)
+          .limit(1)
+          .single()) as { data: { id: string } | null };
+
+        if (sponsor) {
+          const platformLabel = data.platforms[0] ?? "social";
+
+          // ── Reel deliverable ──
+          const { data: reelDel } = (await supabase
+            .from("sponsor_deliverables")
+            .select("id")
+            .eq("sponsor_id", sponsor.id)
+            .eq("deliverable_type", "reel")
+            .eq("status", "active")
+            .limit(1)
+            .single()) as { data: { id: string } | null };
+
+          if (reelDel) {
+            await supabase.from("sponsor_fulfillment_log").insert({
+              sponsor_id: sponsor.id,
+              deliverable_id: reelDel.id,
+              deliverable_type: "reel",
+              title: scriptRow?.title ?? "Untitled Reel",
+              channel: "social",
+              platform: platformLabel,
+              delivered_at: now,
+            } as never);
+
+            // Increment reel quantity_delivered
+            const { data: reelRow } = (await supabase
+              .from("sponsor_deliverables")
+              .select("quantity_delivered")
+              .eq("id", reelDel.id)
+              .single()) as { data: { quantity_delivered: number } | null };
+            if (reelRow) {
+              await supabase
+                .from("sponsor_deliverables")
+                .update({ quantity_delivered: reelRow.quantity_delivered + 1, updated_at: now } as never)
+                .eq("id", reelDel.id);
+            }
+
+            // Increment placements_used on sponsor
+            const { data: sponsorRow } = (await supabase
+              .from("sponsors")
+              .select("placements_used")
+              .eq("id", sponsor.id)
+              .single()) as { data: { placements_used: number | null } | null };
+            await supabase
+              .from("sponsors")
+              .update({ placements_used: (sponsorRow?.placements_used ?? 0) + 1, updated_at: now } as never)
+              .eq("id", sponsor.id);
+          }
+
+          // ── Story Boost deliverable ──
+          const { data: boostDel } = (await supabase
+            .from("sponsor_deliverables")
+            .select("id")
+            .eq("sponsor_id", sponsor.id)
+            .eq("deliverable_type", "story_boost")
+            .eq("status", "active")
+            .limit(1)
+            .single()) as { data: { id: string } | null };
+
+          if (boostDel) {
+            await supabase.from("sponsor_fulfillment_log").insert({
+              sponsor_id: sponsor.id,
+              deliverable_id: boostDel.id,
+              deliverable_type: "story_boost",
+              title: scriptRow?.title ?? "Untitled Reel",
+              channel: "social",
+              platform: platformLabel,
+              delivered_at: now,
+            } as never);
+
+            // Increment story_boost quantity_delivered
+            const { data: boostRow } = (await supabase
+              .from("sponsor_deliverables")
+              .select("quantity_delivered")
+              .eq("id", boostDel.id)
+              .single()) as { data: { quantity_delivered: number } | null };
+            if (boostRow) {
+              await supabase
+                .from("sponsor_deliverables")
+                .update({ quantity_delivered: boostRow.quantity_delivered + 1, updated_at: now } as never)
+                .eq("id", boostDel.id);
+            }
+          }
+        }
+      }
+    }
+  }
+
   revalidatePath("/admin/social");
   revalidatePath("/admin/calendar");
+  revalidatePath("/admin/sponsors");
   return { success: true };
 }
 
@@ -1262,5 +1381,85 @@ export async function createAdFlight(
   } as never);
   if (error) return { error: error.message };
   revalidatePath(`/admin/sponsors/${sponsorId}`);
+  return { success: true };
+}
+
+// ─── CREATE REEL (one-off from Social Queue) ──────────────────
+
+export async function createReel(data: {
+  title: string;
+  story_id: string | null;
+  platform_captions: Record<string, unknown>;
+  media_url: string | null;
+  sponsor_id: string | null;
+}) {
+  const supabase = createServiceRoleClient();
+
+  const { data: inserted, error } = (await supabase
+    .from("scripts")
+    .insert({
+      title: data.title,
+      story_id: data.story_id || null,
+      platform_captions: data.platform_captions,
+      media_url: data.media_url || null,
+      platform: "reel",
+      format: "reel",
+      status: "approved",
+    } as never)
+    .select("id")
+    .single()) as { data: { id: string } | null; error: { message: string } | null };
+  if (error) return { error: error.message };
+
+  // If sponsor selected and story selected, link story to sponsor's business
+  if (data.sponsor_id && data.story_id) {
+    const { data: sponsor } = (await supabase
+      .from("sponsors")
+      .select("business_id")
+      .eq("id", data.sponsor_id)
+      .single()) as { data: { business_id: string | null } | null };
+
+    if (sponsor?.business_id) {
+      // Check if link already exists
+      const { data: existing } = (await supabase
+        .from("story_businesses")
+        .select("id")
+        .eq("story_id", data.story_id)
+        .eq("business_id", sponsor.business_id)
+        .limit(1)
+        .single()) as { data: { id: string } | null };
+
+      if (!existing) {
+        await supabase.from("story_businesses").insert({
+          story_id: data.story_id,
+          business_id: sponsor.business_id,
+        } as never);
+      }
+    }
+  }
+
+  revalidatePath("/admin/social");
+  return { success: true };
+}
+
+// ─── TRIGGER BLOG GENERATION (S4 webhook) ─────────────────────
+
+export async function triggerBlogGeneration(storyId: string) {
+  const webhookUrl = process.env.MAKE_S4_WEBHOOK_URL;
+  if (!webhookUrl) return { error: "MAKE_S4_WEBHOOK_URL is not configured" };
+
+  try {
+    const res = await fetch(webhookUrl, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ story_id: storyId }),
+    });
+    if (!res.ok) {
+      return { error: `Webhook returned ${res.status}: ${res.statusText}` };
+    }
+  } catch (e) {
+    return { error: `Webhook request failed: ${e instanceof Error ? e.message : String(e)}` };
+  }
+
+  revalidatePath("/admin/pipeline");
   return { success: true };
 }

@@ -39,5 +39,25 @@ export default async function SocialPage() {
   };
   if (scriptsErr) console.error("Failed to fetch social scripts:", scriptsErr);
 
-  return <SocialClient scripts={scripts ?? []} />;
+  // Stories for New Reel dropdown
+  const { data: stories } = (await supabase
+    .from("stories")
+    .select("id, headline")
+    .order("created_at", { ascending: false })
+    .limit(200)) as { data: { id: string; headline: string }[] | null };
+
+  // Active sponsors for New Reel dropdown
+  const { data: sponsors } = (await supabase
+    .from("sponsors")
+    .select("id, sponsor_name")
+    .eq("is_active", true)
+    .order("sponsor_name")) as { data: { id: string; sponsor_name: string }[] | null };
+
+  return (
+    <SocialClient
+      scripts={scripts ?? []}
+      stories={stories ?? []}
+      sponsors={sponsors ?? []}
+    />
+  );
 }

@@ -6,8 +6,9 @@ import { PortalTopbar } from "@/components/portal/PortalTopbar";
 import { StatCard } from "@/components/portal/StatCard";
 import { StatGrid } from "@/components/portal/StatGrid";
 import { AlertTriangle, Play, Paperclip, Check, Loader2, Trash2 } from "lucide-react";
-import { rejectSocialItem, savePlatformCaption, uploadScriptMedia, removeScriptMedia } from "@/app/admin/actions";
+import { rejectSocialItem, savePlatformCaption, uploadScriptMedia, removeScriptMedia, createReel } from "@/app/admin/actions";
 import { createBrowserClient } from "@/lib/supabase";
+import { Modal } from "@/components/portal/Modal";
 
 /* ──────────────────────────────────────────────────────────────
    TYPES
@@ -30,8 +31,20 @@ interface ScriptRow {
   script_batches: { batch_name: string | null } | null;
 }
 
+interface StoryOption {
+  id: string;
+  headline: string;
+}
+
+interface SponsorOption {
+  id: string;
+  sponsor_name: string;
+}
+
 interface SocialClientProps {
   scripts: ScriptRow[];
+  stories: StoryOption[];
+  sponsors: SponsorOption[];
 }
 
 /* ──────────────────────────────────────────────────────────────
@@ -101,7 +114,7 @@ function getCaptionData(pc: unknown, key: string): Record<string, string> {
    COMPONENT
    ────────────────────────────────────────────────────────────── */
 
-export function SocialClient({ scripts }: SocialClientProps) {
+export function SocialClient({ scripts, stories, sponsors }: SocialClientProps) {
   const router = useRouter();
   const [search, setSearch] = useState("");
   const [filterMode, setFilterMode] = useState<"all" | "needs_media" | "ready">("all");
@@ -123,6 +136,21 @@ export function SocialClient({ scripts }: SocialClientProps) {
   const [rejecting, setRejecting] = useState<string | null>(null);
   const [uploadingId, setUploadingId] = useState<string | null>(null);
   const [removingId, setRemovingId] = useState<string | null>(null);
+
+  // New Reel modal state
+  const [showReelModal, setShowReelModal] = useState(false);
+  const [reelTitle, setReelTitle] = useState("");
+  const [reelStoryId, setReelStoryId] = useState("");
+  const [reelMediaUrl, setReelMediaUrl] = useState("");
+  const [reelSponsorId, setReelSponsorId] = useState("");
+  const [reelCaptionIG, setReelCaptionIG] = useState("");
+  const [reelCaptionTT, setReelCaptionTT] = useState("");
+  const [reelCaptionYT, setReelCaptionYT] = useState("");
+  const [reelCaptionFB, setReelCaptionFB] = useState("");
+  const [reelCaptionX, setReelCaptionX] = useState("");
+  const [reelCaptionThreads, setReelCaptionThreads] = useState("");
+  const [savingReel, setSavingReel] = useState(false);
+  const [reelToast, setReelToast] = useState<string | null>(null);
 
   /* ── Stats ── */
   const totalQueue = scripts.length;
@@ -264,6 +292,39 @@ export function SocialClient({ scripts }: SocialClientProps) {
     }
   }, [router]);
 
+  /* ── Create Reel handler ── */
+  const handleCreateReel = useCallback(async () => {
+    if (!reelTitle.trim()) return;
+    setSavingReel(true);
+    const platformCaptions: Record<string, unknown> = {
+      instagram: { caption: reelCaptionIG },
+      tiktok: { caption: reelCaptionTT },
+      youtube: { title: reelCaptionYT },
+      facebook: { caption: reelCaptionFB },
+      x: { caption: reelCaptionX },
+      threads: { caption: reelCaptionThreads },
+    };
+    const result = await createReel({
+      title: reelTitle.trim(),
+      story_id: reelStoryId || null,
+      platform_captions: platformCaptions,
+      media_url: reelMediaUrl.trim() || null,
+      sponsor_id: reelSponsorId || null,
+    });
+    setSavingReel(false);
+    if ("error" in result && result.error) {
+      alert("Error: " + result.error);
+      return;
+    }
+    setShowReelModal(false);
+    setReelTitle(""); setReelStoryId(""); setReelMediaUrl(""); setReelSponsorId("");
+    setReelCaptionIG(""); setReelCaptionTT(""); setReelCaptionYT("");
+    setReelCaptionFB(""); setReelCaptionX(""); setReelCaptionThreads("");
+    setReelToast("Reel created successfully.");
+    setTimeout(() => setReelToast(null), 3000);
+    router.refresh();
+  }, [reelTitle, reelStoryId, reelMediaUrl, reelSponsorId, reelCaptionIG, reelCaptionTT, reelCaptionYT, reelCaptionFB, reelCaptionX, reelCaptionThreads, router]);
+
   /* ── Char count helper ── */
   const charCountClass = (len: number, limit: number) => {
     if (len > limit) return "text-[#c1121f] font-semibold";
@@ -277,12 +338,24 @@ export function SocialClient({ scripts }: SocialClientProps) {
 
   return (
     <>
+      {/* Toast */}
+      {reelToast && (
+        <div className="fixed top-4 right-4 z-50">
+          <div className="bg-[#1a1a1a] text-white px-5 py-3 rounded-full text-[13px] font-semibold shadow-lg">
+            {reelToast}
+          </div>
+        </div>
+      )}
+
       <PortalTopbar
         title="Social Queue"
         actions={
-          <span className="text-[12px] text-[#6b7280]">
-            Approved scripts ready for distribution
-          </span>
+          <button
+            onClick={() => setShowReelModal(true)}
+            className="inline-flex items-center px-5 py-2 rounded-full text-sm font-semibold bg-[#fee198] text-[#1a1a1a] hover:bg-[#e6c46d] transition-colors"
+          >
+            + New Reel
+          </button>
         }
       />
 
@@ -634,6 +707,112 @@ export function SocialClient({ scripts }: SocialClientProps) {
           })}
         </div>
       </div>
+
+      {/* ── New Reel Modal ── */}
+      <Modal
+        isOpen={showReelModal}
+        onClose={() => setShowReelModal(false)}
+        title="New Reel"
+        maxWidth="600px"
+        footer={
+          <>
+            <button
+              onClick={() => setShowReelModal(false)}
+              className="px-5 py-2 rounded-full text-sm font-semibold border border-[#e5e5e5] text-[#374151] hover:border-[#d1d5db] transition-colors"
+            >
+              Cancel
+            </button>
+            <button
+              disabled={!reelTitle.trim() || savingReel}
+              onClick={handleCreateReel}
+              className="px-5 py-2 rounded-full text-sm font-semibold bg-[#fee198] text-[#1a1a1a] hover:bg-[#e6c46d] transition-colors disabled:opacity-50"
+            >
+              {savingReel ? "Saving\u2026" : "Create Reel"}
+            </button>
+          </>
+        }
+      >
+        <div className="space-y-4">
+          {/* Title */}
+          <div>
+            <label className="block text-[12px] font-semibold text-[#374151] mb-1">
+              Title <span className="text-[#c1121f]">*</span>
+            </label>
+            <input
+              type="text"
+              value={reelTitle}
+              onChange={(e) => setReelTitle(e.target.value)}
+              className="w-full h-[40px] px-3 text-[13px] border border-[#e5e5e5] bg-white text-[#374151] focus:outline-none focus:border-[#1a1a1a] transition-colors"
+              placeholder="Reel title..."
+            />
+          </div>
+
+          {/* Story link */}
+          <div>
+            <label className="block text-[12px] font-semibold text-[#374151] mb-1">Story Link</label>
+            <select
+              value={reelStoryId}
+              onChange={(e) => setReelStoryId(e.target.value)}
+              className="w-full h-[40px] px-3 text-[13px] border border-[#e5e5e5] bg-white text-[#374151] focus:outline-none focus:border-[#1a1a1a] transition-colors"
+            >
+              <option value="">No story linked</option>
+              {stories.map((s) => (
+                <option key={s.id} value={s.id}>{s.headline}</option>
+              ))}
+            </select>
+          </div>
+
+          {/* Platform Captions */}
+          <div className="space-y-3">
+            <span className="block text-[12px] font-semibold text-[#374151]">Platform Captions</span>
+            {[
+              { label: "Instagram", value: reelCaptionIG, set: setReelCaptionIG },
+              { label: "TikTok", value: reelCaptionTT, set: setReelCaptionTT },
+              { label: "YouTube Short", value: reelCaptionYT, set: setReelCaptionYT },
+              { label: "Facebook", value: reelCaptionFB, set: setReelCaptionFB },
+              { label: "X", value: reelCaptionX, set: setReelCaptionX },
+              { label: "Threads", value: reelCaptionThreads, set: setReelCaptionThreads },
+            ].map((p) => (
+              <div key={p.label}>
+                <label className="block text-[11px] text-[#6b7280] mb-0.5">{p.label}</label>
+                <textarea
+                  value={p.value}
+                  onChange={(e) => p.set(e.target.value)}
+                  className="w-full min-h-[60px] px-3 py-2 text-[13px] border border-[#e5e5e5] bg-white text-[#374151] resize-vertical focus:outline-none focus:border-[#1a1a1a] transition-colors"
+                  placeholder={`${p.label} caption...`}
+                />
+              </div>
+            ))}
+          </div>
+
+          {/* Media URL */}
+          <div>
+            <label className="block text-[12px] font-semibold text-[#374151] mb-1">Media URL</label>
+            <input
+              type="text"
+              value={reelMediaUrl}
+              onChange={(e) => setReelMediaUrl(e.target.value)}
+              className="w-full h-[40px] px-3 text-[13px] border border-[#e5e5e5] bg-white text-[#374151] focus:outline-none focus:border-[#1a1a1a] transition-colors"
+              placeholder="https://..."
+            />
+          </div>
+
+          {/* Sponsor */}
+          <div>
+            <label className="block text-[12px] font-semibold text-[#374151] mb-1">Sponsor</label>
+            <select
+              value={reelSponsorId}
+              onChange={(e) => setReelSponsorId(e.target.value)}
+              className="w-full h-[40px] px-3 text-[13px] border border-[#e5e5e5] bg-white text-[#374151] focus:outline-none focus:border-[#1a1a1a] transition-colors"
+            >
+              <option value="">No sponsor</option>
+              {sponsors.map((sp) => (
+                <option key={sp.id} value={sp.id}>{sp.sponsor_name}</option>
+              ))}
+            </select>
+          </div>
+        </div>
+      </Modal>
     </>
   );
 }
