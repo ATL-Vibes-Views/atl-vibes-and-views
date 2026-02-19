@@ -60,6 +60,7 @@ export function CreativesClient({ creatives, campaigns, sponsors }: CreativesCli
   const [newSponsorId, setNewSponsorId] = useState("");
   const [newAdCopy, setNewAdCopy] = useState("");
   const [newPlacement, setNewPlacement] = useState("");
+  const [newCampaignId, setNewCampaignId] = useState("");
   const [saving, setSaving] = useState(false);
   const [editingCreative, setEditingCreative] = useState<CreativeRow | null>(null);
 
@@ -174,11 +175,11 @@ export function CreativesClient({ creatives, campaigns, sponsors }: CreativesCli
               className="w-full border border-[#e5e5e5] bg-white px-3 py-2 text-[13px] font-body text-[#374151] focus:border-[#e6c46d] focus:outline-none transition-colors"
             >
               <option value="">Select placement...</option>
-              <option value="website_banner">Website Banner</option>
-              <option value="newsletter_banner">Newsletter Banner</option>
-              <option value="social_static">Social Static</option>
-              <option value="social_video">Social Video</option>
-              <option value="pre_roll">Pre-Roll</option>
+              <option value="website_banner">Website Banner — 728x90px or 300x250px</option>
+              <option value="newsletter_banner">Newsletter Banner — 600x200px</option>
+              <option value="social_static">Social Static — 1080x1080px or 1080x1920px</option>
+              <option value="social_video">Social Video — 1080x1920px MP4</option>
+              <option value="pre_roll">Pre-Roll — 1920x1080px MP4</option>
             </select>
           </FormGroup>
           <FormRow>
@@ -192,7 +193,7 @@ export function CreativesClient({ creatives, campaigns, sponsors }: CreativesCli
             <FormGroup label="Sponsor">
               <select
                 value={newSponsorId}
-                onChange={(e) => setNewSponsorId(e.target.value)}
+                onChange={(e) => { setNewSponsorId(e.target.value); setNewCampaignId(""); }}
                 className="w-full border border-[#e5e5e5] bg-white px-3 py-2 text-[13px] font-body text-[#374151] focus:border-[#e6c46d] focus:outline-none transition-colors"
               >
                 <option value="">Select sponsor...</option>
@@ -202,6 +203,19 @@ export function CreativesClient({ creatives, campaigns, sponsors }: CreativesCli
               </select>
             </FormGroup>
           </FormRow>
+          <FormGroup label="Campaign">
+            <select
+              value={newCampaignId}
+              onChange={(e) => setNewCampaignId(e.target.value)}
+              disabled={!newSponsorId}
+              className="w-full border border-[#e5e5e5] bg-white px-3 py-2 text-[13px] font-body text-[#374151] focus:border-[#e6c46d] focus:outline-none transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+            >
+              <option value="">{newSponsorId ? "Select campaign..." : "Select a sponsor first"}</option>
+              {campaigns.filter((c) => c.sponsor_id === newSponsorId).map((c) => (
+                <option key={c.id} value={c.id}>{c.name}</option>
+              ))}
+            </select>
+          </FormGroup>
           <FormGroup label="Ad Copy">
             <FormTextarea
               value={newAdCopy}
@@ -219,12 +233,10 @@ export function CreativesClient({ creatives, campaigns, sponsors }: CreativesCli
             </button>
             <button
               onClick={async () => {
-                if (!newImageUrl || !newTargetUrl || !newSponsorId) return;
-                const sponsorCampaign = campaigns.find((c) => c.sponsor_id === newSponsorId);
-                if (!sponsorCampaign) { alert("No campaign found for this sponsor. Create a campaign first."); return; }
+                if (!newImageUrl || !newTargetUrl || !newSponsorId || !newCampaignId) return;
                 setSaving(true);
                 const result = await createAdCreative({
-                  campaign_id: sponsorCampaign.id,
+                  campaign_id: newCampaignId,
                   creative_type: newType,
                   placement: newPlacement || null,
                   headline: newHeadline || null,
@@ -237,10 +249,10 @@ export function CreativesClient({ creatives, campaigns, sponsors }: CreativesCli
                 if ("error" in result && result.error) { alert("Error: " + result.error); return; }
                 setShowNewForm(false);
                 setNewImageUrl(""); setNewHeadline(""); setNewTargetUrl("");
-                setNewType("image"); setNewSponsorId(""); setNewAdCopy(""); setNewPlacement("");
+                setNewType("image"); setNewSponsorId(""); setNewAdCopy(""); setNewPlacement(""); setNewCampaignId("");
                 router.refresh();
               }}
-              disabled={!newImageUrl || !newTargetUrl || !newSponsorId || saving}
+              disabled={!newImageUrl || !newTargetUrl || !newSponsorId || !newCampaignId || saving}
               className="px-6 py-2 rounded-full text-sm font-semibold bg-[#fee198] text-[#1a1a1a] hover:bg-[#e6c46d] transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
             >
               {saving ? "Saving..." : "Save Creative"}
@@ -258,8 +270,10 @@ export function CreativesClient({ creatives, campaigns, sponsors }: CreativesCli
               value: typeFilter,
               options: [
                 { value: "image", label: "Image" },
+                { value: "video", label: "Video" },
                 { value: "html", label: "HTML" },
-                { value: "text", label: "Text" },
+                { value: "native", label: "Native" },
+                { value: "gif", label: "GIF" },
               ],
             },
             {
@@ -328,7 +342,7 @@ export function CreativesClient({ creatives, campaigns, sponsors }: CreativesCli
                       <div className="flex flex-col items-end gap-0.5">
                         <span className="text-[10px] text-[#9ca3af]">{c.creative_type}</span>
                         {c.placement && (
-                          <span className="text-[10px] text-[#9ca3af]">{c.placement.replace(/_/g, " ")}</span>
+                          <span className="inline-block px-2 py-0.5 rounded-full text-[10px] font-semibold bg-[#f0f4ff] text-[#4f6ef7] border border-[#d6e0ff]">{c.placement.replace(/_/g, " ")}</span>
                         )}
                       </div>
                     </div>
