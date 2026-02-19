@@ -181,7 +181,7 @@ export function ReviewStep({
             )}
             <Field
               label="City/State/ZIP"
-              value={`${resolveName(businessData.city_id, cities)}, ${businessData.state} ${businessData.zip_code}`}
+              value={`${businessData.city_text || resolveName(businessData.city_id, cities)}, ${businessData.state} ${businessData.zip_code}`}
             />
             <Field
               label="Neighborhood"
@@ -444,7 +444,7 @@ export function ReviewStep({
           type="button"
           onClick={onSubmit}
           disabled={!agreed || submitting}
-          className="px-8 py-3 bg-[#c1121f] text-white text-xs font-semibold uppercase tracking-[0.1em] hover:bg-black transition-colors disabled:opacity-50"
+          className="px-8 py-3 bg-[#fee198] text-[#1a1a1a] text-xs font-semibold uppercase tracking-[0.1em] rounded-full hover:bg-[#1a1a1a] hover:text-[#fee198] transition-colors disabled:opacity-50"
         >
           {submitting
             ? "Submitting…"

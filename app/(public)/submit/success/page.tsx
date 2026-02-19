@@ -9,7 +9,7 @@ function SuccessContent() {
   const sessionId = searchParams.get("session_id");
 
   return (
-    <div className="bg-[#f8f5f0] min-h-[60vh]">
+    <div className="bg-white min-h-[60vh]">
       <div className="site-container px-6 py-16 md:py-24">
         <div className="max-w-lg mx-auto text-center">
           <div className="text-5xl mb-6">✓</div>
@@ -27,14 +27,14 @@ function SuccessContent() {
             </p>
           )}
 
-          <div className="bg-white p-6 text-center mb-8 shadow-sm">
+          <div className="bg-white border border-gray-100 p-6 text-center mb-8 shadow-sm">
             <p className="text-sm text-gray-dark mb-3">
               Want to manage your listing later? Create an account to access
               your dashboard, edit your listing, and view analytics.
             </p>
             <Link
               href="/signup"
-              className="inline-block px-6 py-2 bg-black text-white text-xs font-semibold uppercase tracking-[0.1em] hover:bg-[#c1121f] transition-colors"
+              className="inline-block px-6 py-2 bg-[#fee198] text-[#1a1a1a] text-xs font-semibold uppercase tracking-[0.1em] rounded-full hover:bg-[#1a1a1a] hover:text-[#fee198] transition-colors"
             >
               Create Account
             </Link>
@@ -43,13 +43,13 @@ function SuccessContent() {
           <div className="flex items-center justify-center gap-4">
             <Link
               href="/"
-              className="px-6 py-3 bg-[#c1121f] text-white text-xs font-semibold uppercase tracking-[0.1em] hover:bg-black transition-colors"
+              className="px-6 py-3 bg-[#fee198] text-[#1a1a1a] text-xs font-semibold uppercase tracking-[0.1em] rounded-full hover:bg-[#1a1a1a] hover:text-[#fee198] transition-colors"
             >
               Browse the Site
             </Link>
             <Link
               href="/submit"
-              className="px-6 py-3 border-2 border-black text-black text-xs font-semibold uppercase tracking-[0.1em] hover:bg-black hover:text-white transition-colors"
+              className="px-6 py-3 border border-gray-300 text-gray-dark text-xs font-semibold uppercase tracking-[0.1em] rounded-full hover:border-black transition-colors"
             >
               Submit Another
             </Link>
@@ -64,7 +64,7 @@ export default function SuccessPage() {
   return (
     <Suspense
       fallback={
-        <div className="bg-[#f8f5f0] min-h-[60vh] flex items-center justify-center">
+        <div className="bg-white min-h-[60vh] flex items-center justify-center">
           Loading…
         </div>
       }

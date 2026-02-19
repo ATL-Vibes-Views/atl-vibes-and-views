@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { Building2, Calendar } from "lucide-react";
 
 interface TypeSelectorProps {
   onSelect: (type: "business" | "event") => void;
@@ -23,9 +24,11 @@ export function TypeSelector({ onSelect }: TypeSelectorProps) {
         {/* Business Card */}
         <button
           onClick={() => onSelect("business")}
-          className="group bg-[#f8f5f0] p-8 md:p-10 text-left border-2 border-transparent hover:border-[#c1121f] transition-colors"
+          className="group bg-white p-8 md:p-10 text-left border-2 border-gray-100 hover:border-[#fee198] hover:shadow-md transition-all"
         >
-          <div className="text-4xl mb-4">🏢</div>
+          <div className="w-12 h-12 rounded-full bg-[#fff8e6] flex items-center justify-center mb-5">
+            <Building2 size={22} className="text-[#1a1a1a]" strokeWidth={1.5} />
+          </div>
           <h2 className="font-display text-card font-bold text-black mb-2">
             List a Business
           </h2>
@@ -36,7 +39,7 @@ export function TypeSelector({ onSelect }: TypeSelectorProps) {
           <p className="text-xs text-gray-mid mb-6">
             Free &amp; paid options available
           </p>
-          <span className="inline-block px-6 py-3 bg-[#c1121f] text-white text-xs font-semibold uppercase tracking-[0.1em] group-hover:bg-black transition-colors">
+          <span className="inline-flex items-center px-6 py-2.5 bg-[#fee198] text-[#1a1a1a] text-xs font-semibold uppercase tracking-[0.1em] rounded-full group-hover:bg-[#1a1a1a] group-hover:text-[#fee198] transition-colors">
             Get Started
           </span>
         </button>
@@ -44,9 +47,11 @@ export function TypeSelector({ onSelect }: TypeSelectorProps) {
         {/* Event Card */}
         <button
           onClick={() => onSelect("event")}
-          className="group bg-[#f8f5f0] p-8 md:p-10 text-left border-2 border-transparent hover:border-[#c1121f] transition-colors"
+          className="group bg-white p-8 md:p-10 text-left border-2 border-gray-100 hover:border-[#fee198] hover:shadow-md transition-all"
         >
-          <div className="text-4xl mb-4">📅</div>
+          <div className="w-12 h-12 rounded-full bg-[#fff8e6] flex items-center justify-center mb-5">
+            <Calendar size={22} className="text-[#1a1a1a]" strokeWidth={1.5} />
+          </div>
           <h2 className="font-display text-card font-bold text-black mb-2">
             Submit an Event
           </h2>
@@ -57,7 +62,7 @@ export function TypeSelector({ onSelect }: TypeSelectorProps) {
           <p className="text-xs text-gray-mid mb-6">
             Free &amp; promoted plans
           </p>
-          <span className="inline-block px-6 py-3 bg-[#c1121f] text-white text-xs font-semibold uppercase tracking-[0.1em] group-hover:bg-black transition-colors">
+          <span className="inline-flex items-center px-6 py-2.5 bg-[#fee198] text-[#1a1a1a] text-xs font-semibold uppercase tracking-[0.1em] rounded-full group-hover:bg-[#1a1a1a] group-hover:text-[#fee198] transition-colors">
             Get Started
           </span>
         </button>

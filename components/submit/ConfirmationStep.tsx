@@ -26,12 +26,12 @@ export function ConfirmationStep({
             Submission Received!
           </h2>
           <p className="text-sm text-gray-dark mb-6 leading-relaxed">
-            We&rsquo;ve received your {typeLabel} submission. Our team will
-            review it within 48 hours and you&rsquo;ll receive an email at{" "}
-            <strong>{email}</strong> with the result.
+            Thank you! Your submission is under review. We&rsquo;ll be in touch
+            within 2&ndash;3 business days at{" "}
+            <strong>{email}</strong>.
           </p>
 
-          <div className="bg-[#f8f5f0] p-6 text-left mb-8">
+          <div className="bg-white border border-gray-100 p-6 text-left mb-8">
             <p className="text-xs font-semibold text-gray-dark uppercase tracking-wide mb-3">
               What happens next
             </p>
@@ -56,7 +56,7 @@ export function ConfirmationStep({
             Your {typeLabel} is now live on ATL Vibes &amp; Views.
           </p>
 
-          <div className="bg-[#f8f5f0] p-6 text-center mb-8">
+          <div className="bg-white border border-gray-100 p-6 text-center mb-8">
             <p className="text-sm text-gray-dark mb-3">
               Want to manage your listing later? Create an account to access your
               dashboard, edit your listing, and view analytics.
@@ -74,13 +74,13 @@ export function ConfirmationStep({
       <div className="flex items-center justify-center gap-4">
         <Link
           href="/"
-          className="px-6 py-3 bg-[#c1121f] text-white text-xs font-semibold uppercase tracking-[0.1em] hover:bg-black transition-colors"
+          className="px-6 py-3 bg-[#fee198] text-[#1a1a1a] text-xs font-semibold uppercase tracking-[0.1em] rounded-full hover:bg-[#1a1a1a] hover:text-[#fee198] transition-colors"
         >
           Browse the Site
         </Link>
         <Link
           href="/submit"
-          className="px-6 py-3 border-2 border-black text-black text-xs font-semibold uppercase tracking-[0.1em] hover:bg-black hover:text-white transition-colors"
+          className="px-6 py-3 border border-gray-300 text-gray-dark text-xs font-semibold uppercase tracking-[0.1em] rounded-full hover:border-black transition-colors"
         >
           Submit Another
         </Link>

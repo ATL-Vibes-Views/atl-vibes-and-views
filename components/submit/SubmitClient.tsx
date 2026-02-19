@@ -37,9 +37,12 @@ const EMPTY_BUSINESS: BusinessFormData = {
   street_address: "",
   street_address_2: "",
   city_id: "",
+  city_text: "",
   state: "GA",
   zip_code: "",
   neighborhood_id: "",
+  latitude: null,
+  longitude: null,
   phone: "",
   email: "",
   website: "",
@@ -53,8 +56,9 @@ const EMPTY_BUSINESS: BusinessFormData = {
   video_url: "",
   special_offers: "",
   is_owner: false,
-  display_identity_publicly: true,
+  display_identity_publicly: false,
   certified_diversity_program: false,
+  certifications: [],
   hours: [
     { day_of_week: "monday", open_time: "09:00", close_time: "17:00", is_closed: false, notes: "" },
     { day_of_week: "tuesday", open_time: "09:00", close_time: "17:00", is_closed: false, notes: "" },
@@ -185,11 +189,10 @@ export function SubmitClient({
       if (!businessData.category_id) return "Category is required.";
       if (!businessData.street_address.trim())
         return "Street address is required.";
-      if (!businessData.city_id) return "City is required.";
+      if (!businessData.city_text?.trim()) return "City is required.";
       if (!businessData.state.trim()) return "State is required.";
       if (!businessData.zip_code.trim() || businessData.zip_code.length < 5)
         return "A valid ZIP code is required.";
-      if (!businessData.neighborhood_id) return "Neighborhood is required.";
     } else {
       if (!eventData.title.trim()) return "Event title is required.";
       if (!eventData.start_date) return "Start date is required.";
@@ -299,7 +302,7 @@ export function SubmitClient({
   };
 
   return (
-    <div className="bg-[#f8f5f0] min-h-[60vh]">
+    <div className="bg-white min-h-[60vh]">
       <div className="site-container px-6 py-12 md:py-16">
         {step > 0 && step < 4 && <ProgressBar currentStep={step} />}
 
@@ -331,51 +334,7 @@ export function SubmitClient({
               ← Change plan
             </button>
 
-            <div className="bg-white p-6 md:p-8 shadow-sm">
-              {/* Submitter info — shared */}
-              <h3 className="font-display text-card-sm font-bold text-black mb-4">
-                Contact Info (who&rsquo;s submitting)
-              </h3>
-              <p className="text-xs text-gray-mid mb-4">
-                This is your contact info — not displayed publicly.
-              </p>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
-                <div>
-                  <label
-                    htmlFor="submitter_name"
-                    className="block text-xs font-semibold text-gray-dark uppercase tracking-wide mb-1.5"
-                  >
-                    Your Name<span className="text-[#c1121f] ml-0.5">*</span>
-                  </label>
-                  <input
-                    id="submitter_name"
-                    type="text"
-                    value={submitterName}
-                    onChange={(e) => setSubmitterName(e.target.value)}
-                    required
-                    className="w-full px-4 py-3 border border-gray-200 text-sm outline-none focus:border-[#c1121f] transition-colors"
-                    placeholder="Your full name"
-                  />
-                </div>
-                <div>
-                  <label
-                    htmlFor="submitter_email"
-                    className="block text-xs font-semibold text-gray-dark uppercase tracking-wide mb-1.5"
-                  >
-                    Your Email<span className="text-[#c1121f] ml-0.5">*</span>
-                  </label>
-                  <input
-                    id="submitter_email"
-                    type="email"
-                    value={submitterEmail}
-                    onChange={(e) => setSubmitterEmail(e.target.value)}
-                    required
-                    className="w-full px-4 py-3 border border-gray-200 text-sm outline-none focus:border-[#c1121f] transition-colors"
-                    placeholder="you@example.com"
-                  />
-                </div>
-              </div>
-
+            <div className="bg-white p-6 md:p-8 border border-gray-100 shadow-sm">
               {/* Type-specific form */}
               {submissionType === "business" ? (
                 <BusinessForm
@@ -385,8 +344,11 @@ export function SubmitClient({
                   neighborhoods={neighborhoods}
                   amenities={amenities}
                   identityOptions={identityOptions}
-                  cities={cities}
                   tier={tier}
+                  submitterName={submitterName}
+                  submitterEmail={submitterEmail}
+                  onSubmitterNameChange={setSubmitterName}
+                  onSubmitterEmailChange={setSubmitterEmail}
                 />
               ) : (
                 <EventForm
@@ -403,14 +365,14 @@ export function SubmitClient({
                 <button
                   type="button"
                   onClick={() => setStep(1)}
-                  className="text-sm text-gray-mid hover:text-black transition-colors"
+                  className="px-5 py-2.5 text-sm font-semibold border border-gray-300 rounded-full text-gray-dark hover:border-black transition-colors"
                 >
                   ← Back
                 </button>
                 <button
                   type="button"
                   onClick={handleGoToReview}
-                  className="px-8 py-3 bg-[#c1121f] text-white text-xs font-semibold uppercase tracking-[0.1em] hover:bg-black transition-colors"
+                  className="px-8 py-3 bg-[#fee198] text-[#1a1a1a] text-xs font-semibold uppercase tracking-[0.1em] rounded-full hover:bg-[#1a1a1a] hover:text-[#fee198] transition-colors"
                 >
                   Review &amp; Submit
                 </button>
@@ -424,7 +386,7 @@ export function SubmitClient({
           <div className="max-w-2xl mx-auto">
             <button
               onClick={() => setStep(2)}
-              className="text-sm text-gray-mid hover:text-black transition-colors mb-6 inline-flex items-center gap-1"
+              className="px-5 py-2.5 text-sm font-semibold border border-gray-300 rounded-full text-gray-dark hover:border-black transition-colors mb-6 inline-flex items-center gap-1"
             >
               ← Back to form
             </button>

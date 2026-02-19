@@ -17,17 +17,17 @@ export function ProgressBar({ currentStep }: ProgressBarProps) {
             {i > 0 && (
               <div
                 className={`h-px w-4 sm:w-8 ${
-                  isComplete ? "bg-[#c1121f]" : "bg-gray-200"
+                  isComplete ? "bg-[#fee198]" : "bg-gray-200"
                 }`}
               />
             )}
             <div className="flex items-center gap-1.5">
               <span
-                className={`w-6 h-6 flex items-center justify-center text-xs font-semibold ${
+                className={`w-6 h-6 flex items-center justify-center text-xs font-semibold rounded-full ${
                   isComplete
-                    ? "bg-[#c1121f] text-white"
+                    ? "bg-[#fee198] text-[#1a1a1a]"
                     : isCurrent
-                    ? "border-2 border-[#c1121f] text-[#c1121f]"
+                    ? "border-2 border-[#fee198] text-[#1a1a1a]"
                     : "border border-gray-200 text-gray-mid"
                 }`}
               >

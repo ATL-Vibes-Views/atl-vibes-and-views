@@ -1203,9 +1203,12 @@ export interface BusinessFormData {
   street_address: string;
   street_address_2: string;
   city_id: string;
+  city_text: string;
   state: string;
   zip_code: string;
   neighborhood_id: string;
+  latitude: number | null;
+  longitude: number | null;
   phone: string;
   email: string;
   website: string;
@@ -1221,6 +1224,7 @@ export interface BusinessFormData {
   is_owner: boolean;
   display_identity_publicly: boolean;
   certified_diversity_program: boolean;
+  certifications: string[];
   hours: BusinessHoursEntry[];
   contacts: BusinessContactEntry[];
   images: ImageEntry[];
