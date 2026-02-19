@@ -599,6 +599,8 @@ export function SponsorDetailClient({
   const [newCreativeCta, setNewCreativeCta] = useState("");
   const [newCreativeUrl, setNewCreativeUrl] = useState("");
   const [newCreativeAlt, setNewCreativeAlt] = useState("");
+  const [newCreativeImageUrl, setNewCreativeImageUrl] = useState("");
+  const [newCreativePlacement, setNewCreativePlacement] = useState("");
   const [savingCreative, setSavingCreative] = useState(false);
 
   const handleCreateCreative = useCallback(async () => {
@@ -607,19 +609,21 @@ export function SponsorDetailClient({
     const result = await createAdCreative({
       campaign_id: showCreativeModal,
       creative_type: newCreativeType,
+      placement: newCreativePlacement || null,
       headline: newCreativeHeadline.trim() || null,
       body: newCreativeBody.trim() || null,
       cta_text: newCreativeCta.trim() || null,
       target_url: newCreativeUrl.trim(),
+      image_url: newCreativeImageUrl || null,
       alt_text: newCreativeAlt.trim() || null,
     });
     setSavingCreative(false);
     if ("error" in result && result.error) { alert("Error: " + result.error); return; }
     setShowCreativeModal(null);
-    setNewCreativeType("image"); setNewCreativeHeadline(""); setNewCreativeBody(""); setNewCreativeCta(""); setNewCreativeUrl(""); setNewCreativeAlt("");
+    setNewCreativeType("image"); setNewCreativeHeadline(""); setNewCreativeBody(""); setNewCreativeCta(""); setNewCreativeUrl(""); setNewCreativeAlt(""); setNewCreativeImageUrl(""); setNewCreativePlacement("");
     setToast("Creative added successfully.");
     router.refresh();
-  }, [showCreativeModal, sponsor.id, newCreativeType, newCreativeHeadline, newCreativeBody, newCreativeCta, newCreativeUrl, newCreativeAlt, router]);
+  }, [showCreativeModal, sponsor.id, newCreativeType, newCreativePlacement, newCreativeHeadline, newCreativeBody, newCreativeCta, newCreativeUrl, newCreativeImageUrl, newCreativeAlt, router]);
 
   // Add Flight modal
   const [showFlightModal, setShowFlightModal] = useState<string | null>(null); // campaign_id
@@ -1905,14 +1909,36 @@ export function SponsorDetailClient({
         }
       >
         <div className="space-y-4">
+          <ImagePicker
+            value={newCreativeImageUrl}
+            onChange={setNewCreativeImageUrl}
+            folder="ad-creatives"
+            label="Upload creative image"
+          />
           <FormGroup label="Creative Type" required>
             <FormSelect
               value={newCreativeType}
               onChange={(e) => setNewCreativeType(e.target.value)}
               options={[
                 { value: "image", label: "Image" },
+                { value: "video", label: "Video" },
                 { value: "html", label: "HTML" },
                 { value: "native", label: "Native" },
+                { value: "gif", label: "GIF" },
+              ]}
+            />
+          </FormGroup>
+          <FormGroup label="Placement">
+            <FormSelect
+              value={newCreativePlacement}
+              onChange={(e) => setNewCreativePlacement(e.target.value)}
+              options={[
+                { value: "", label: "Select placement..." },
+                { value: "website_banner", label: "Website Banner — 728x90px or 300x250px" },
+                { value: "newsletter_banner", label: "Newsletter Banner — 600x200px" },
+                { value: "social_static", label: "Social Static — 1080x1080px or 1080x1920px" },
+                { value: "social_video", label: "Social Video — 1080x1920px MP4" },
+                { value: "pre_roll", label: "Pre-Roll — 1920x1080px MP4" },
               ]}
             />
           </FormGroup>
