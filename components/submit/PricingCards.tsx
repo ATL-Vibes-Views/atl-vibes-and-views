@@ -128,27 +128,29 @@ export function PricingCards({
 
       {/* Monthly/Annual toggle — business only */}
       {isBusinessType && (
-        <div className="flex items-center justify-center gap-3 mb-8">
-          <button
-            onClick={() => setBillingCycle("monthly")}
-            className={`px-4 py-2 text-xs font-semibold uppercase tracking-[0.1em] transition-colors ${
-              billingCycle === "monthly"
-                ? "bg-black text-white"
-                : "bg-gray-100 text-gray-dark hover:bg-gray-200"
-            }`}
-          >
-            Monthly
-          </button>
-          <button
-            onClick={() => setBillingCycle("annual")}
-            className={`px-4 py-2 text-xs font-semibold uppercase tracking-[0.1em] transition-colors ${
-              billingCycle === "annual"
-                ? "bg-black text-white"
-                : "bg-gray-100 text-gray-dark hover:bg-gray-200"
-            }`}
-          >
-            Annual
-          </button>
+        <div className="flex items-center justify-center mb-8">
+          <div className="inline-flex rounded-full border border-gray-200 p-1 bg-white">
+            <button
+              onClick={() => setBillingCycle("monthly")}
+              className={`px-5 py-2 text-xs font-semibold uppercase tracking-[0.1em] rounded-full transition-colors ${
+                billingCycle === "monthly"
+                  ? "bg-[#fee198] text-[#1a1a1a]"
+                  : "text-gray-dark hover:text-black"
+              }`}
+            >
+              Monthly
+            </button>
+            <button
+              onClick={() => setBillingCycle("annual")}
+              className={`px-5 py-2 text-xs font-semibold uppercase tracking-[0.1em] rounded-full transition-colors ${
+                billingCycle === "annual"
+                  ? "bg-[#fee198] text-[#1a1a1a]"
+                  : "text-gray-dark hover:text-black"
+              }`}
+            >
+              Annual
+            </button>
+          </div>
         </div>
       )}
 
@@ -178,12 +180,12 @@ export function PricingCards({
               key={tier.id}
               className={`relative bg-white border-2 p-6 flex flex-col ${
                 tier.recommended
-                  ? "border-[#c1121f] border-t-4"
+                  ? "border-[#fee198] border-t-4"
                   : "border-gray-200"
               }`}
             >
               {tier.recommended && (
-                <div className="absolute -top-3 left-1/2 -translate-x-1/2 bg-[#c1121f] text-white text-[10px] font-bold uppercase tracking-[0.1em] px-3 py-1">
+                <div className="absolute -top-3 left-1/2 -translate-x-1/2 bg-[#fee198] text-[#1a1a1a] text-[10px] font-bold uppercase tracking-[0.1em] px-3 py-1 rounded-full">
                   Recommended
                 </div>
               )}
@@ -240,11 +242,7 @@ export function PricingCards({
 
               <button
                 onClick={() => onSelect(tier.id, billingCycle)}
-                className={`w-full py-3 text-xs font-semibold uppercase tracking-[0.1em] transition-colors ${
-                  tier.recommended
-                    ? "bg-[#c1121f] text-white hover:bg-black"
-                    : "bg-black text-white hover:bg-[#c1121f]"
-                }`}
+                className="w-full py-3 text-xs font-semibold uppercase tracking-[0.1em] rounded-full bg-[#fee198] text-[#1a1a1a] hover:bg-[#1a1a1a] hover:text-[#fee198] transition-colors"
               >
                 Select {tier.name}
               </button>

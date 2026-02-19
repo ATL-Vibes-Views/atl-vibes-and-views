@@ -1,16 +1,30 @@
 "use client";
 
+import { useEffect, useRef, useCallback } from "react";
 import { NeighborhoodSelect } from "./NeighborhoodSelect";
 import type {
   BusinessFormData,
   BusinessHoursEntry,
   BusinessContactEntry,
   Category,
-  City,
   Amenity,
   IdentityOption,
   NeighborhoodGrouped,
 } from "@/lib/types";
+
+/* eslint-disable @typescript-eslint/no-explicit-any */
+
+const CERTIFICATIONS = [
+  "8(a) Certification – SBA",
+  "DBE – Disadvantaged Business Enterprise",
+  "DOBE – Disability-Owned Business",
+  "LGBTBE – LGBTQ+ Business Enterprise",
+  "NMSDC Certified (Minority Business Enterprise)",
+  "Veteran-Owned Certified",
+  "WBENC Certified (Women's Business Enterprise)",
+  "WOSB – Women-Owned Small Business",
+  "Other (please specify)",
+];
 
 interface BusinessFormProps {
   data: BusinessFormData;
@@ -19,8 +33,11 @@ interface BusinessFormProps {
   neighborhoods: NeighborhoodGrouped[];
   amenities: Amenity[];
   identityOptions: IdentityOption[];
-  cities: City[];
   tier: string;
+  submitterName: string;
+  submitterEmail: string;
+  onSubmitterNameChange: (v: string) => void;
+  onSubmitterEmailChange: (v: string) => void;
 }
 
 const DAYS = [
@@ -136,15 +153,80 @@ export function BusinessForm({
   neighborhoods,
   amenities,
   identityOptions,
-  cities,
   tier,
+  submitterName,
+  submitterEmail,
+  onSubmitterNameChange,
+  onSubmitterEmailChange,
 }: BusinessFormProps) {
+  const streetAddressRef = useRef<HTMLInputElement>(null);
+  const autocompleteRef = useRef<any>(null);
+
   const update = <K extends keyof BusinessFormData>(
     key: K,
     val: BusinessFormData[K]
   ) => {
     onChange({ ...data, [key]: val });
   };
+
+  /* ── Google Places autocomplete (3C + 3D) ── */
+  useEffect(() => {
+    const apiKey = process.env.NEXT_PUBLIC_GOOGLE_PLACES_API_KEY;
+    if (!apiKey || typeof window === "undefined") return;
+
+    const initAutocomplete = () => {
+      if (!streetAddressRef.current || !(window as any).google?.maps?.places) return;
+      if (autocompleteRef.current) return;
+      const ac = new (window as any).google.maps.places.Autocomplete(
+        streetAddressRef.current,
+        { types: ["address"], componentRestrictions: { country: "us" } }
+      );
+      autocompleteRef.current = ac;
+      ac.addListener("place_changed", () => {
+        const place = ac.getPlace();
+        if (!place.address_components) return;
+        let streetNumber = "", route = "", city = "", state = "", zip = "";
+        const lat: number | null = place.geometry?.location?.lat() ?? null;
+        const lng: number | null = place.geometry?.location?.lng() ?? null;
+        for (const comp of place.address_components as any[]) {
+          const t: string[] = comp.types;
+          if (t.includes("street_number")) streetNumber = comp.long_name;
+          if (t.includes("route")) route = comp.long_name;
+          if (t.includes("locality")) city = comp.long_name;
+          if (t.includes("administrative_area_level_1")) state = comp.short_name;
+          if (t.includes("postal_code")) zip = comp.long_name;
+        }
+        const street = streetNumber && route ? `${streetNumber} ${route}` : (place.formatted_address ?? "");
+        onChange({ ...data, street_address: street, city_text: city, state, zip_code: zip, latitude: lat, longitude: lng });
+        /* 3D: neighborhood lookup via Supabase RPC */
+        if (lat !== null && lng !== null) {
+          import("@/lib/supabase").then(({ createBrowserClient }) => {
+            const sb = createBrowserClient() as any;
+            sb.rpc("find_neighborhood_by_point", { p_lat: lat, p_lng: lng })
+              .then(({ data: rows }: { data: any }) => {
+                if (rows?.length) onChange({ ...data, street_address: street, city_text: city, state, zip_code: zip, latitude: lat, longitude: lng, neighborhood_id: rows[0].id });
+              });
+          }).catch(() => {});
+        }
+      });
+    };
+
+    if ((window as any).google?.maps?.places) {
+      initAutocomplete();
+    } else {
+      const scriptId = "google-places-script";
+      if (!document.getElementById(scriptId)) {
+        const script = document.createElement("script");
+        script.id = scriptId;
+        script.src = `https://maps.googleapis.com/maps/api/js?key=${apiKey}&libraries=places`;
+        script.async = true;
+        script.onload = initAutocomplete;
+        document.head.appendChild(script);
+      } else {
+        document.getElementById(scriptId)!.addEventListener("load", initAutocomplete);
+      }
+    }
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   const updateHour = (
     index: number,
@@ -183,23 +265,14 @@ export function BusinessForm({
       ...data,
       contacts: [
         ...data.contacts,
-        {
-          contact_name: "",
-          contact_title: "",
-          contact_email: "",
-          contact_phone: "",
-          is_primary: false,
-          is_public: false,
-        },
+        { contact_name: "", contact_title: "", contact_email: "", contact_phone: "", is_primary: false, is_public: false },
       ],
     });
   };
 
   const removeContact = (index: number) => {
-    const contacts = data.contacts.filter((_, i) => i !== index);
-    if (contacts.length > 0 && !contacts.some((c) => c.is_primary)) {
-      contacts[0].is_primary = true;
-    }
+    const contacts = data.contacts.filter((_: BusinessContactEntry, i: number) => i !== index);
+    if (contacts.length > 0 && !contacts.some((c: BusinessContactEntry) => c.is_primary)) contacts[0].is_primary = true;
     onChange({ ...data, contacts });
   };
 
@@ -218,26 +291,38 @@ export function BusinessForm({
 
   return (
     <div className="space-y-2">
-      {/* Section 1: Contact Info */}
+      {/* Section 1: Contact Info (who's submitting) */}
       <SectionHeading>Contact Info (who&rsquo;s submitting)</SectionHeading>
       <p className="text-xs text-gray-mid mb-4">
         This is your contact info — not displayed publicly on the listing.
       </p>
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
         <div>
-          <Label htmlFor="submitter_name" required>
-            Your Name
-          </Label>
-          <Input
+          <Label htmlFor="submitter_name" required>Your Name</Label>
+          <input
             id="submitter_name"
-            value={data.is_owner ? "" : ""}
-            onChange={() => {}}
-            placeholder=""
+            type="text"
+            value={submitterName}
+            onChange={(e) => onSubmitterNameChange(e.target.value)}
+            placeholder="Your full name"
+            required
+            className="w-full px-4 py-3 border border-gray-200 text-sm outline-none focus:border-[#c1121f] transition-colors"
           />
-          {/* Submitter name/email are in parent state, not here */}
+        </div>
+        <div>
+          <Label htmlFor="submitter_email" required>Your Email</Label>
+          <input
+            id="submitter_email"
+            type="email"
+            value={submitterEmail}
+            onChange={(e) => onSubmitterEmailChange(e.target.value)}
+            placeholder="you@example.com"
+            required
+            className="w-full px-4 py-3 border border-gray-200 text-sm outline-none focus:border-[#c1121f] transition-colors"
+          />
         </div>
       </div>
-      <div className="mt-2">
+      <div className="mb-2">
         <label className="flex items-center gap-2 text-sm text-gray-dark cursor-pointer">
           <input
             type="checkbox"
@@ -321,9 +406,9 @@ export function BusinessForm({
                 onClick={() =>
                   update("price_range", data.price_range === pr ? "" : pr)
                 }
-                className={`px-4 py-2 text-sm border transition-colors ${
+                className={`px-4 py-2 text-sm border rounded-full transition-colors ${
                   data.price_range === pr
-                    ? "border-[#c1121f] bg-red-50 text-[#c1121f] font-semibold"
+                    ? "border-[#fee198] bg-[#fff8e6] text-[#1a1a1a] font-semibold"
                     : "border-gray-200 text-gray-dark hover:border-gray-400"
                 }`}
               >
@@ -338,15 +423,16 @@ export function BusinessForm({
       <SectionHeading>Location</SectionHeading>
       <div className="space-y-4">
         <div>
-          <Label htmlFor="street_address" required>
-            Street Address
-          </Label>
-          <Input
+          <Label htmlFor="street_address" required>Street Address</Label>
+          <input
             id="street_address"
+            ref={streetAddressRef}
+            type="text"
             value={data.street_address}
-            onChange={(v) => update("street_address", v)}
-            placeholder="123 Peachtree St NE"
+            onChange={(e) => update("street_address", e.target.value)}
+            placeholder="123 Peachtree St NE — start typing for suggestions"
             required
+            className="w-full px-4 py-3 border border-gray-200 text-sm outline-none focus:border-[#c1121f] transition-colors"
           />
         </div>
         <div>
@@ -360,23 +446,16 @@ export function BusinessForm({
         </div>
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
           <div className="col-span-2 md:col-span-1">
-            <Label htmlFor="city_id" required>
-              City
-            </Label>
-            <select
-              id="city_id"
-              value={data.city_id}
-              onChange={(e) => update("city_id", e.target.value)}
+            <Label htmlFor="city_text" required>City</Label>
+            <input
+              id="city_text"
+              type="text"
+              value={data.city_text}
+              onChange={(e) => update("city_text", e.target.value)}
+              placeholder="Atlanta"
               required
-              className="w-full px-4 py-3 border border-gray-200 text-sm outline-none focus:border-[#c1121f] transition-colors bg-white"
-            >
-              <option value="">Select a city…</option>
-              {cities.map((c) => (
-                <option key={c.id} value={c.id}>
-                  {c.name}
-                </option>
-              ))}
-            </select>
+              className="w-full px-4 py-3 border border-gray-200 text-sm outline-none focus:border-[#c1121f] transition-colors"
+            />
           </div>
           <div>
             <Label htmlFor="state" required>
@@ -489,10 +568,10 @@ export function BusinessForm({
         </div>
       </div>
 
-      {/* Section 5: Contact People */}
-      <SectionHeading>Contact People</SectionHeading>
+      {/* Section 5: Additional Contacts */}
+      <SectionHeading>Additional Contacts</SectionHeading>
       <p className="text-xs text-gray-mid mb-4">
-        Add up to 3 contact people for your business.
+        Is there anyone else you&rsquo;d like us to contact about this listing? (Optional)
       </p>
       <div className="space-y-6">
         {data.contacts.map((contact, i) => (
@@ -755,13 +834,12 @@ export function BusinessForm({
         </div>
       ))}
 
-      {/* Section 10: Business Identity */}
-      <SectionHeading>Identify Your Business</SectionHeading>
+      {/* Section 10: Business Identity (3G) */}
+      <SectionHeading>Tell us about your business identity</SectionHeading>
       <p className="text-xs text-gray-mid mb-4">
-        Select all that apply. This helps our community discover and support
-        diverse businesses.
+        We love celebrating Atlanta&rsquo;s diverse business community. Select all that apply.
       </p>
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2 mb-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2 mb-6">
         {identityOptions.map((opt) => (
           <label
             key={opt.id}
@@ -782,28 +860,78 @@ export function BusinessForm({
           </label>
         ))}
       </div>
-      <label className="flex items-center gap-2 text-sm text-gray-dark cursor-pointer">
-        <input
-          type="checkbox"
-          checked={data.display_identity_publicly}
-          onChange={(e) =>
-            update("display_identity_publicly", e.target.checked)
-          }
-          className="w-4 h-4 accent-[#c1121f]"
-        />
-        Display identity badges publicly on my listing
-      </label>
-      <label className="flex items-center gap-2 text-sm text-gray-dark cursor-pointer mt-2">
-        <input
-          type="checkbox"
-          checked={data.certified_diversity_program}
-          onChange={(e) =>
-            update("certified_diversity_program", e.target.checked)
-          }
-          className="w-4 h-4 accent-[#c1121f]"
-        />
-        This business is certified through a recognized diversity program
-      </label>
+
+      <p className="text-sm font-semibold text-gray-dark mb-2">
+        Would you like your business identity displayed in the public directory?
+      </p>
+      <div className="flex gap-6 mb-6">
+        <label className="flex items-center gap-2 text-sm text-gray-dark cursor-pointer">
+          <input
+            type="radio"
+            name="display_identity_publicly"
+            checked={data.display_identity_publicly === true}
+            onChange={() => update("display_identity_publicly", true)}
+            className="w-4 h-4 accent-[#c1121f]"
+          />
+          Yes
+        </label>
+        <label className="flex items-center gap-2 text-sm text-gray-dark cursor-pointer">
+          <input
+            type="radio"
+            name="display_identity_publicly"
+            checked={data.display_identity_publicly === false}
+            onChange={() => update("display_identity_publicly", false)}
+            className="w-4 h-4 accent-[#c1121f]"
+          />
+          No
+        </label>
+      </div>
+
+      <p className="text-sm font-semibold text-gray-dark mb-2">
+        Is your business officially certified under any diversity or ownership program?
+      </p>
+      <div className="flex gap-6 mb-4">
+        <label className="flex items-center gap-2 text-sm text-gray-dark cursor-pointer">
+          <input
+            type="radio"
+            name="certified_diversity_program"
+            checked={data.certified_diversity_program === true}
+            onChange={() => update("certified_diversity_program", true)}
+            className="w-4 h-4 accent-[#c1121f]"
+          />
+          Yes
+        </label>
+        <label className="flex items-center gap-2 text-sm text-gray-dark cursor-pointer">
+          <input
+            type="radio"
+            name="certified_diversity_program"
+            checked={data.certified_diversity_program === false}
+            onChange={() => update("certified_diversity_program", false)}
+            className="w-4 h-4 accent-[#c1121f]"
+          />
+          No
+        </label>
+      </div>
+      {data.certified_diversity_program && (
+        <div className="pl-4 border-l-2 border-[#fee198] space-y-2 mb-4">
+          {CERTIFICATIONS.map((cert) => (
+            <label key={cert} className="flex items-center gap-2 text-sm text-gray-dark cursor-pointer">
+              <input
+                type="checkbox"
+                checked={data.certifications.includes(cert)}
+                onChange={(e) => {
+                  const certs = e.target.checked
+                    ? [...data.certifications, cert]
+                    : data.certifications.filter((c) => c !== cert);
+                  update("certifications", certs);
+                }}
+                className="w-4 h-4 accent-[#c1121f]"
+              />
+              {cert}
+            </label>
+          ))}
+        </div>
+      )}
 
       {/* Section 11: Special Offers (Standard + Premium) */}
       {showSpecialOffers && (

@@ -38,7 +38,7 @@ async function SubmitPageContent() {
       </div>
       <Suspense
         fallback={
-          <div className="bg-[#f8f5f0] min-h-[60vh] flex items-center justify-center">
+          <div className="bg-white min-h-[60vh] flex items-center justify-center">
             Loading…
           </div>
         }
