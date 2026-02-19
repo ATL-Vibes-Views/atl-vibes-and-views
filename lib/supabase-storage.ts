@@ -75,19 +75,15 @@ function deriveFileType(mimeType: string): string {
 }
 
 async function getImageDimensions(file: File): Promise<{ width: number; height: number } | null> {
-  return new Promise((resolve) => {
-    const img = new Image();
-    const url = URL.createObjectURL(file);
-    img.onload = () => {
-      URL.revokeObjectURL(url);
-      resolve({ width: img.width, height: img.height });
-    };
-    img.onerror = () => {
-      URL.revokeObjectURL(url);
-      resolve(null);
-    };
-    img.src = url;
-  });
+  try {
+    const sharp = (await import("sharp")).default;
+    const buffer = Buffer.from(await file.arrayBuffer());
+    const { width, height } = await sharp(buffer).metadata();
+    if (width && height) return { width, height };
+    return null;
+  } catch {
+    return null;
+  }
 }
 
 export async function uploadAsset(
