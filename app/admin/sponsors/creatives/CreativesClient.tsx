@@ -4,7 +4,7 @@ import { useMemo, useState, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { ArrowLeft, X, Eye, Pencil, Download } from "lucide-react";
-import { updateAdCreative } from "@/app/admin/actions";
+import { updateAdCreative, createAdCreative } from "@/app/admin/actions";
 import { PortalTopbar } from "@/components/portal/PortalTopbar";
 import { FilterBar } from "@/components/portal/FilterBar";
 import { StatusBadge } from "@/components/portal/StatusBadge";
@@ -23,6 +23,7 @@ interface CreativeRow {
   id: string;
   campaign_id: string;
   creative_type: string;
+  placement: string | null;
   headline: string | null;
   body: string | null;
   cta_text: string | null;
@@ -47,6 +48,7 @@ export function CreativesClient({ creatives, campaigns, sponsors }: CreativesCli
   const [search, setSearch] = useState("");
   const [typeFilter, setTypeFilter] = useState("");
   const [statusFilter, setStatusFilter] = useState("");
+  const [placementFilter, setPlacementFilter] = useState("");
   const [page, setPage] = useState(1);
 
   // New Creative form state
@@ -57,6 +59,7 @@ export function CreativesClient({ creatives, campaigns, sponsors }: CreativesCli
   const [newType, setNewType] = useState("image");
   const [newSponsorId, setNewSponsorId] = useState("");
   const [newAdCopy, setNewAdCopy] = useState("");
+  const [newPlacement, setNewPlacement] = useState("");
   const [saving, setSaving] = useState(false);
   const [editingCreative, setEditingCreative] = useState<CreativeRow | null>(null);
 
@@ -96,8 +99,9 @@ export function CreativesClient({ creatives, campaigns, sponsors }: CreativesCli
     if (typeFilter) items = items.filter((c) => c.creative_type === typeFilter);
     if (statusFilter === "active") items = items.filter((c) => c.is_active);
     if (statusFilter === "inactive") items = items.filter((c) => !c.is_active);
+    if (placementFilter) items = items.filter((c) => c.placement === placementFilter);
     return items;
-  }, [creatives, search, typeFilter, statusFilter]);
+  }, [creatives, search, typeFilter, statusFilter, placementFilter]);
 
   const totalPages = Math.max(1, Math.ceil(filtered.length / ITEMS_PER_PAGE));
   const paginated = filtered.slice((page - 1) * ITEMS_PER_PAGE, page * ITEMS_PER_PAGE);
@@ -156,12 +160,27 @@ export function CreativesClient({ creatives, campaigns, sponsors }: CreativesCli
                 className="w-full border border-[#e5e5e5] bg-white px-3 py-2 text-[13px] font-body text-[#374151] focus:border-[#e6c46d] focus:outline-none transition-colors"
               >
                 <option value="image">Image</option>
-                <option value="html">HTML</option>
-                <option value="text">Text</option>
                 <option value="video">Video</option>
+                <option value="html">HTML</option>
+                <option value="native">Native</option>
+                <option value="gif">GIF</option>
               </select>
             </FormGroup>
           </FormRow>
+          <FormGroup label="Placement">
+            <select
+              value={newPlacement}
+              onChange={(e) => setNewPlacement(e.target.value)}
+              className="w-full border border-[#e5e5e5] bg-white px-3 py-2 text-[13px] font-body text-[#374151] focus:border-[#e6c46d] focus:outline-none transition-colors"
+            >
+              <option value="">Select placement...</option>
+              <option value="website_banner">Website Banner</option>
+              <option value="newsletter_banner">Newsletter Banner</option>
+              <option value="social_static">Social Static</option>
+              <option value="social_video">Social Video</option>
+              <option value="pre_roll">Pre-Roll</option>
+            </select>
+          </FormGroup>
           <FormRow>
             <FormGroup label="Target URL">
               <FormInput
@@ -204,10 +223,22 @@ export function CreativesClient({ creatives, campaigns, sponsors }: CreativesCli
                 const sponsorCampaign = campaigns.find((c) => c.sponsor_id === newSponsorId);
                 if (!sponsorCampaign) { alert("No campaign found for this sponsor. Create a campaign first."); return; }
                 setSaving(true);
-                // For new creatives, we use updateAdCreative on a placeholder — in practice
-                // you'd need a createAdCreative action. For now, alert the user.
+                const result = await createAdCreative({
+                  campaign_id: sponsorCampaign.id,
+                  creative_type: newType,
+                  placement: newPlacement || null,
+                  headline: newHeadline || null,
+                  body: newAdCopy || null,
+                  target_url: newTargetUrl,
+                  image_url: newImageUrl || null,
+                  is_active: true,
+                });
                 setSaving(false);
-                alert("Create creative server action not yet available. Add createAdCreative to actions.ts.");
+                if ("error" in result && result.error) { alert("Error: " + result.error); return; }
+                setShowNewForm(false);
+                setNewImageUrl(""); setNewHeadline(""); setNewTargetUrl("");
+                setNewType("image"); setNewSponsorId(""); setNewAdCopy(""); setNewPlacement("");
+                router.refresh();
               }}
               disabled={!newImageUrl || !newTargetUrl || !newSponsorId || saving}
               className="px-6 py-2 rounded-full text-sm font-semibold bg-[#fee198] text-[#1a1a1a] hover:bg-[#e6c46d] transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
@@ -240,10 +271,23 @@ export function CreativesClient({ creatives, campaigns, sponsors }: CreativesCli
                 { value: "inactive", label: "Inactive" },
               ],
             },
+            {
+              key: "placement",
+              label: "All Placements",
+              value: placementFilter,
+              options: [
+                { value: "website_banner", label: "Website Banner" },
+                { value: "newsletter_banner", label: "Newsletter Banner" },
+                { value: "social_static", label: "Social Static" },
+                { value: "social_video", label: "Social Video" },
+                { value: "pre_roll", label: "Pre-Roll" },
+              ],
+            },
           ]}
           onFilterChange={(key, value) => {
             if (key === "type") setTypeFilter(value);
             if (key === "status") setStatusFilter(value);
+            if (key === "placement") setPlacementFilter(value);
             setPage(1);
           }}
           searchPlaceholder="Search creatives..."
@@ -281,7 +325,12 @@ export function CreativesClient({ creatives, campaigns, sponsors }: CreativesCli
                       <StatusBadge variant={c.is_active ? "green" : "gray"}>
                         {c.is_active ? "Active" : "Inactive"}
                       </StatusBadge>
-                      <span className="text-[10px] text-[#9ca3af]">{c.creative_type}</span>
+                      <div className="flex flex-col items-end gap-0.5">
+                        <span className="text-[10px] text-[#9ca3af]">{c.creative_type}</span>
+                        {c.placement && (
+                          <span className="text-[10px] text-[#9ca3af]">{c.placement.replace(/_/g, " ")}</span>
+                        )}
+                      </div>
                     </div>
                     {/* Action buttons */}
                     <div className="flex items-center gap-2 pt-2 border-t border-[#f0f0f0] mt-2">

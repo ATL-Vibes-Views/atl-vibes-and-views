@@ -6,6 +6,7 @@ import Link from "next/link";
 import { ArrowLeft, Pencil, Trash2, Check, ChevronDown, ChevronUp, ExternalLink } from "lucide-react";
 import {
   updateSponsor,
+  updateDeliverable,
   voidFulfillmentEntry,
   addSponsorNote,
   autoCreateDeliverables,
@@ -127,6 +128,7 @@ export interface DeliverableRow {
   due_date: string | null;
   completed_at: string | null;
   notes: string | null;
+  newsletter_type_id: string | null;
 }
 
 export interface FulfillmentLogRow {
@@ -190,6 +192,7 @@ interface SponsorDetailClientProps {
   sponsorNotes: SponsorNoteRow[];
   businessContact: BusinessContact | null;
   adPlacements: AdPlacementRow[];
+  newsletterTypes: { id: string; name: string }[];
 }
 
 const TABS = [
@@ -270,6 +273,7 @@ export function SponsorDetailClient({
   sponsorNotes,
   businessContact,
   adPlacements,
+  newsletterTypes,
 }: SponsorDetailClientProps) {
   const router = useRouter();
   const [activeTab, setActiveTab] = useState("info");
@@ -600,7 +604,8 @@ export function SponsorDetailClient({
   const handleCreateCreative = useCallback(async () => {
     if (!showCreativeModal || !newCreativeUrl.trim()) return;
     setSavingCreative(true);
-    const result = await createAdCreative(showCreativeModal, sponsor.id, {
+    const result = await createAdCreative({
+      campaign_id: showCreativeModal,
       creative_type: newCreativeType,
       headline: newCreativeHeadline.trim() || null,
       body: newCreativeBody.trim() || null,
@@ -1039,6 +1044,30 @@ export function SponsorDetailClient({
                       <ProgressBar delivered={d.quantity_delivered} promised={d.quantity_owed} />
                       {d.notes && (
                         <p className="text-[11px] text-[#6b7280] mt-2">{d.notes}</p>
+                      )}
+                      {d.deliverable_type === "newsletter_mention" && (
+                        <div className="mt-1 flex items-center gap-2">
+                          <span className="text-[11px] text-[#6b7280]">Newsletter:</span>
+                          <select
+                            value={d.newsletter_type_id ?? ""}
+                            onChange={async (e) => {
+                              const result = await updateDeliverable(d.id, {
+                                newsletter_type_id: e.target.value || null,
+                              });
+                              if ("error" in result && result.error) {
+                                alert("Error: " + result.error);
+                                return;
+                              }
+                              router.refresh();
+                            }}
+                            className="border border-[#e5e5e5] bg-white px-2 py-1 text-[11px] text-[#374151] focus:outline-none focus:border-[#e6c46d] rounded"
+                          >
+                            <option value="">Select newsletter...</option>
+                            {newsletterTypes.map((n) => (
+                              <option key={n.id} value={n.id}>{n.name}</option>
+                            ))}
+                          </select>
+                        </div>
                       )}
                     </div>
                   ))}
