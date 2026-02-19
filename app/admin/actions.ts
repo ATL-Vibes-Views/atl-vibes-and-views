@@ -449,7 +449,9 @@ export async function createMediaItem(formData: FormData) {
   const meta_description = (formData.get("meta_description") as string) || null;
   const sponsor_id = (formData.get("sponsor_id") as string) || null;
 
-  const { error } = await supabase.from("media_items").insert({
+  const thumbnail_url = (formData.get("thumbnail_url") as string) || null;
+
+  const { data: row, error } = await (supabase.from("media_items").insert({
     title,
     slug,
     excerpt,
@@ -460,12 +462,13 @@ export async function createMediaItem(formData: FormData) {
     seo_title,
     meta_description,
     sponsor_id,
+    thumbnail_url,
     status: "draft",
-  } as never);
+  } as never).select("id").single() as unknown as Promise<{ data: { id: string } | null; error: { message: string } | null }>);
 
   if (error) return { error: error.message };
   revalidatePath("/admin/media");
-  return { success: true };
+  return { success: true, id: row?.id ?? null };
 }
 
 export async function updateMediaItem(id: string, data: Record<string, unknown>) {

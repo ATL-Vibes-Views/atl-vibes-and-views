@@ -26,6 +26,7 @@ import {
   Zap,
   ArrowUpDown,
   Settings,
+  Images,
 } from "lucide-react";
 import { PortalSidebar } from "@/components/portal/PortalSidebar";
 import { createServiceRoleClient } from "@/lib/supabase";
@@ -83,6 +84,7 @@ export default async function AdminLayout({
         { label: "Scripts", path: "/admin/scripts", icon: <Film size={16} />, ...(draftScripts > 0 ? { count: draftScripts } : {}) },
         { label: "Social Queue", path: "/admin/social", icon: <Share2 size={16} />, ...(socialQueue > 0 ? { count: socialQueue } : {}) },
         { label: "Media", path: "/admin/media", icon: <Video size={16} />, ...(mediaCount > 0 ? { count: mediaCount } : {}) },
+        { label: "Media Library", path: "/admin/media-library", icon: <Images size={16} /> },
         { label: "Pipeline", path: "/admin/pipeline", icon: <RefreshCw size={16} />, ...(pipelineCount > 0 ? { count: pipelineCount } : {}) },
         { label: "Content Calendar", path: "/admin/calendar", icon: <CalendarDays size={16} /> },
       ],
