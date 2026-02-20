@@ -79,8 +79,29 @@ export function MediaLandingClient({ items, activeTab }: MediaLandingClientProps
 
   return (
     <>
+      {/* ========== HERO ========== */}
+      <section className="relative w-full bg-[#1a1a1a] h-[52vh] sm:h-[58vh] md:h-[65vh] min-h-[340px] max-h-[640px] flex items-center justify-center overflow-hidden">
+        {/* Watermark */}
+        <div className="absolute inset-0 flex items-center justify-center pointer-events-none select-none">
+          <span className="font-display italic text-[80px] md:text-[140px] lg:text-[200px] text-[rgba(184,154,90,0.06)] leading-none whitespace-nowrap">
+            Media
+          </span>
+        </div>
+        <div className="relative z-10 text-center px-6">
+          <span className="text-[#e6c46d] text-[11px] font-semibold uppercase tracking-[0.15em] mb-3 block">
+            Media
+          </span>
+          <h1 className="font-display text-4xl md:text-5xl lg:text-6xl font-semibold text-white leading-[1.05] mb-3">
+            Watch &amp; Listen
+          </h1>
+          <p className="text-white/60 text-sm md:text-base max-w-lg mx-auto">
+            Podcast episodes, video features, and short-form content covering Atlanta.
+          </p>
+        </div>
+      </section>
+
       {/* ========== TABS + CONTENT ========== */}
-      <section className="pt-8 md:pt-10 pb-8">
+      <section className="site-container pt-8 md:pt-10 pb-16 md:pb-20">
         {/* Tabs */}
         <div className="flex items-center gap-6 border-b border-gray-200 mb-8">
           {TABS.map((t) => (
@@ -199,7 +220,6 @@ export function MediaLandingClient({ items, activeTab }: MediaLandingClientProps
     </>
   );
 }
-
 
 /* ============================================================
    MEDIA CARD
