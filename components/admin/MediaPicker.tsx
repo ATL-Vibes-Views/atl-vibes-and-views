@@ -176,15 +176,43 @@ export function MediaPicker({
     setUploading(true);
     setUploadError("");
 
-    const fd = new FormData();
-    fd.append("file", selectedFile);
-    fd.append("bucket", bucket);
-    fd.append("folder", folder);
-    fd.append("title", uploadTitle.trim());
-    if (uploadAlt.trim()) fd.append("alt_text", uploadAlt.trim());
-    if (uploadCaption.trim()) fd.append("caption", uploadCaption.trim());
+    // Step 1: upload file directly to Supabase Storage from the browser
+    // (bypasses Vercel's 4.5 MB payload limit)
+    const sb = createBrowserClient();
+    const ext = selectedFile.name.split(".").pop()?.toLowerCase() ?? "bin";
+    const sanitized = selectedFile.name
+      .replace(/\.[^.]+$/, "").toLowerCase().replace(/[^a-z0-9]+/g, "-").slice(0, 40);
+    const storagePath = `${folder}/${Date.now()}-${sanitized}.${ext}`;
 
-    const res = await fetch("/api/admin/upload-asset", { method: "POST", body: fd });
+    const { error: storageError } = await sb.storage
+      .from(bucket)
+      .upload(storagePath, selectedFile, { cacheControl: "3600", upsert: false });
+
+    if (storageError) {
+      setUploading(false);
+      setUploadError(storageError.message);
+      return;
+    }
+
+    const { data: urlData } = sb.storage.from(bucket).getPublicUrl(storagePath);
+    const publicUrl = urlData.publicUrl;
+
+    // Step 2: POST metadata to API route — inserts media_assets row via service role
+    const res = await fetch("/api/admin/upload-asset", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        file_url: publicUrl,
+        file_name: selectedFile.name,
+        mime_type: selectedFile.type,
+        file_size: selectedFile.size,
+        bucket,
+        folder,
+        title: uploadTitle.trim(),
+        alt_text: uploadAlt.trim() || null,
+        caption: uploadCaption.trim() || null,
+      }),
+    });
     const result = await res.json() as { id: string; url: string } | { error: string };
 
     setUploading(false);

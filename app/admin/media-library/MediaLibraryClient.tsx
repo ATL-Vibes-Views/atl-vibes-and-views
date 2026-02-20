@@ -97,18 +97,44 @@ export function MediaLibraryClient({ initialAssets }: MediaLibraryClientProps) {
     if (!upTitle.trim()) { setUpError("Title is required."); return; }
     if (upFile.type.startsWith("image/") && !upAlt.trim()) { setUpError("Alt text is required for images."); return; }
     setUploading(true); setUpError("");
-    const fd = new FormData();
-    fd.append("file", upFile);
-    fd.append("bucket", upBucket);
-    fd.append("folder", upFolder);
-    fd.append("title", upTitle.trim());
-    if (upAlt.trim()) fd.append("alt_text", upAlt.trim());
-    if (upCaption.trim()) fd.append("caption", upCaption.trim());
-    const res = await fetch("/api/admin/upload-asset", { method: "POST", body: fd });
-    const result = await res.json() as { id: string; url: string; file_name: string; file_type: string; mime_type: string; file_size: number; width?: number; height?: number; bucket: string; folder: string } | { error: string };
+
+    // Step 1: upload file directly to Supabase Storage from the browser
+    const sb = createBrowserClient();
+    const ext = upFile.name.split(".").pop()?.toLowerCase() ?? "bin";
+    const sanitized = upFile.name.replace(/\.[^.]+$/,"").toLowerCase().replace(/[^a-z0-9]+/g,"-").slice(0,40);
+    const storagePath = `${upFolder}/${Date.now()}-${sanitized}.${ext}`;
+
+    const { error: storageError } = await sb.storage
+      .from(upBucket)
+      .upload(storagePath, upFile, { cacheControl: "3600", upsert: false });
+
+    if (storageError) { setUploading(false); setUpError(storageError.message); return; }
+
+    const { data: urlData } = sb.storage.from(upBucket).getPublicUrl(storagePath);
+    const publicUrl = urlData.publicUrl;
+
+    // Step 2: POST metadata to API route — inserts media_assets row via service role
+    const res = await fetch("/api/admin/upload-asset", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        file_url: publicUrl,
+        file_name: upFile.name,
+        mime_type: upFile.type,
+        file_size: upFile.size,
+        bucket: upBucket,
+        folder: upFolder,
+        title: upTitle.trim(),
+        alt_text: upAlt.trim() || null,
+        caption: upCaption.trim() || null,
+      }),
+    });
+    const result = await res.json() as { id: string; url: string } | { error: string };
     setUploading(false);
     if ("error" in result) { setUpError(result.error); return; }
-    const newAsset: MediaAssetRow = { id: result.id, file_url: result.url, file_name: result.file_name, file_type: result.file_type, mime_type: result.mime_type, file_size: result.file_size, width: result.width??null, height: result.height??null, bucket: result.bucket, folder: result.folder, title: upTitle.trim(), alt_text: upAlt.trim()||null, caption: upCaption.trim()||null, created_at: new Date().toISOString(), is_active: true };
+
+    const fileType = upFile.type.startsWith("image/") ? "image" : upFile.type.startsWith("video/") ? "video" : "other";
+    const newAsset: MediaAssetRow = { id: result.id, file_url: publicUrl, file_name: upFile.name, file_type: fileType, mime_type: upFile.type, file_size: upFile.size, width: null, height: null, bucket: upBucket, folder: upFolder, title: upTitle.trim(), alt_text: upAlt.trim()||null, caption: upCaption.trim()||null, created_at: new Date().toISOString(), is_active: true };
     setAssets(p=>[newAsset,...p]);
     setUploadOpen(false); setUpFile(null); setUpPreview(null); setUpTitle(""); setUpAlt(""); setUpCaption(""); setUpBucket("site-images"); setUpFolder("uploads");
   }
