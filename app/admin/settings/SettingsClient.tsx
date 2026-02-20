@@ -280,8 +280,13 @@ export function SettingsClient({ initialSettings }: SettingsClientProps) {
                   <div key={key} className="bg-white border border-[#e5e5e5] p-4 flex gap-4 items-start">
                     {/* Thumbnail */}
                     <div className="w-24 h-16 shrink-0 bg-[#f5f5f5] border border-[#e5e5e5] overflow-hidden">
-                      {contentType === "video" ? (
-                        /* Video — dark box with icon */
+                      {contentType === "post" && currentPost?.featured_image_url ? (
+                        <img
+                          src={currentPost.featured_image_url}
+                          alt={currentPost.title}
+                          className="w-full h-full object-cover"
+                        />
+                      ) : contentType === "video" ? (
                         <div className="w-full h-full bg-[#1a1a1a] flex flex-col items-center justify-center gap-1">
                           <Video size={18} className="text-white/70" />
                           {(currentMedia ?? sessionMedia) && (
@@ -290,27 +295,13 @@ export function SettingsClient({ initialSettings }: SettingsClientProps) {
                             </span>
                           )}
                         </div>
-                      ) : contentType === "post" ? (
-                        /* Post — featured image or placeholder */
-                        (() => {
-                          const postThumb = currentPost?.featured_image_url ?? null;
-                          return postThumb ? (
-                            <img src={postThumb} alt="" className="w-full h-full object-cover" />
-                          ) : (
-                            <div className="w-full h-full flex items-center justify-center bg-[#f0f0f0]">
-                              <ImageIcon size={20} className="text-[#d1d1d1]" />
-                            </div>
-                          );
-                        })()
                       ) : (currentMedia?.file_url ?? sessionMedia?.url) ? (
-                        /* Image */
                         <img
                           src={currentMedia?.file_url ?? sessionMedia?.url}
                           alt=""
                           className="w-full h-full object-cover"
                         />
                       ) : (
-                        /* Not set */
                         <div className="w-full h-full flex items-center justify-center">
                           <ImageIcon size={20} className="text-[#d1d1d1]" />
                         </div>
