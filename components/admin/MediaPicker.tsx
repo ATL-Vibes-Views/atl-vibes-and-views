@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useRef, useEffect, useCallback } from "react";
-import { Upload, X, Search, FolderOpen, Image as ImageIcon, FileVideo, FileText, File, Check } from "lucide-react";
+import { Upload, X, Search, FolderOpen, Image as ImageIcon, FileVideo, FileText, File, Check, Video } from "lucide-react";
 import { createBrowserClient } from "@/lib/supabase";
 
 /* ============================================================
@@ -26,9 +26,17 @@ interface MediaAssetRow {
   created_at: string;
 }
 
+export type MediaAssetValue = {
+  id: string;
+  url: string;
+  title: string | null;
+  alt_text: string | null;
+  mime_type: string;
+};
+
 export interface MediaPickerProps {
-  value?: { id: string; url: string } | null;
-  onChange: (asset: { id: string; url: string } | null) => void;
+  value?: MediaAssetValue | null;
+  onChange: (asset: MediaAssetValue | null) => void;
   bucket?: string;
   folder?: string;
   label?: string;
@@ -90,7 +98,7 @@ export function MediaPicker({
   const [uploadCaption, setUploadCaption] = useState("");
   const [uploading, setUploading] = useState(false);
   const [uploadError, setUploadError] = useState("");
-  const [uploadedAsset, setUploadedAsset] = useState<{ id: string; url: string } | null>(null);
+  const [uploadedAsset, setUploadedAsset] = useState<MediaAssetValue | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   // Library tab state
@@ -228,7 +236,13 @@ export function MediaPicker({
       setUploadError(result.error);
       return;
     }
-    setUploadedAsset({ id: result.id, url: result.url });
+    setUploadedAsset({
+      id: result.id,
+      url: result.url,
+      title: uploadTitle.trim() || null,
+      alt_text: uploadAlt.trim() || null,
+      mime_type: selectedFile.type,
+    });
   }
 
   function handleUseUploaded() {
@@ -239,7 +253,13 @@ export function MediaPicker({
 
   function handleUseSelected() {
     if (!selected) return;
-    onChange({ id: selected.id, url: selected.file_url });
+    onChange({
+      id: selected.id,
+      url: selected.file_url,
+      title: selected.title,
+      alt_text: selected.alt_text,
+      mime_type: selected.mime_type,
+    });
     handleClose();
   }
 
@@ -257,14 +277,33 @@ export function MediaPicker({
       {/* Trigger */}
       {value ? (
         <div className="flex items-start gap-3">
-          <img
-            src={value.url}
-            alt="Selected asset"
-            className="w-20 h-16 object-cover border border-[#e5e5e5] rounded"
-          />
-          <div className="flex flex-col gap-1 pt-1">
-            <span className="text-[12px] text-[#6b7280] truncate max-w-[180px]">{value.url.split("/").pop()}</span>
-            <div className="flex gap-3">
+          {/* Thumbnail or video box */}
+          <div className="w-20 h-16 shrink-0 border border-[#e5e5e5] overflow-hidden">
+            {value.mime_type?.startsWith("video/") ? (
+              <div className="w-full h-full bg-[#1a1a1a] flex items-center justify-center">
+                <Video size={20} className="text-white/70" />
+              </div>
+            ) : (
+              <img src={value.url} alt={value.alt_text ?? ""} className="w-full h-full object-cover" />
+            )}
+          </div>
+
+          {/* Info */}
+          <div className="flex-1 min-w-0 pt-0.5 space-y-1">
+            {/* Type badge */}
+            <span className="text-[10px] font-semibold tracking-wide uppercase text-[#c1121f]">
+              {value.mime_type?.startsWith("video/") ? "VIDEO" : "IMAGE"}
+            </span>
+            {/* Title */}
+            {value.title && (
+              <p className="text-[12px] font-semibold text-[#1a1a1a] truncate">{value.title}</p>
+            )}
+            {/* Alt text */}
+            {value.alt_text && (
+              <p className="text-[11px] text-[#6b7280] truncate"><span className="font-medium">Alt:</span> {value.alt_text}</p>
+            )}
+            {/* Actions */}
+            <div className="flex gap-3 pt-0.5">
               <button
                 type="button"
                 onClick={() => { setOpen(true); setTab("library"); }}
@@ -277,7 +316,7 @@ export function MediaPicker({
                 onClick={() => onChange(null)}
                 className="text-[12px] text-[#6b7280] hover:text-[#c1121f] transition-colors"
               >
-                × Clear
+                × Remove
               </button>
             </div>
           </div>

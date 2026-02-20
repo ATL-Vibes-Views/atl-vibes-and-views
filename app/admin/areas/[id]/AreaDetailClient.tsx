@@ -16,7 +16,7 @@ import { FormSelect } from "@/components/portal/FormSelect";
 import { ToggleSwitch } from "@/components/portal/ToggleSwitch";
 import { ButtonBar } from "@/components/portal/ButtonBar";
 import { AdminDataTable } from "@/components/portal/AdminDataTable";
-import { MediaPicker } from "@/components/admin/MediaPicker";
+import { MediaPicker, type MediaAssetValue } from "@/components/admin/MediaPicker";
 import { PostPicker } from "@/components/admin/PostPicker";
 
 interface NeighborhoodRow { id: string; name: string; slug: string; is_active: boolean }
@@ -54,10 +54,10 @@ export function AreaDetailClient({ area, isNew, neighborhoods, cities }: AreaDet
 
   /* ── Hero tab state ── */
   const [heroContentType, setHeroContentType] = useState<"image" | "video" | "post">(field(area, "hero_content_type") as "image" | "video" | "post" || "image");
-  const [heroMedia, setHeroMedia] = useState<{ id: string; url: string } | null>(() => {
+  const [heroMedia, setHeroMedia] = useState<MediaAssetValue | null>(() => {
     const mediaId = field(area, "hero_media_id");
     const mediaUrl = field(area, "hero_image_url");
-    return mediaId && mediaUrl ? { id: mediaId, url: mediaUrl } : null;
+    return mediaId && mediaUrl ? { id: mediaId, url: mediaUrl, title: null, alt_text: null, mime_type: "image/jpeg" } : null;
   });
   const [heroPost, setHeroPost] = useState<{ id: string; title: string } | null>(
     field(area, "hero_featured_post_id") ? { id: field(area, "hero_featured_post_id"), title: "Loading…" } : null

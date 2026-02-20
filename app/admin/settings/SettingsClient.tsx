@@ -10,7 +10,7 @@ import { FormTextarea } from "@/components/portal/FormTextarea";
 import { FormSelect } from "@/components/portal/FormSelect";
 import { ToggleSwitch } from "@/components/portal/ToggleSwitch";
 import { ButtonBar } from "@/components/portal/ButtonBar";
-import { MediaPicker } from "@/components/admin/MediaPicker";
+import { MediaPicker, type MediaAssetValue } from "@/components/admin/MediaPicker";
 import { PostPicker } from "@/components/admin/PostPicker";
 
 /* ============================================================
@@ -110,12 +110,12 @@ export function SettingsClient({ initialSettings }: SettingsClientProps) {
     });
     return init;
   });
-  const [heroMedia, setHeroMedia] = useState<Record<string, { id: string; url: string } | null>>(() => {
-    const init: Record<string, { id: string; url: string } | null> = {};
+  const [heroMedia, setHeroMedia] = useState<Record<string, MediaAssetValue | null>>(() => {
+    const init: Record<string, MediaAssetValue | null> = {};
     PAGE_GROUPS.forEach(({ key }) => {
       const mediaId = getVal(initialSettings, `${key}_media_id`);
       const mediaUrl = getVal(initialSettings, `${key}_video_url`) || getVal(initialSettings, `${key}_image_url`);
-      init[key] = mediaId && mediaUrl ? { id: mediaId, url: mediaUrl } : null;
+      init[key] = mediaId && mediaUrl ? { id: mediaId, url: mediaUrl, title: null, alt_text: null, mime_type: "image/jpeg" } : null;
     });
     return init;
   });
