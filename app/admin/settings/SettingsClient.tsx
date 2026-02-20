@@ -1,6 +1,7 @@
 "use client";
 
-import { useState, useCallback } from "react";
+import { useState, useCallback, useEffect } from "react";
+import { ImageIcon, X, Video } from "lucide-react";
 import { PortalTopbar } from "@/components/portal/PortalTopbar";
 import { TabNav } from "@/components/portal/TabNav";
 import { FormGroup } from "@/components/portal/FormGroup";
@@ -9,7 +10,7 @@ import { FormTextarea } from "@/components/portal/FormTextarea";
 import { FormSelect } from "@/components/portal/FormSelect";
 import { ToggleSwitch } from "@/components/portal/ToggleSwitch";
 import { ButtonBar } from "@/components/portal/ButtonBar";
-import { MediaPicker } from "@/components/admin/MediaPicker";
+import { MediaPicker, type MediaAssetValue } from "@/components/admin/MediaPicker";
 import { PostPicker } from "@/components/admin/PostPicker";
 
 /* ============================================================
@@ -25,7 +26,7 @@ const TABS = [
 
 /* Page groups shown in the Page Images tab */
 const PAGE_GROUPS = [
-  { key: "home", label: "Homepage" },
+  { key: "homepage", label: "Homepage" },
   { key: "stories", label: "Stories" },
   { key: "city_watch", label: "City Watch" },
   { key: "hub_atlanta_guide", label: "Atlanta Guide" },
@@ -39,6 +40,14 @@ const PAGE_GROUPS = [
   { key: "media_page", label: "Media" },
   { key: "newsletters", label: "Newsletters" },
   { key: "newsletters_archive", label: "Newsletter Archive" },
+  { key: "about", label: "About" },
+  { key: "contact", label: "Contact" },
+  { key: "partner", label: "Partner — Main" },
+  { key: "partner_about", label: "Partner — About" },
+  { key: "partner_editorial", label: "Partner — Editorial" },
+  { key: "partner_marketing", label: "Partner — Marketing" },
+  { key: "partner_events", label: "Partner — Events" },
+  { key: "partner_contact", label: "Partner — Contact" },
 ];
 
 type SiteSetting = Record<string, unknown>;
@@ -55,30 +64,73 @@ function getVal(settings: SiteSetting[], key: string): string {
 
 export function SettingsClient({ initialSettings }: SettingsClientProps) {
   const [activeTab, setActiveTab] = useState("general");
-  const [settings] = useState<SiteSetting[]>(initialSettings);
+  const [settings, setSettings] = useState<SiteSetting[]>(initialSettings);
   const [saving, setSaving] = useState(false);
+  const [activeGroup, setActiveGroup] = useState<string | null>(null);
+  const [saveSuccess, setSaveSuccess] = useState(false);
+
+  function openModal(key: string) { setActiveGroup(key); }
+  function closeModal() { setActiveGroup(null); setSaveSuccess(false); }
+
+  const activeGroupLabel = PAGE_GROUPS.find((g) => g.key === activeGroup)?.label ?? "";
+
+  /* Media cache — preloaded on mount so card thumbnails show current hero images */
+  type MediaCacheEntry = { id: string; file_url: string; file_name: string; mime_type: string; title: string | null };
+  type PostCacheEntry = { id: string; title: string; featured_image_url: string | null };
+  const [mediaCache, setMediaCache] = useState<Record<string, MediaCacheEntry>>({});
+  const [postCache, setPostCache] = useState<Record<string, PostCacheEntry>>({});
+
+  useEffect(() => {
+    const ids = settings
+      .map((s) => s.value_media_id)
+      .filter(Boolean) as string[];
+    if (!ids.length) return;
+    fetch(`/api/admin/media-assets?ids=${ids.join(",")}`)
+      .then((r) => r.json())
+      .then((assets: MediaCacheEntry[]) => {
+        const cache: Record<string, MediaCacheEntry> = {};
+        assets.forEach((a) => (cache[a.id] = a));
+        setMediaCache(cache);
+      })
+      .catch(() => {});
+  }, [settings]);
+
+  useEffect(() => {
+    const postIds = settings
+      .map((s) => s.value_post_id)
+      .filter(Boolean) as string[];
+    if (!postIds.length) return;
+    fetch(`/api/admin/posts?ids=${postIds.join(",")}`)
+      .then((r) => r.json())
+      .then((posts: PostCacheEntry[]) => {
+        const cache: Record<string, PostCacheEntry> = {};
+        posts.forEach((p) => (cache[p.id] = p));
+        setPostCache(cache);
+      })
+      .catch(() => {});
+  }, [settings]);
 
   /* Per-group hero state — keyed by group key */
   const [heroTypes, setHeroTypes] = useState<Record<string, string>>(() => {
     const init: Record<string, string> = {};
     PAGE_GROUPS.forEach(({ key }) => {
-      init[key] = getVal(initialSettings, `${key}_content_type`) || "image";
+      init[key] = getVal(initialSettings, `${key}_hero_content_type`) || "image";
     });
     return init;
   });
-  const [heroMedia, setHeroMedia] = useState<Record<string, { id: string; url: string } | null>>(() => {
-    const init: Record<string, { id: string; url: string } | null> = {};
+  const [heroMedia, setHeroMedia] = useState<Record<string, MediaAssetValue | null>>(() => {
+    const init: Record<string, MediaAssetValue | null> = {};
     PAGE_GROUPS.forEach(({ key }) => {
-      const mediaId = getVal(initialSettings, `${key}_media_id`);
-      const mediaUrl = getVal(initialSettings, `${key}_video_url`) || getVal(initialSettings, `${key}_image_url`);
-      init[key] = mediaId && mediaUrl ? { id: mediaId, url: mediaUrl } : null;
+      const mediaId = getVal(initialSettings, `${key}_hero_media_id`);
+      const mediaUrl = getVal(initialSettings, `${key}_hero_video_url`) || getVal(initialSettings, `${key}_hero_image_url`);
+      init[key] = mediaId && mediaUrl ? { id: mediaId, url: mediaUrl, title: null, alt_text: null, mime_type: "image/jpeg" } : null;
     });
     return init;
   });
   const [heroPosts, setHeroPosts] = useState<Record<string, { id: string; title: string } | null>>(() => {
     const init: Record<string, { id: string; title: string } | null> = {};
     PAGE_GROUPS.forEach(({ key }) => {
-      const postId = getVal(initialSettings, `${key}_featured_post_id`);
+      const postId = getVal(initialSettings, `${key}_hero_featured_post_id`);
       init[key] = postId ? { id: postId, title: "Loading…" } : null;
     });
     return init;
@@ -86,32 +138,58 @@ export function SettingsClient({ initialSettings }: SettingsClientProps) {
   const [heroFallbacks, setHeroFallbacks] = useState<Record<string, string>>(() => {
     const init: Record<string, string> = {};
     PAGE_GROUPS.forEach(({ key }) => {
-      init[key] = getVal(initialSettings, `${key}_video_url`);
+      init[key] = getVal(initialSettings, `${key}_hero_video_url`);
     });
     return init;
   });
 
-  const handleSavePageImages = useCallback(async () => {
+  const handleSaveGroup = useCallback(async () => {
+    if (!activeGroup) return;
     setSaving(true);
+    const key = activeGroup;
     const updates: Record<string, unknown>[] = [];
-    PAGE_GROUPS.forEach(({ key }) => {
-      const typeRow = settings.find((s) => s.key === `${key}_content_type`);
-      const mediaRow = settings.find((s) => s.key === `${key}_media_id`);
-      const postRow = settings.find((s) => s.key === `${key}_featured_post_id`);
-      const urlRow = settings.find((s) => s.key === `${key}_video_url`);
-      if (typeRow) updates.push({ id: typeRow.id, value_text: heroTypes[key] ?? "image" });
-      if (mediaRow) updates.push({ id: mediaRow.id, value_media_id: heroMedia[key]?.id ?? null });
-      if (postRow) updates.push({ id: postRow.id, value_post_id: heroPosts[key]?.id ?? null });
-      if (urlRow) updates.push({ id: urlRow.id, value_text: heroFallbacks[key] ?? null });
-    });
-    if (updates.length === 0) { setSaving(false); return; }
-    await fetch("/api/admin/settings", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ updates }),
-    });
+    const typeRow = settings.find((s) => s.key === `${key}_hero_content_type`);
+    const mediaRow = settings.find((s) => s.key === `${key}_hero_media_id`);
+    const postRow = settings.find((s) => s.key === `${key}_hero_featured_post_id`);
+    const urlRow = settings.find((s) => s.key === `${key}_hero_video_url`);
+    if (typeRow) updates.push({ id: typeRow.id, value_text: heroTypes[key] ?? "image" });
+    if (mediaRow) updates.push({ id: mediaRow.id, value_media_id: heroMedia[key]?.id ?? null });
+    if (postRow) updates.push({ id: postRow.id, value_post_id: heroPosts[key]?.id ?? null });
+    if (urlRow) updates.push({ id: urlRow.id, value_text: heroFallbacks[key] ?? null });
+    if (updates.length > 0) {
+      await fetch("/api/admin/settings", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ updates }),
+      });
+      setSettings((prev) =>
+        prev.map((s) => {
+          const match = updates.find((u) => u.id === s.id);
+          if (!match) return s;
+          return {
+            ...s,
+            value_text: (match.value_text as string) ?? s.value_text,
+            value_media_id: (match.value_media_id as string) ?? s.value_media_id,
+            value_post_id: (match.value_post_id as string) ?? s.value_post_id,
+          };
+        })
+      );
+      const savedPost = heroPosts[key];
+      if (heroTypes[key] === "post" && savedPost?.id) {
+        fetch(`/api/admin/posts?ids=${savedPost.id}`)
+          .then((r) => r.json())
+          .then((posts: { id: string; title: string; featured_image_url: string | null }[]) => {
+            if (posts.length > 0) {
+              setPostCache((prev) => ({ ...prev, [posts[0].id]: posts[0] }));
+            }
+          })
+          .catch(() => {});
+      }
+    }
     setSaving(false);
-  }, [settings, heroTypes, heroMedia, heroPosts, heroFallbacks]);
+    setSaveSuccess(true);
+    setTimeout(() => { setSaveSuccess(false); closeModal(); }, 1000);
+  }, [activeGroup, settings, setSettings, heroTypes, heroMedia, heroPosts, heroFallbacks]);
 
   return (
     <>
@@ -202,25 +280,142 @@ export function SettingsClient({ initialSettings }: SettingsClientProps) {
 
         {/* ── Page Images Tab ── */}
         {activeTab === "page_images" && (
-          <div className="space-y-8 max-w-2xl">
+          <div className="space-y-5">
             <p className="text-[13px] text-[#6b7280]">
-              Set the hero image, video, or featured post for each public page. Changes take effect immediately on save.
+              Set the hero image, video, or featured post for each public page. Click Edit to configure a page.
             </p>
-            {PAGE_GROUPS.map(({ key, label }) => {
-              const hType = heroTypes[key] ?? "image";
-              return (
-                <div key={key} className="bg-white border border-[#e5e5e5] p-5 space-y-4">
-                  <h3 className="font-display text-[15px] font-semibold text-black">{label}</h3>
-                  <FormGroup label="Hero Type">
-                    <FormSelect
-                      options={[
-                        { value: "image", label: "Image" },
-                        { value: "video", label: "Video" },
-                        { value: "post", label: "Featured Blog Post" },
-                      ]}
+
+            {/* 2-column card grid */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              {PAGE_GROUPS.map(({ key, label }) => {
+                /* Resolve saved values from settings rows */
+                const contentTypeSetting = settings.find((s) => s.key === `${key}_hero_content_type`);
+                const mediaSetting = settings.find((s) => s.key === `${key}_hero_media_id`);
+                const postSetting = settings.find((s) => s.key === `${key}_hero_featured_post_id`);
+
+                const savedType = (contentTypeSetting?.value_text as string) || null;
+                /* In-session edits take precedence over saved values */
+                const contentType = heroTypes[key] || savedType || null;
+
+                const savedMediaId = mediaSetting?.value_media_id as string | undefined;
+                const currentMedia = savedMediaId ? (mediaCache[savedMediaId] ?? null) : null;
+
+                const savedPostId = postSetting?.value_post_id as string | undefined;
+                const currentPost = savedPostId ? (postCache[savedPostId] ?? null) : null;
+
+                /* In-session picker selection overrides saved media */
+                const sessionMedia = heroMedia[key] ?? null;
+                const sessionPost = heroPosts[key] ?? null;
+
+                return (
+                  <div key={key} className="bg-white border border-[#e5e5e5] p-4 flex gap-4 items-start">
+                    {/* Thumbnail */}
+                    <div className="w-24 h-16 shrink-0 bg-[#f5f5f5] border border-[#e5e5e5] overflow-hidden">
+                      {contentType === "post" && currentPost?.featured_image_url ? (
+                        <img
+                          src={currentPost.featured_image_url}
+                          alt={currentPost.title}
+                          className="w-full h-full object-cover"
+                        />
+                      ) : contentType === "video" ? (
+                        <div className="w-full h-full bg-[#1a1a1a] flex flex-col items-center justify-center gap-1">
+                          <Video size={18} className="text-white/70" />
+                          {(currentMedia ?? sessionMedia) && (
+                            <span className="text-[9px] text-white/50 truncate px-1 max-w-full">
+                              {currentMedia?.file_name ?? sessionMedia?.url?.split("/").pop()}
+                            </span>
+                          )}
+                        </div>
+                      ) : (currentMedia?.file_url ?? sessionMedia?.url) ? (
+                        <img
+                          src={currentMedia?.file_url ?? sessionMedia?.url}
+                          alt=""
+                          className="w-full h-full object-cover"
+                        />
+                      ) : (
+                        <div className="w-full h-full flex items-center justify-center">
+                          <ImageIcon size={20} className="text-[#d1d1d1]" />
+                        </div>
+                      )}
+                    </div>
+
+                    {/* Info */}
+                    <div className="flex-1 min-w-0">
+                      <p className="font-semibold text-sm text-[#1a1a1a] leading-tight">{label}</p>
+                      <div className="mt-1">
+                        {contentType === "post" ? (
+                          <span className="text-xs px-2 py-0.5 rounded-full bg-[#f5f5f5] text-gray-500">
+                            Featured Post
+                          </span>
+                        ) : contentType === "video" ? (
+                          <span className="text-xs px-2 py-0.5 rounded-full bg-[#f5f5f5] text-gray-500">
+                            Video
+                          </span>
+                        ) : (currentMedia ?? sessionMedia) ? (
+                          <span className="text-xs px-2 py-0.5 rounded-full bg-[#f5f5f5] text-gray-500">
+                            Image
+                          </span>
+                        ) : (
+                          <span className="text-xs px-2 py-0.5 rounded-full bg-[#fff3f3] text-[#c1121f]">
+                            Not Set
+                          </span>
+                        )}
+                      </div>
+                      {/* Subtitle */}
+                      {contentType === "post" && (currentPost ?? sessionPost) && (
+                        <p className="text-xs text-gray-400 mt-1 truncate">
+                          {currentPost?.title ?? sessionPost?.title}
+                        </p>
+                      )}
+                      {contentType !== "post" && (currentMedia ?? sessionMedia) && (
+                        <p className="text-xs text-gray-400 mt-1 truncate">
+                          {currentMedia ? (currentMedia.title ?? currentMedia.file_name) : sessionMedia?.url?.split("/").pop()}
+                        </p>
+                      )}
+                    </div>
+
+                    {/* Edit button */}
+                    <button
+                      onClick={() => openModal(key)}
+                      className="shrink-0 text-xs font-semibold text-[#1a1a1a] border border-[#e5e5e5] px-3 py-1.5 hover:border-[#fee198] hover:bg-[#fffdf0] transition-colors"
+                    >
+                      Edit
+                    </button>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        )}
+
+        {/* ── Edit Modal ── */}
+        {activeGroup && (() => {
+          const key = activeGroup;
+          const hType = heroTypes[key] ?? "image";
+          return (
+            <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
+              <div className="bg-white w-full max-w-lg max-h-[90vh] overflow-y-auto">
+                {/* Header */}
+                <div className="flex items-center justify-between p-5 border-b border-[#e5e5e5]">
+                  <h3 className="font-display text-[16px] font-semibold">{activeGroupLabel}</h3>
+                  <button type="button" onClick={closeModal}>
+                    <X size={18} className="text-gray-400 hover:text-black transition-colors" />
+                  </button>
+                </div>
+
+                {/* Body */}
+                <div className="p-5 space-y-4">
+                  <FormGroup label="Hero Content Type">
+                    <select
                       value={hType}
                       onChange={(e) => setHeroTypes((prev) => ({ ...prev, [key]: e.target.value }))}
-                    />
+                      className="w-full h-[38px] px-3 text-[14px] font-body border border-[#e5e5e5] focus:border-[#e6c46d] focus:ring-2 focus:ring-[#fee198]/30 focus:outline-none transition-colors bg-white"
+                    >
+                      <option value="">— None —</option>
+                      <option value="image">Image</option>
+                      <option value="video">Video</option>
+                      <option value="post">Featured Blog Post</option>
+                    </select>
                   </FormGroup>
 
                   {(hType === "image" || hType === "video") && (
@@ -234,7 +429,7 @@ export function SettingsClient({ initialSettings }: SettingsClientProps) {
                   )}
 
                   {(hType === "image" || hType === "video") && (
-                    <FormGroup label="Fallback URL">
+                    <FormGroup label="Fallback URL" hint="Used if no media asset is selected">
                       <FormInput
                         value={heroFallbacks[key] ?? ""}
                         onChange={(e) => setHeroFallbacks((prev) => ({ ...prev, [key]: e.target.value }))}
@@ -244,7 +439,7 @@ export function SettingsClient({ initialSettings }: SettingsClientProps) {
                   )}
 
                   {hType === "post" && (
-                    <FormGroup label="Featured Post">
+                    <FormGroup label="Featured Blog Post">
                       <PostPicker
                         value={heroPosts[key] ?? null}
                         onChange={(post) => setHeroPosts((prev) => ({ ...prev, [key]: post }))}
@@ -252,20 +447,29 @@ export function SettingsClient({ initialSettings }: SettingsClientProps) {
                     </FormGroup>
                   )}
                 </div>
-              );
-            })}
 
-            <ButtonBar>
-              <button
-                onClick={handleSavePageImages}
-                disabled={saving}
-                className="inline-flex items-center px-6 py-2.5 rounded-full text-sm font-semibold bg-[#fee198] text-[#1a1a1a] hover:bg-[#fdd870] transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
-              >
-                {saving ? "Saving..." : "Save Page Images"}
-              </button>
-            </ButtonBar>
-          </div>
-        )}
+                {/* Footer */}
+                <div className="p-5 border-t border-[#e5e5e5] flex justify-end gap-3">
+                  <button
+                    type="button"
+                    onClick={closeModal}
+                    className="px-4 py-2 text-sm text-gray-500 hover:text-black transition-colors"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    type="button"
+                    onClick={handleSaveGroup}
+                    disabled={saving}
+                    className="inline-flex items-center justify-center px-6 py-2.5 rounded-full text-sm font-semibold bg-[#fee198] text-[#1a1a1a] hover:bg-[#e6c46d] transition-colors disabled:opacity-60"
+                  >
+                    {saving ? "Saving…" : saveSuccess ? "Saved!" : "Save"}
+                  </button>
+                </div>
+              </div>
+            </div>
+          );
+        })()}
 
         {/* ── Integrations Tab ── */}
         {activeTab === "integrations" && (

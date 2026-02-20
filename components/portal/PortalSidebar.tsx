@@ -3,7 +3,7 @@
 import { useState, useMemo } from "react";
 import { usePathname, useSearchParams } from "next/navigation";
 import Link from "next/link";
-import { Menu, X } from "lucide-react";
+import { Menu, X, ExternalLink } from "lucide-react";
 
 interface NavItem {
   label: string;
@@ -139,7 +139,7 @@ export function PortalSidebar({
         )}
 
         {/* Navigation */}
-        <nav className="flex-1 overflow-y-auto px-2 pb-4">
+        <nav className="flex-1 overflow-y-auto px-2 pb-2">
           {navGroups.map((group, gi) => (
             <div key={gi} className={gi > 0 ? "mt-4" : ""}>
               {/* Group label — admin dark theme only */}
@@ -199,6 +199,26 @@ export function PortalSidebar({
             </div>
           ))}
         </nav>
+
+        {/* View Site */}
+        <div className="px-2 pb-4 border-t border-white/[0.08] pt-3">
+          <a
+            href="https://atlvibesandviews.com"
+            target="_blank"
+            rel="noopener noreferrer"
+            className={[
+              "flex items-center gap-2.5 px-3 py-1.5 text-[12px] font-body border-l-[3px] transition-colors",
+              isLight
+                ? "text-[#6b7280] border-transparent hover:bg-[#f5f5f5] hover:text-black"
+                : "text-white/[0.6] border-transparent hover:bg-white/[0.08] hover:text-white",
+            ].join(" ")}
+          >
+            <span className="flex-shrink-0 [&>svg]:w-4 [&>svg]:h-4">
+              <ExternalLink size={16} />
+            </span>
+            <span className="flex-1">View Site</span>
+          </a>
+        </div>
       </aside>
     </>
   );

@@ -16,15 +16,14 @@ import { SearchBar } from "@/components/SearchBar";
 import { NewsletterForm } from "@/components/NewsletterForm";
 import {
   getBlogPosts,
-  getBlogPostById,
   getBusinesses,
   getEvents,
   getAreas,
   getNeighborhoods,
-  getFeaturedSlot,
   getCategoryBySlug,
   getMediaItems,
 } from "@/lib/queries";
+import { getPageHero, getHeroPost } from "@/lib/queries/settings";
 
 export const dynamic = "force-dynamic";
 
@@ -69,8 +68,13 @@ export default async function HomePage({
      ========================================================== */
   const diningCat = await getCategoryBySlug("dining").catch(() => null);
 
+  /* Hero fetch runs outside Promise.all since it's independent of search */
+  const pageHero = search ? null : await getPageHero("homepage").catch(() => null);
+  const settingsHeroPost = (!search && pageHero?.type === "post")
+    ? await getHeroPost(pageHero.postId).catch(() => null)
+    : null;
+
   const [
-    heroSlot,
     featuredPosts,
     latestPosts,
     diningBusinesses,
@@ -79,9 +83,6 @@ export default async function HomePage({
     dbNeighborhoods,
     homeVideos,
   ] = await Promise.all([
-    search
-      ? Promise.resolve(null)
-      : getFeaturedSlot("home_hero").catch(() => null),
     getBlogPosts({ featured: true, limit: 6, search }).catch(() => []),
     getBlogPosts({ limit: 12, search }).catch(() => []),
     diningCat
@@ -99,13 +100,20 @@ export default async function HomePage({
   const usedPostIds = new Set<string>();
 
   /* --- A) HERO --- */
-  let heroPost = featuredPosts[0] ?? latestPosts[0] ?? null;
-  if (heroSlot?.entity_type === "blog_post") {
-    const slotPost = await getBlogPostById(heroSlot.entity_id).catch(
-      () => null
-    );
-    if (slotPost) heroPost = slotPost;
-  }
+  /* Adapt settingsHeroPost shape to match existing JSX expectations */
+  const heroPostFromSettings = settingsHeroPost
+    ? {
+        id: pageHero!.postId!,
+        slug: settingsHeroPost.slug,
+        title: settingsHeroPost.title,
+        featured_image_url: settingsHeroPost.featured_image_url ?? null,
+        published_at: settingsHeroPost.published_at ?? null,
+        categories: settingsHeroPost.category ? { name: settingsHeroPost.category } : null,
+        authors: settingsHeroPost.author ? { name: settingsHeroPost.author } : null,
+      }
+    : null;
+
+  let heroPost = heroPostFromSettings ?? featuredPosts[0] ?? latestPosts[0] ?? null;
   if (heroPost) usedPostIds.add(heroPost.id);
 
   /* --- B) EDITOR'S PICKS: is_featured, fill from latest, max 3 --- */

@@ -10,7 +10,7 @@ import { FormRow } from "@/components/portal/FormRow";
 import { FormInput } from "@/components/portal/FormInput";
 import { FormTextarea } from "@/components/portal/FormTextarea";
 import { ButtonBar } from "@/components/portal/ButtonBar";
-import { MediaPicker } from "@/components/admin/MediaPicker";
+import { MediaPicker, type MediaAssetValue } from "@/components/admin/MediaPicker";
 import { createMediaItem } from "@/app/admin/actions";
 import { createBrowserClient } from "@/lib/supabase";
 
@@ -23,7 +23,7 @@ export function MediaAddClient({ neighborhoods, sponsors }: MediaAddClientProps)
   const router = useRouter();
   const [saving, setSaving] = useState(false);
   const [mediaType, setMediaType] = useState("");
-  const [thumbnailAsset, setThumbnailAsset] = useState<{ id: string; url: string } | null>(null);
+  const [thumbnailAsset, setThumbnailAsset] = useState<MediaAssetValue | null>(null);
 
   async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();

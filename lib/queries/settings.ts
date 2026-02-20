@@ -163,7 +163,7 @@ export async function getHeroPost(postId: string | null): Promise<HeroPost | nul
   const sb = createServerClient();
   const { data } = await sb
     .from("blog_posts")
-    .select("title, slug, featured_image_url, excerpt, published_at, categories(name), profiles(full_name)")
+    .select("id, title, slug, featured_image_url, excerpt, published_at, categories!blog_posts_category_id_fkey(name), authors!blog_posts_author_id_fkey(full_name)")
     .eq("id", postId)
     .eq("status", "published")
     .single() as { data: any };
@@ -173,7 +173,7 @@ export async function getHeroPost(postId: string | null): Promise<HeroPost | nul
     slug: data.slug,
     featured_image_url: data.featured_image_url,
     published_at: data.published_at,
-    author: data.profiles?.full_name ?? "ATL Vibes & Views",
+    author: data.authors?.full_name ?? "ATL Vibes & Views",
     category: data.categories?.name ?? null,
   };
 }
