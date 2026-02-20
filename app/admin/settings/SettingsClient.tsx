@@ -106,15 +106,15 @@ export function SettingsClient({ initialSettings }: SettingsClientProps) {
   const [heroTypes, setHeroTypes] = useState<Record<string, string>>(() => {
     const init: Record<string, string> = {};
     PAGE_GROUPS.forEach(({ key }) => {
-      init[key] = getVal(initialSettings, `${key}_content_type`) || "image";
+      init[key] = getVal(initialSettings, `${key}_hero_content_type`) || "image";
     });
     return init;
   });
   const [heroMedia, setHeroMedia] = useState<Record<string, MediaAssetValue | null>>(() => {
     const init: Record<string, MediaAssetValue | null> = {};
     PAGE_GROUPS.forEach(({ key }) => {
-      const mediaId = getVal(initialSettings, `${key}_media_id`);
-      const mediaUrl = getVal(initialSettings, `${key}_video_url`) || getVal(initialSettings, `${key}_image_url`);
+      const mediaId = getVal(initialSettings, `${key}_hero_media_id`);
+      const mediaUrl = getVal(initialSettings, `${key}_hero_video_url`) || getVal(initialSettings, `${key}_hero_image_url`);
       init[key] = mediaId && mediaUrl ? { id: mediaId, url: mediaUrl, title: null, alt_text: null, mime_type: "image/jpeg" } : null;
     });
     return init;
@@ -122,7 +122,7 @@ export function SettingsClient({ initialSettings }: SettingsClientProps) {
   const [heroPosts, setHeroPosts] = useState<Record<string, { id: string; title: string } | null>>(() => {
     const init: Record<string, { id: string; title: string } | null> = {};
     PAGE_GROUPS.forEach(({ key }) => {
-      const postId = getVal(initialSettings, `${key}_featured_post_id`);
+      const postId = getVal(initialSettings, `${key}_hero_featured_post_id`);
       init[key] = postId ? { id: postId, title: "Loading…" } : null;
     });
     return init;
@@ -130,7 +130,7 @@ export function SettingsClient({ initialSettings }: SettingsClientProps) {
   const [heroFallbacks, setHeroFallbacks] = useState<Record<string, string>>(() => {
     const init: Record<string, string> = {};
     PAGE_GROUPS.forEach(({ key }) => {
-      init[key] = getVal(initialSettings, `${key}_video_url`);
+      init[key] = getVal(initialSettings, `${key}_hero_video_url`);
     });
     return init;
   });
@@ -140,10 +140,10 @@ export function SettingsClient({ initialSettings }: SettingsClientProps) {
     setSaving(true);
     const key = activeGroup;
     const updates: Record<string, unknown>[] = [];
-    const typeRow = settings.find((s) => s.key === `${key}_content_type`);
-    const mediaRow = settings.find((s) => s.key === `${key}_media_id`);
-    const postRow = settings.find((s) => s.key === `${key}_featured_post_id`);
-    const urlRow = settings.find((s) => s.key === `${key}_video_url`);
+    const typeRow = settings.find((s) => s.key === `${key}_hero_content_type`);
+    const mediaRow = settings.find((s) => s.key === `${key}_hero_media_id`);
+    const postRow = settings.find((s) => s.key === `${key}_hero_featured_post_id`);
+    const urlRow = settings.find((s) => s.key === `${key}_hero_video_url`);
     if (typeRow) updates.push({ id: typeRow.id, value_text: heroTypes[key] ?? "image" });
     if (mediaRow) updates.push({ id: mediaRow.id, value_media_id: heroMedia[key]?.id ?? null });
     if (postRow) updates.push({ id: postRow.id, value_post_id: heroPosts[key]?.id ?? null });
@@ -258,9 +258,9 @@ export function SettingsClient({ initialSettings }: SettingsClientProps) {
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               {PAGE_GROUPS.map(({ key, label }) => {
                 /* Resolve saved values from settings rows */
-                const contentTypeSetting = settings.find((s) => s.key === `${key}_content_type`);
-                const mediaSetting = settings.find((s) => s.key === `${key}_media_id`);
-                const postSetting = settings.find((s) => s.key === `${key}_featured_post_id`);
+                const contentTypeSetting = settings.find((s) => s.key === `${key}_hero_content_type`);
+                const mediaSetting = settings.find((s) => s.key === `${key}_hero_media_id`);
+                const postSetting = settings.find((s) => s.key === `${key}_hero_featured_post_id`);
 
                 const savedType = (contentTypeSetting?.value_text as string) || null;
                 /* In-session edits take precedence over saved values */
