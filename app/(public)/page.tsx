@@ -729,7 +729,7 @@ function SectionHeader({
     <div className="flex items-end justify-between mb-10 border-b border-gray-200 pb-4">
       <div className="flex items-baseline gap-4">
         <div>
-          <span className="text-[#c1121f] text-[11px] font-semibold uppercase tracking-eyebrow">
+          <span className="inline-block bg-[#fee198] text-[#1a1a1a] text-xs font-bold uppercase tracking-wider px-3 py-1 rounded-full">
             {eyebrow}
           </span>
           <h2 className="font-display text-3xl md:text-4xl font-semibold text-black leading-tight mt-1">

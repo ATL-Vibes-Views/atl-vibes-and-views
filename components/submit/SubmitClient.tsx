@@ -146,12 +146,18 @@ export function SubmitClient({
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState("");
 
-  /* Filter categories for the active type */
-  const filteredCategories = categories.filter((c) =>
-    c.applies_to?.includes(
-      submissionType === "business" ? "businesses" : "events"
-    )
-  );
+  /* Filter categories for the active type.
+     Falls back to all active categories if applies_to is empty/unset in the DB
+     (handles both "businesses"/"events" and "business"/"event" singular values). */
+  const typeKey = submissionType === "business" ? "business" : "event";
+  const filteredCategories = (() => {
+    const strict = categories.filter(
+      (c) =>
+        c.applies_to?.includes(typeKey) ||
+        c.applies_to?.includes(`${typeKey}s`)
+    );
+    return strict.length > 0 ? strict : categories;
+  })();
 
   /* Step 0 → select type */
   const handleTypeSelect = useCallback(
