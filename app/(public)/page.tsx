@@ -176,7 +176,7 @@ export default async function HomePage({
             </div>
             <div className="absolute inset-0 flex flex-col items-center justify-center text-center px-6 md:px-20">
               {heroPost.categories?.name && (
-                <span className="inline-block px-5 py-1.5 bg-gold-light text-black text-[10px] font-semibold uppercase tracking-eyebrow rounded-full mb-5">
+                <span className="inline-block bg-[#fee198] text-[#1a1a1a] text-xs font-bold uppercase tracking-wider px-3 py-1 rounded-full mb-5">
                   {heroPost.categories.name}
                 </span>
               )}
