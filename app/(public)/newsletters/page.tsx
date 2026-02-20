@@ -113,11 +113,10 @@ export default async function NewslettersPage({
             Newsletters
           </span>
           <h1 className="font-display text-4xl md:text-5xl lg:text-6xl font-semibold text-white leading-[1.05]">
-            Newsletter Archive
+            Atlanta in Your Inbox
           </h1>
-          <p className="text-white/60 text-sm md:text-base mt-3 max-w-md mx-auto">
-            Every edition of our Atlanta newsletters — news, guides,
-            spotlights, and more.
+          <p className="text-white/60 text-sm md:text-base mt-3 max-w-lg mx-auto">
+            Weekly guides, neighborhood spotlights, development updates, and local intel — curated for Atlantans.
           </p>
         </div>
       </section>
