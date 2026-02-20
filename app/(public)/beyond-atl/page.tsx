@@ -1,4 +1,5 @@
 import { AreaLandingContent } from "@/components/AreaLandingContent";
+import { HeroSection } from "@/components/ui/HeroSection";
 import {
   getCities,
   getBlogPosts,
@@ -70,6 +71,15 @@ export default async function BeyondATLLandingPage({
     <AreaLandingContent
       search={search}
       searchResultsLabel="Cities"
+      heroContent={
+        <HeroSection
+          variant="overlay"
+          backgroundImage="https://placehold.co/1920x600/1a1a1a/e6c46d?text=Beyond+ATL"
+          eyebrow="Beyond ATL"
+          title="Explore Other Cities"
+          description="From Decatur to Marietta — discover what’s happening across metro Atlanta and beyond."
+        />
+      }
       filteredCards={filteredCities}
       cards={cities}
       cardLinkPrefix="/beyond-atl/"
