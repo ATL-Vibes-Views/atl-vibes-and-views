@@ -82,14 +82,14 @@ export default async function HomePage({
     search
       ? Promise.resolve(null)
       : getFeaturedSlot("home_hero").catch(() => null),
-    getBlogPosts({ featured: true, limit: 6, search }),
-    getBlogPosts({ limit: 12, search }),
+    getBlogPosts({ featured: true, limit: 6, search }).catch(() => []),
+    getBlogPosts({ limit: 12, search }).catch(() => []),
     diningCat
-      ? getBusinesses({ categoryId: diningCat.id, limit: 3, search })
-      : getBusinesses({ limit: 3, search }),
-    getEvents({ limit: 6, upcoming: true, search }),
-    getAreas(),
-    getNeighborhoods({ featured: true, limit: 8 }),
+      ? getBusinesses({ categoryId: diningCat.id, limit: 3, search }).catch(() => [])
+      : getBusinesses({ limit: 3, search }).catch(() => []),
+    getEvents({ limit: 6, upcoming: true, search }).catch(() => []),
+    getAreas().catch(() => []),
+    getNeighborhoods({ featured: true, limit: 8 }).catch(() => []),
     getMediaItems({ mediaType: "video", limit: 3 }).catch(() => []),
   ]);
 

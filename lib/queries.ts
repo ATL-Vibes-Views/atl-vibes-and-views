@@ -54,7 +54,7 @@ export async function getAreas(): Promise<Area[]> {
     .eq("is_active", true)
     .order("sort_order")
     .order("name");
-  if (error) throw error;
+  if (error) { console.error("[queries]", error.message); }
   return data ?? [];
 }
 
@@ -65,7 +65,7 @@ export async function getAreaBySlug(slug: string): Promise<Area | null> {
     .eq("slug", slug)
     .eq("is_active", true)
     .single();
-  if (error && error.code !== "PGRST116") throw error;
+  if (error && error.code !== "PGRST116") { console.error("[queries]", error.message); }
   return data;
 }
 
@@ -91,7 +91,7 @@ export async function getNeighborhoods(opts?: {
   if (opts?.limit) q = q.limit(opts.limit);
 
   const { data, error } = await q;
-  if (error) throw error;
+  if (error) { console.error("[queries]", error.message); }
   return data ?? [];
 }
 
@@ -104,7 +104,7 @@ export async function getNeighborhoodBySlug(
     .eq("slug", slug)
     .eq("is_active", true)
     .single();
-  if (error && error.code !== "PGRST116") throw error;
+  if (error && error.code !== "PGRST116") { console.error("[queries]", error.message); }
   return data;
 }
 
@@ -137,7 +137,7 @@ export async function getBlogPosts(opts?: {
   if (opts?.limit) q = q.limit(opts.limit);
 
   const { data, error } = await q;
-  if (error) throw error;
+  if (error) { console.error("[queries]", error.message); }
   return (data as BlogPostWithAuthor[]) ?? [];
 }
 
@@ -150,7 +150,7 @@ export async function getBlogPostBySlug(
     .eq("slug", slug)
     .eq("status", "published")
     .single();
-  if (error && error.code !== "PGRST116") throw error;
+  if (error && error.code !== "PGRST116") { console.error("[queries]", error.message); }
   return data as BlogPostWithAuthor | null;
 }
 
@@ -163,7 +163,7 @@ export async function getBlogPostById(
     .eq("id", id)
     .eq("status", "published")
     .single();
-  if (error && error.code !== "PGRST116") throw error;
+  if (error && error.code !== "PGRST116") { console.error("[queries]", error.message); }
   return data as BlogPostWithAuthor | null;
 }
 
@@ -192,7 +192,7 @@ export async function getBlogPostsWithNeighborhood(opts?: {
   if (opts?.limit) q = q.limit(opts.limit);
 
   const { data, error } = await q;
-  if (error) throw error;
+  if (error) { console.error("[queries]", error.message); }
   return (data as BlogPostFull[]) ?? [];
 }
 
@@ -206,7 +206,7 @@ export async function getBlogPostBySlugFull(
     .eq("slug", slug)
     .eq("status", "published")
     .single();
-  if (error && error.code !== "PGRST116") throw error;
+  if (error && error.code !== "PGRST116") { console.error("[queries]", error.message); }
   return data as BlogPostFull | null;
 }
 
@@ -229,7 +229,7 @@ export async function getBusinessesByPostId(
     .in("id", bizIds)
     .eq("status", "active")
     .limit(limit);
-  if (error) throw error;
+  if (error) { console.error("[queries]", error.message); }
   return (data as BusinessListingWithNeighborhood[]) ?? [];
 }
 
@@ -265,7 +265,7 @@ export async function getBusinesses(opts?: {
   if (opts?.limit) q = q.limit(opts.limit);
 
   const { data, error } = await q;
-  if (error) throw error;
+  if (error) { console.error("[queries]", error.message); }
   return (data as BusinessListingWithNeighborhood[]) ?? [];
 }
 
@@ -277,7 +277,7 @@ export async function getBusinessBySlug(
     .select("*, neighborhoods(*), categories(*), cities(name)")
     .eq("slug", slug)
     .single();
-  if (error && error.code !== "PGRST116") throw error;
+  if (error && error.code !== "PGRST116") { console.error("[queries]", error.message); }
   return data as BusinessListingWithNeighborhood | null;
 }
 
@@ -314,7 +314,7 @@ export async function getEvents(opts?: {
   if (opts?.limit) q = q.limit(opts.limit);
 
   const { data, error } = await q;
-  if (error) throw error;
+  if (error) { console.error("[queries]", error.message); }
   return (data as EventItemWithNeighborhood[]) ?? [];
 }
 
@@ -326,7 +326,7 @@ export async function getEventBySlug(
     .select("*, neighborhoods(*), categories(*), cities(name)")
     .eq("slug", slug)
     .single();
-  if (error && error.code !== "PGRST116") throw error;
+  if (error && error.code !== "PGRST116") { console.error("[queries]", error.message); }
   return data as EventItemWithNeighborhood | null;
 }
 
@@ -340,7 +340,7 @@ export async function getAuthors(): Promise<Author[]> {
     .select("*")
     .eq("is_active", true)
     .order("name");
-  if (error) throw error;
+  if (error) { console.error("[queries]", error.message); }
   return data ?? [];
 }
 
@@ -351,7 +351,7 @@ export async function getAuthorBySlug(slug: string): Promise<Author | null> {
     .eq("slug", slug)
     .eq("is_active", true)
     .single();
-  if (error && error.code !== "PGRST116") throw error;
+  if (error && error.code !== "PGRST116") { console.error("[queries]", error.message); }
   return data;
 }
 
@@ -371,7 +371,7 @@ export async function getCategories(opts?: {
   if (opts?.appliesTo) q = q.contains("applies_to", [opts.appliesTo]);
 
   const { data, error } = await q;
-  if (error) throw error;
+  if (error) { console.error("[queries]", error.message); }
   return data ?? [];
 }
 
@@ -382,7 +382,7 @@ export async function getCategoryBySlug(slug: string): Promise<Category | null> 
     .eq("slug", slug)
     .eq("is_active", true)
     .single();
-  if (error && error.code !== "PGRST116") throw error;
+  if (error && error.code !== "PGRST116") { console.error("[queries]", error.message); }
   return data;
 }
 
@@ -406,7 +406,7 @@ export async function getCities(opts?: {
   if (opts?.excludeId) q = q.neq("id", opts.excludeId);
 
   const { data, error } = await q;
-  if (error) throw error;
+  if (error) { console.error("[queries]", error.message); }
   return data ?? [];
 }
 
@@ -417,7 +417,7 @@ export async function getCityBySlug(slug: string): Promise<City | null> {
     .eq("slug", slug)
     .eq("is_active", true)
     .single();
-  if (error && error.code !== "PGRST116") throw error;
+  if (error && error.code !== "PGRST116") { console.error("[queries]", error.message); }
   return data;
 }
 
@@ -442,7 +442,7 @@ export async function getStories(opts?: {
   if (opts?.limit) q = q.limit(opts.limit);
 
   const { data, error } = await q;
-  if (error) throw error;
+  if (error) { console.error("[queries]", error.message); }
   return data ?? [];
 }
 
@@ -464,7 +464,7 @@ export async function getFeaturedSlot(
     .order("sort_order")
     .limit(1)
     .returns<{ entity_type: string; entity_id: string }[]>();
-  if (error) throw error;
+  if (error) { console.error("[queries]", error.message); }
   return data?.[0] ?? null;
 }
 
@@ -672,7 +672,7 @@ export async function getNeighborhoodIdsForArea(
     .eq("area_id", areaId)
     .eq("is_active", true)
     .returns<{ id: string }[]>();
-  if (error) throw error;
+  if (error) { console.error("[queries]", error.message); }
   return (data ?? []).map((n) => n.id);
 }
 
@@ -761,7 +761,7 @@ export async function getContentIndexByToken(
   if (opts?.activeUrl) q = q.eq("active_url", opts.activeUrl);
 
   const { data, error } = await q.single();
-  if (error && error.code !== "PGRST116") throw error;
+  if (error && error.code !== "PGRST116") { console.error("[queries]", error.message); }
   return data as ContentIndex | null;
 }
 
@@ -780,7 +780,7 @@ export async function getNeighborhoodsGrouped(): Promise<NeighborhoodGrouped[]> 
     .eq("is_active", true)
     .order("name")
     .returns<{ id: string; name: string; slug: string; areas: { name: string; slug: string } }[]>();
-  if (error) throw error;
+  if (error) { console.error("[queries]", error.message); }
   if (!data?.length) return [];
 
   /* Count published posts per neighborhood via post_neighborhoods join */
@@ -828,7 +828,7 @@ export async function getAmenities(): Promise<Amenity[]> {
     .select("id, name, amenity_group, sort_order")
     .order("sort_order")
     .returns<Amenity[]>();
-  if (error) throw error;
+  if (error) { console.error("[queries]", error.message); }
   return data ?? [];
 }
 
@@ -842,7 +842,7 @@ export async function getIdentityOptions(): Promise<IdentityOption[]> {
     .select("id, name, sort_order")
     .order("sort_order")
     .returns<IdentityOption[]>();
-  if (error) throw error;
+  if (error) { console.error("[queries]", error.message); }
   return data ?? [];
 }
 
@@ -872,7 +872,7 @@ export async function getMediaItems(opts?: {
   if (opts?.limit) q = q.limit(opts.limit);
 
   const { data, error } = await q;
-  if (error) throw error;
+  if (error) { console.error("[queries]", error.message); }
 
   let items = (data ?? []) as MediaItem[];
 
@@ -903,7 +903,7 @@ export async function getMediaItemBySlug(
     .eq("status", "published")
     .eq("is_active", true)
     .single();
-  if (error && error.code !== "PGRST116") throw error;
+  if (error && error.code !== "PGRST116") { console.error("[queries]", error.message); }
   return data as MediaItem | null;
 }
 
