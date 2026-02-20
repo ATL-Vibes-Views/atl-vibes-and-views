@@ -3,6 +3,8 @@ import Link from "next/link";
 import Image from "next/image";
 import { PartnerSidebar } from "@/components/partner/PartnerSidebar";
 
+export const dynamic = "force-dynamic";
+
 export const metadata: Metadata = {
   title: "About",
   description:

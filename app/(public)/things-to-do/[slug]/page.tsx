@@ -25,11 +25,14 @@ import {
   getCategories,
 } from "@/lib/queries";
 import {
+
   QuickInfoStrip,
   PhotoGallery,
   StarRating,
   MoreThingsToDoScroller,
 } from "./ThingsToDoDetailClient";
+
+export const dynamic = "force-dynamic";
 
 /* =============================================================
    HELPERS

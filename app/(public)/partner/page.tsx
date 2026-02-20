@@ -5,6 +5,8 @@ import Image from "next/image";
 import { PartnerSidebar } from "@/components/partner/PartnerSidebar";
 import { MediaKitButton } from "@/components/partner/MediaKitModal";
 
+export const dynamic = "force-dynamic";
+
 export const metadata: Metadata = {
   title: "Partner With Us",
   description:

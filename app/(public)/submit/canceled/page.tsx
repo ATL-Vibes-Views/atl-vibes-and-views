@@ -1,6 +1,8 @@
 import Link from "next/link";
 import type { Metadata } from "next";
 
+export const dynamic = "force-dynamic";
+
 export const metadata: Metadata = {
   title: "Payment Canceled | ATL Vibes & Views",
   description: "Your payment was not completed. You can return to your submission and complete payment anytime.",

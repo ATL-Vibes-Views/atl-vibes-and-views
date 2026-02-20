@@ -28,12 +28,15 @@ import {
   getLinkedBlogPosts,
 } from "@/lib/queries";
 import {
+
   QuickInfoStrip,
   PhotoGallery,
   ContactForm,
   StarRating,
   MorePlacesScroller,
 } from "./BusinessDetailClient";
+
+export const dynamic = "force-dynamic";
 
 /* =============================================================
    HELPERS

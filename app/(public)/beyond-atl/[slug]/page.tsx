@@ -4,6 +4,7 @@ import {
   LocationDetailContent,
 } from "@/components/LocationDetailContent";
 import {
+
   getCityBySlug,
   getCities,
   getBlogPosts,
@@ -12,6 +13,8 @@ import {
   getCategoryBySlug,
   getMediaItems,
 } from "@/lib/queries";
+
+export const dynamic = "force-dynamic";
 
 /* ============================================================
    CITY DETAIL PAGE — /beyond-atl/[slug]

@@ -1,6 +1,8 @@
 import { Metadata } from "next";
 import Link from "next/link";
 
+export const dynamic = "force-dynamic";
+
 export const metadata: Metadata = {
   title: "The Hub | ATL Vibes & Views",
   description: "Your guide to Atlanta businesses, eats, events, and more.",

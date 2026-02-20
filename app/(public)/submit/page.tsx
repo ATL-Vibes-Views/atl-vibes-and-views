@@ -4,6 +4,8 @@ import { getCategories, getNeighborhoodsGrouped, getAmenities, getIdentityOption
 import { SubmitClient } from "@/components/submit/SubmitClient";
 import { Breadcrumbs } from "@/components/ui/Breadcrumbs";
 
+export const dynamic = "force-dynamic";
+
 export const metadata: Metadata = {
   title: "Submit a Listing | ATL Vibes & Views",
   description:

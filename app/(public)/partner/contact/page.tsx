@@ -4,6 +4,8 @@ import Link from "next/link";
 import { Facebook, Twitter, Youtube, Instagram } from "lucide-react";
 import { PartnerContactForm } from "@/components/partner/PartnerContactForm";
 
+export const dynamic = "force-dynamic";
+
 export const metadata: Metadata = {
   title: "Contact",
   description:

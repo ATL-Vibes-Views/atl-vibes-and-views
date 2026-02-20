@@ -4,6 +4,8 @@ import { getNewsletters, getNewsletterFeaturedImages } from "@/lib/queries";
 import { getNewsletterColor } from "@/components/newsletter/NewsletterColorMap";
 import { NewsletterArchivePageClient } from "./NewsletterArchivePageClient";
 
+export const dynamic = "force-dynamic";
+
 /* ============================================================
    NEWSLETTER ARCHIVE — /newsletters/archive
    Full-width browsable archive of all newsletter editions.

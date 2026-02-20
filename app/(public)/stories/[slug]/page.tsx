@@ -31,6 +31,8 @@ import {
 import type { BlogPostFull } from "@/lib/types";
 import { MarkdownArticle } from "@/components/ui/MarkdownArticle";
 
+export const dynamic = "force-dynamic";
+
 /* ============================================================
    BLOG POST DETAIL PAGE — /stories/[slug]
 

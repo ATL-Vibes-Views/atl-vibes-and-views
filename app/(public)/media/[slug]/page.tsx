@@ -12,11 +12,14 @@ import { YouTubeEmbed } from "@/components/ui/YouTubeEmbed";
 import { extractYouTubeId } from "@/lib/media-utils";
 import { InstagramFeed } from "@/components/ui/InstagramFeed";
 import {
+
   NewsletterWidget,
   AdPlacement,
   NeighborhoodsWidget,
   SubmitCTA,
 } from "@/components/Sidebar";
+
+export const dynamic = "force-dynamic";
 
 /* ============================================================
    /media/[slug] — Media Detail Page

@@ -25,6 +25,8 @@ import {
 import type { NewsletterPostWithBlog } from "@/lib/queries";
 import type { NewsletterSection } from "@/lib/types";
 
+export const dynamic = "force-dynamic";
+
 /* ============================================================
    NEWSLETTER DETAIL — /newsletters/[slug]
    Renders structured sections + blog post cards from

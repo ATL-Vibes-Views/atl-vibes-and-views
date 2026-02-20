@@ -4,6 +4,8 @@ import Image from "next/image";
 import { PartnerFAQ } from "@/components/partner/PartnerFAQ";
 import { PartnerSidebar } from "@/components/partner/PartnerSidebar";
 
+export const dynamic = "force-dynamic";
+
 export const metadata: Metadata = {
   title: "Editorial Partnerships",
   description:

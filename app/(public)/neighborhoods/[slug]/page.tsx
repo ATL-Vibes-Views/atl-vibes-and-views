@@ -4,6 +4,7 @@ import {
   LocationDetailContent,
 } from "@/components/LocationDetailContent";
 import {
+
   getNeighborhoodBySlug,
   getNeighborhoods,
   getBlogPosts,
@@ -12,6 +13,8 @@ import {
   getCategoryBySlug,
   getMediaItems,
 } from "@/lib/queries";
+
+export const dynamic = "force-dynamic";
 
 export async function generateMetadata({
   params,

@@ -4,6 +4,8 @@ import Link from "next/link";
 import { Breadcrumbs } from "@/components/ui/Breadcrumbs";
 import { NewsletterBlock } from "@/components/ui/NewsletterBlock";
 
+export const dynamic = "force-dynamic";
+
 export const metadata: Metadata = {
   title: "About | ATL Vibes & Views",
   description:

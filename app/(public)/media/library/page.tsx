@@ -3,6 +3,8 @@ import { NewsletterBlock } from "@/components/ui/NewsletterBlock";
 import { MediaLibraryClient } from "@/components/MediaLibraryClient";
 import { getMediaItems } from "@/lib/queries";
 
+export const dynamic = "force-dynamic";
+
 /* ============================================================
    MEDIA LIBRARY — /media/library
 
