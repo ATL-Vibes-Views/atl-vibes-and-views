@@ -3,6 +3,7 @@ import { Suspense } from "react";
 import { getNewsletters, getNewsletterFeaturedImages } from "@/lib/queries";
 import { getNewsletterColor } from "@/components/newsletter/NewsletterColorMap";
 import { NewsletterArchivePageClient } from "./NewsletterArchivePageClient";
+import { getPageHero, getHeroPost } from "@/lib/queries/settings";
 
 export const dynamic = "force-dynamic";
 
@@ -29,6 +30,9 @@ export const metadata: Metadata = {
 
 export default async function NewsletterArchivePage() {
   /* Fetch all published newsletters + featured images */
+  const _hero = await getPageHero("newsletters_archive").catch(() => ({ type: null, imageUrl: null, videoUrl: null, postId: null, alt: null }));
+  const _heroPost = _hero.type === "post" ? await getHeroPost(_hero.postId).catch(() => null) : null;
+
   const [allNewsletters, featuredImageMap] = await Promise.all([
     getNewsletters().catch(() => []),
     getNewsletterFeaturedImages().catch(() => new Map<string, string>()),

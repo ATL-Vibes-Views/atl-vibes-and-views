@@ -5,6 +5,7 @@ import { EventCard } from "@/components/ui/EventCard";
 import { Breadcrumbs } from "@/components/ui/Breadcrumbs";
 import { SectionHeader } from "@/components/ui/SectionHeader";
 import { HeroSection } from "@/components/ui/HeroSection";
+import type { HeroPost } from "@/components/ui/HeroSection";
 import { AdBlock } from "@/components/ui/AdBlock";
 import { SearchBar } from "@/components/SearchBar";
 import {
@@ -49,6 +50,9 @@ export interface LocationDetailProps {
   name: string;
   tagline?: string | null;
   heroImageUrl?: string | null;
+  heroType?: "image" | "video" | "post";
+  heroVideoUrl?: string | null;
+  heroPost?: HeroPost | null;
 
   /* Layout labels */
   eyebrow: string;
@@ -109,6 +113,9 @@ export function LocationDetailContent(props: LocationDetailProps) {
     name,
     tagline,
     heroImageUrl,
+    heroType,
+    heroVideoUrl,
+    heroPost,
     eyebrow,
     breadcrumbs,
     searchPlaceholder,
@@ -147,7 +154,10 @@ export function LocationDetailContent(props: LocationDetailProps) {
       {/* ========== 1. HERO ========== */}
       <HeroSection
         variant="overlay"
+        heroType={(heroType ?? "image") as "image" | "video" | "post"}
         backgroundImage={heroImageUrl || PH_HERO}
+        videoUrl={heroVideoUrl ?? undefined}
+        heroPost={heroPost}
         eyebrow={eyebrow}
         title={name}
         description={tagline ?? undefined}

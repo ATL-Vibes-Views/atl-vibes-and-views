@@ -1,25 +1,115 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useCallback } from "react";
 import { PortalTopbar } from "@/components/portal/PortalTopbar";
 import { TabNav } from "@/components/portal/TabNav";
 import { FormGroup } from "@/components/portal/FormGroup";
 import { FormInput } from "@/components/portal/FormInput";
 import { FormTextarea } from "@/components/portal/FormTextarea";
+import { FormSelect } from "@/components/portal/FormSelect";
 import { ToggleSwitch } from "@/components/portal/ToggleSwitch";
+import { ButtonBar } from "@/components/portal/ButtonBar";
+import { MediaPicker } from "@/components/admin/MediaPicker";
 
 /* ============================================================
-   SETTINGS — 3 tabs: General, SEO, Integrations
+   SETTINGS — 4 tabs: General, SEO, Integrations, Page Images
    ============================================================ */
 
 const TABS = [
   { label: "General", key: "general" },
   { label: "SEO", key: "seo" },
   { label: "Integrations", key: "integrations" },
+  { label: "Page Images", key: "page_images" },
 ];
 
-export function SettingsClient() {
+/* Page groups shown in the Page Images tab */
+const PAGE_GROUPS = [
+  { key: "home", label: "Homepage" },
+  { key: "stories", label: "Stories" },
+  { key: "city_watch", label: "City Watch" },
+  { key: "hub_atlanta_guide", label: "Atlanta Guide" },
+  { key: "hub_businesses", label: "Hub — Businesses" },
+  { key: "hub_eats", label: "Hub — Eats & Drinks" },
+  { key: "hub_things", label: "Hub — Things To Do" },
+  { key: "hub_events", label: "Hub — Events" },
+  { key: "areas_landing", label: "Areas Landing" },
+  { key: "neighborhoods_landing", label: "Neighborhoods Landing" },
+  { key: "beyond_atl", label: "Beyond ATL Landing" },
+  { key: "media_page", label: "Media" },
+  { key: "newsletters", label: "Newsletters" },
+  { key: "newsletters_archive", label: "Newsletter Archive" },
+];
+
+type SiteSetting = Record<string, unknown>;
+
+interface SettingsClientProps {
+  initialSettings: SiteSetting[];
+}
+
+function getVal(settings: SiteSetting[], key: string): string {
+  const row = settings.find((s) => s.key === key);
+  if (!row) return "";
+  return String(row.value_text ?? row.value_media_id ?? row.value_post_id ?? "");
+}
+
+export function SettingsClient({ initialSettings }: SettingsClientProps) {
   const [activeTab, setActiveTab] = useState("general");
+  const [settings] = useState<SiteSetting[]>(initialSettings);
+  const [saving, setSaving] = useState(false);
+
+  /* Per-group hero state — keyed by group key */
+  const [heroTypes, setHeroTypes] = useState<Record<string, string>>(() => {
+    const init: Record<string, string> = {};
+    PAGE_GROUPS.forEach(({ key }) => {
+      init[key] = getVal(initialSettings, `${key}_content_type`) || "image";
+    });
+    return init;
+  });
+  const [heroMedia, setHeroMedia] = useState<Record<string, { id: string; url: string } | null>>(() => {
+    const init: Record<string, { id: string; url: string } | null> = {};
+    PAGE_GROUPS.forEach(({ key }) => {
+      const mediaId = getVal(initialSettings, `${key}_media_id`);
+      const mediaUrl = getVal(initialSettings, `${key}_video_url`) || "";
+      init[key] = mediaId ? { id: mediaId, url: mediaUrl } : null;
+    });
+    return init;
+  });
+  const [heroPostIds, setHeroPostIds] = useState<Record<string, string>>(() => {
+    const init: Record<string, string> = {};
+    PAGE_GROUPS.forEach(({ key }) => {
+      init[key] = getVal(initialSettings, `${key}_featured_post_id`);
+    });
+    return init;
+  });
+  const [heroFallbacks, setHeroFallbacks] = useState<Record<string, string>>(() => {
+    const init: Record<string, string> = {};
+    PAGE_GROUPS.forEach(({ key }) => {
+      init[key] = getVal(initialSettings, `${key}_video_url`);
+    });
+    return init;
+  });
+
+  const handleSavePageImages = useCallback(async () => {
+    setSaving(true);
+    const updates: Record<string, unknown>[] = [];
+    PAGE_GROUPS.forEach(({ key }) => {
+      const typeRow = settings.find((s) => s.key === `${key}_content_type`);
+      const mediaRow = settings.find((s) => s.key === `${key}_media_id`);
+      const postRow = settings.find((s) => s.key === `${key}_featured_post_id`);
+      const urlRow = settings.find((s) => s.key === `${key}_video_url`);
+      if (typeRow) updates.push({ id: typeRow.id, value_text: heroTypes[key] ?? "image" });
+      if (mediaRow) updates.push({ id: mediaRow.id, value_media_id: heroMedia[key]?.id ?? null });
+      if (postRow) updates.push({ id: postRow.id, value_post_id: heroPostIds[key] ?? null });
+      if (urlRow) updates.push({ id: urlRow.id, value_text: heroFallbacks[key] ?? null });
+    });
+    if (updates.length === 0) { setSaving(false); return; }
+    await fetch("/api/admin/settings", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ updates }),
+    });
+    setSaving(false);
+  }, [settings, heroTypes, heroMedia, heroPostIds, heroFallbacks]);
 
   return (
     <>
@@ -105,6 +195,74 @@ export function SettingsClient() {
                 <FormInput defaultValue="" placeholder="..." readOnly />
               </FormGroup>
             </div>
+          </div>
+        )}
+
+        {/* ── Page Images Tab ── */}
+        {activeTab === "page_images" && (
+          <div className="space-y-8 max-w-2xl">
+            <p className="text-[13px] text-[#6b7280]">
+              Set the hero image, video, or featured post for each public page. Changes take effect immediately on save.
+            </p>
+            {PAGE_GROUPS.map(({ key, label }) => {
+              const hType = heroTypes[key] ?? "image";
+              return (
+                <div key={key} className="bg-white border border-[#e5e5e5] p-5 space-y-4">
+                  <h3 className="font-display text-[15px] font-semibold text-black">{label}</h3>
+                  <FormGroup label="Hero Type">
+                    <FormSelect
+                      options={[
+                        { value: "image", label: "Image" },
+                        { value: "video", label: "Video" },
+                        { value: "post", label: "Featured Blog Post" },
+                      ]}
+                      value={hType}
+                      onChange={(e) => setHeroTypes((prev) => ({ ...prev, [key]: e.target.value }))}
+                    />
+                  </FormGroup>
+
+                  {(hType === "image" || hType === "video") && (
+                    <FormGroup label={hType === "video" ? "Video Asset" : "Hero Image"}>
+                      <MediaPicker
+                        value={heroMedia[key] ?? null}
+                        onChange={(asset) => setHeroMedia((prev) => ({ ...prev, [key]: asset }))}
+                        allowedTypes={hType === "video" ? ["video"] : ["image"]}
+                      />
+                    </FormGroup>
+                  )}
+
+                  {(hType === "image" || hType === "video") && (
+                    <FormGroup label="Fallback URL">
+                      <FormInput
+                        value={heroFallbacks[key] ?? ""}
+                        onChange={(e) => setHeroFallbacks((prev) => ({ ...prev, [key]: e.target.value }))}
+                        placeholder="https://..."
+                      />
+                    </FormGroup>
+                  )}
+
+                  {hType === "post" && (
+                    <FormGroup label="Featured Post ID">
+                      <FormInput
+                        value={heroPostIds[key] ?? ""}
+                        onChange={(e) => setHeroPostIds((prev) => ({ ...prev, [key]: e.target.value }))}
+                        placeholder="blog post UUID"
+                      />
+                    </FormGroup>
+                  )}
+                </div>
+              );
+            })}
+
+            <ButtonBar>
+              <button
+                onClick={handleSavePageImages}
+                disabled={saving}
+                className="inline-flex items-center px-6 py-2.5 rounded-full text-sm font-semibold bg-[#fee198] text-[#1a1a1a] hover:bg-[#fdd870] transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+              >
+                {saving ? "Saving..." : "Save Page Images"}
+              </button>
+            </ButtonBar>
           </div>
         )}
 

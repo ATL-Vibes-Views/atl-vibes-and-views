@@ -6,6 +6,7 @@ import {
   getAreas,
   getNeighborhoodIdsForArea,
 } from "@/lib/queries";
+import { getPageHero, getHeroPost } from "@/lib/queries/settings";
 import type { BlogPostFull } from "@/lib/types";
 
 /* ============================================================
@@ -66,6 +67,10 @@ export default async function AtlantaGuidePage({
   const areaFilter = filters.area || undefined;
   const neighborhoodFilter = filters.neighborhood || undefined;
   const searchFilter = filters.search?.trim() || undefined;
+
+  /* ── Hero ── */
+  const _hero = await getPageHero("hub_atlanta_guide").catch(() => ({ type: null, imageUrl: null, videoUrl: null, postId: null, alt: null }));
+  const _heroPost = _hero.type === "post" ? await getHeroPost(_hero.postId).catch(() => null) : null;
 
   /* ── Fetch areas for filter dropdown ── */
   const areas = await getAreas().catch(() => []);
@@ -142,6 +147,9 @@ export default async function AtlantaGuidePage({
         categories={categories}
         areas={areas.map((a) => ({ id: a.id, name: a.name, slug: a.slug }))}
         contentType="guide"
+        heroType={(_hero.type ?? "image") as "image" | "video" | "post"}
+        videoUrl={_hero.videoUrl ?? undefined}
+        heroPost={_heroPost}
         heroTitle="Atlanta Guide"
         heroSubtitle="Your insider's guide to the city — neighborhood deep dives, best-of lists, and local knowledge."
         currentFilters={{

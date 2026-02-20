@@ -6,6 +6,7 @@ import {
   getAreas,
   getNeighborhoodIdsForArea,
 } from "@/lib/queries";
+import { getPageHero, getHeroPost } from "@/lib/queries/settings";
 import type { BlogPostFull } from "@/lib/types";
 
 /* ============================================================
@@ -69,6 +70,9 @@ export default async function StoriesPage({
   const pillarFilter = filters.pillar || undefined;
 
   /* ── Fetch areas for filter dropdown ── */
+  const _hero = await getPageHero("stories").catch(() => ({ type: null, imageUrl: null, videoUrl: null, postId: null, alt: null }));
+  const _heroPost = _hero.type === "post" ? await getHeroPost(_hero.postId).catch(() => null) : null;
+
   const areas = await getAreas().catch(() => []);
 
   /* ── Resolve neighborhood IDs for area-based filtering ── */
@@ -146,6 +150,9 @@ export default async function StoriesPage({
         initialPosts={storyPosts}
         categories={categories}
         areas={areas.map((a) => ({ id: a.id, name: a.name, slug: a.slug }))}
+        heroType={(_hero.type ?? "image") as "image" | "video" | "post"}
+        videoUrl={_hero.videoUrl ?? undefined}
+        heroPost={_heroPost}
         heroTitle="Stories"
         heroSubtitle="Atlanta news, neighborhood guides, dining spotlights, and culture from every corner of the city."
         showTabs={true}

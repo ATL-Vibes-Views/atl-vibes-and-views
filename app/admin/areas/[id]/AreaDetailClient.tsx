@@ -16,6 +16,7 @@ import { FormSelect } from "@/components/portal/FormSelect";
 import { ToggleSwitch } from "@/components/portal/ToggleSwitch";
 import { ButtonBar } from "@/components/portal/ButtonBar";
 import { AdminDataTable } from "@/components/portal/AdminDataTable";
+import { MediaPicker } from "@/components/admin/MediaPicker";
 
 interface NeighborhoodRow { id: string; name: string; slug: string; is_active: boolean }
 
@@ -28,6 +29,7 @@ interface AreaDetailClientProps {
 
 const TABS = [
   { label: "Details", key: "details" },
+  { label: "Hero", key: "hero" },
   { label: "Neighborhoods", key: "neighborhoods" },
 ];
 
@@ -48,6 +50,28 @@ export function AreaDetailClient({ area, isNew, neighborhoods, cities }: AreaDet
   const areaId = area?.id as string | undefined;
   const [activeTab, setActiveTab] = useState("details");
   const [saving, setSaving] = useState(false);
+
+  /* ── Hero tab state ── */
+  const [heroContentType, setHeroContentType] = useState<"image" | "video" | "post">(field(area, "hero_content_type") as "image" | "video" | "post" || "image");
+  const [heroMedia, setHeroMedia] = useState<{ id: string; url: string } | null>(
+    field(area, "hero_media_id") ? { id: field(area, "hero_media_id"), url: field(area, "hero_image_url") } : null
+  );
+  const [heroPostId, setHeroPostId] = useState(field(area, "hero_featured_post_id"));
+  const [heroFallbackUrl, setHeroFallbackUrl] = useState(field(area, "hero_image_url"));
+
+  const handleSaveHero = useCallback(async () => {
+    if (!areaId) return;
+    setSaving(true);
+    const result = await updateArea(areaId, {
+      hero_content_type: heroContentType,
+      hero_media_id: heroMedia?.id || null,
+      hero_featured_post_id: heroPostId || null,
+      hero_image_url: heroFallbackUrl || null,
+    });
+    setSaving(false);
+    if ("error" in result && result.error) { alert("Error: " + result.error); return; }
+    router.refresh();
+  }, [areaId, heroContentType, heroMedia, heroPostId, heroFallbackUrl, router]);
 
   const handleToggle = useCallback(async (fieldName: string, currentValue: boolean) => {
     if (!areaId) return;
@@ -121,7 +145,64 @@ export function AreaDetailClient({ area, isNew, neighborhoods, cities }: AreaDet
           </div>
         )}
 
-        {/* Tab 2 — Neighborhoods */}
+        {/* Tab 2 — Hero */}
+        {activeTab === "hero" && (
+          <div className="space-y-6">
+            <FormGroup label="Hero Content Type">
+              <FormSelect
+                options={[
+                  { value: "image", label: "Image" },
+                  { value: "video", label: "Video" },
+                  { value: "post", label: "Featured Blog Post" },
+                ]}
+                value={heroContentType}
+                onChange={(e) => setHeroContentType(e.target.value as "image" | "video" | "post")}
+              />
+            </FormGroup>
+
+            {(heroContentType === "image" || heroContentType === "video") && (
+              <FormGroup label={heroContentType === "video" ? "Video Asset" : "Hero Image"}>
+                <MediaPicker
+                  value={heroMedia}
+                  onChange={setHeroMedia}
+                  allowedTypes={heroContentType === "video" ? ["video"] : ["image"]}
+                />
+              </FormGroup>
+            )}
+
+            {(heroContentType === "image" || heroContentType === "video") && (
+              <FormGroup label="Fallback URL (if no asset selected)">
+                <FormInput
+                  value={heroFallbackUrl}
+                  onChange={(e) => setHeroFallbackUrl(e.target.value)}
+                  placeholder="https://..."
+                />
+              </FormGroup>
+            )}
+
+            {heroContentType === "post" && (
+              <FormGroup label="Featured Post ID">
+                <FormInput
+                  value={heroPostId}
+                  onChange={(e) => setHeroPostId(e.target.value)}
+                  placeholder="blog post UUID"
+                />
+              </FormGroup>
+            )}
+
+            <ButtonBar>
+              <button
+                onClick={handleSaveHero}
+                disabled={saving}
+                className="inline-flex items-center px-6 py-2.5 rounded-full text-sm font-semibold bg-[#fee198] text-[#1a1a1a] hover:bg-[#fdd870] transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+              >
+                {saving ? "Saving..." : "Save Hero"}
+              </button>
+            </ButtonBar>
+          </div>
+        )}
+
+        {/* Tab 3 — Neighborhoods */}
         {activeTab === "neighborhoods" && (
           <div className="space-y-4">
             <h3 className="font-display text-[16px] font-semibold text-black">

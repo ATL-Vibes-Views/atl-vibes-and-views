@@ -13,6 +13,7 @@ import {
   buildFilterTabs,
 } from "@/components/newsletter/NewsletterColorMap";
 import type { NewsletterCardData } from "@/components/newsletter/NewsletterCard";
+import { getPageHero, getHeroPost } from "@/lib/queries/settings";
 
 /* ============================================================
    NEWSLETTER ARCHIVE — /newsletters
@@ -47,6 +48,9 @@ export default async function NewslettersPage({
   const filters = await searchParams;
 
   /* ── Fetch data in parallel ── */
+  const _hero = await getPageHero("newsletters").catch(() => ({ type: null, imageUrl: null, videoUrl: null, postId: null, alt: null }));
+  const _heroPost = _hero.type === "post" ? await getHeroPost(_hero.postId).catch(() => null) : null;
+
   const [allNewsletters, , featuredImageMap] = await Promise.all([
     getNewsletters(),
     getNewsletterTypes(),
