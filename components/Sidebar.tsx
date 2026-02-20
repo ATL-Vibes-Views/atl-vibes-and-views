@@ -87,18 +87,25 @@ export function AdPlacement({
   slot,
   className = "",
 }: {
-  slot: "sidebar_top" | "sidebar_mid";
+  slot: "sidebar_top" | "sidebar_mid" | "sidebar_tall";
   className?: string;
 }) {
-  const href = slot === "sidebar_top" ? "/hub/businesses" : "/hub/events";
+  const href =
+    slot === "sidebar_top"
+      ? "/hub/businesses"
+      : slot === "sidebar_tall"
+      ? "/partner"
+      : "/hub/events";
+  const height = slot === "sidebar_tall" ? "h-[600px]" : "h-[250px]";
+  const size = slot === "sidebar_tall" ? "300 × 600" : "300 × 250";
   return (
     <Link href={href} className={`block bg-gray-light hover:bg-gray-100 transition-colors ${className}`}>
-      <div className="w-[300px] h-[250px] flex items-center justify-center border border-dashed border-gray-mid/30 hover:border-gold-dark transition-colors mx-auto">
+      <div className={`w-[300px] ${height} flex items-center justify-center border border-dashed border-gray-mid/30 hover:border-gold-dark transition-colors mx-auto`}>
         <div className="text-center">
           <span className="text-xs text-gray-mid uppercase tracking-eyebrow">
             Advertise Here
           </span>
-          <p className="text-[10px] text-gray-400 mt-1">Reach Atlanta locals</p>
+          <p className="text-[10px] text-gray-400 mt-1">{size}</p>
         </div>
       </div>
     </Link>
