@@ -342,55 +342,37 @@ export default async function AreaDetailPage({
         </div>
       )}
 
-      {/* ========== NEIGHBORHOOD CARDS GRID ========== */}
-      {allAreaNeighborhoods.length > 0 && (
-        <div className="site-container pt-8 pb-8">
-          <SectionHeader
-            eyebrow="Neighborhoods"
-            title={`Neighborhoods in ${area.name}`}
-            action={{ label: "View All Neighborhoods", href: "/neighborhoods" }}
-            className="mb-10"
-          />
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-            {allAreaNeighborhoods.map((n) => {
-              const bizCount = neighborhoodBizCount.get(n.id) ?? 0;
-              return (
-                <Link
-                  key={n.id}
-                  href={`/neighborhoods/${n.slug}`}
-                  className="group block border border-gray-200 hover:border-[#e6c46d] transition-colors overflow-hidden"
-                >
-                  <div className="relative aspect-[4/3] overflow-hidden">
-                    <Image
-                      src={n.hero_image_url || PH_NEIGHBORHOOD}
-                      alt={n.name}
-                      fill
-                      unoptimized
-                      className="object-cover group-hover:scale-105 transition-transform duration-500"
-                    />
-                  </div>
-                  <div className="p-4">
-                    <h3 className="font-display text-lg font-semibold text-black group-hover:text-red-brand transition-colors">
-                      {n.name}
-                    </h3>
-                    {n.tagline && (
-                      <p className="text-sm text-gray-mid mt-1 line-clamp-1">
-                        {n.tagline}
-                      </p>
-                    )}
-                    <div className="flex items-center gap-1 mt-2 text-xs text-gray-mid">
-                      <MapPin size={12} />
-                      {bizCount > 0
-                        ? `${bizCount} business${bizCount !== 1 ? "es" : ""}`
-                        : "No businesses yet"}
-                    </div>
-                  </div>
-                </Link>
-              );
-            })}
+      {/* ========== MAP PLACEHOLDER ========== */}
+      <div className="site-container pt-8 pb-8">
+        <SectionHeader
+          eyebrow="Neighborhoods"
+          title={`Neighborhoods in ${area.name}`}
+          action={{ label: "View All Neighborhoods", href: "/neighborhoods" }}
+          className="mb-10"
+        />
+        <div className="relative overflow-hidden bg-[#f5f0eb] aspect-[16/7]">
+          <div className="absolute inset-0 flex flex-col items-center justify-center text-center px-6">
+            <div className="w-16 h-16 rounded-full bg-[#fee198]/50 flex items-center justify-center mb-4">
+              <MapPin size={28} className="text-black" />
+            </div>
+            <h3 className="font-display text-2xl md:text-3xl font-semibold text-black mb-2">
+              Interactive Map Coming Soon
+            </h3>
+            <p className="text-gray-mid text-sm max-w-md">
+              Explore {allAreaNeighborhoods.length} neighborhood{allAreaNeighborhoods.length !== 1 ? "s" : ""} in {area.name}
+            </p>
           </div>
         </div>
-      )}
+        <div className="flex justify-center mt-6">
+          <Link
+            href="/neighborhoods"
+            className="inline-flex items-center gap-2 px-6 py-3 bg-[#fee198] text-black text-xs font-semibold uppercase tracking-eyebrow rounded-full hover:bg-black hover:text-[#fee198] transition-colors"
+          >
+            Explore All Neighborhoods
+            <ArrowRight size={14} />
+          </Link>
+        </div>
+      </div>
 
       {/* ========== 4. MAIN CONTENT + SIDEBAR ========== */}
       <div className="site-container pt-12 pb-16 md:pt-16 md:pb-20">

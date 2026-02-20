@@ -23,6 +23,7 @@ import {
   getNeighborhoods,
   getFeaturedSlot,
   getCategoryBySlug,
+  getMediaItems,
 } from "@/lib/queries";
 
 export const metadata: Metadata = {
@@ -74,6 +75,7 @@ export default async function HomePage({
     upcomingEvents,
     areas,
     dbNeighborhoods,
+    homeVideos,
   ] = await Promise.all([
     search
       ? Promise.resolve(null)
@@ -86,6 +88,7 @@ export default async function HomePage({
     getEvents({ limit: 6, upcoming: true, search }),
     getAreas(),
     getNeighborhoods({ featured: true, limit: 8 }),
+    getMediaItems({ mediaType: "video", limit: 3 }).catch(() => []),
   ]);
 
   /* ==========================================================
@@ -355,34 +358,46 @@ export default async function HomePage({
           <div className="grid grid-cols-1 lg:grid-cols-[1fr_340px] gap-10">
             {/* LEFT — Featured Video (~70%) */}
             <div>
-              <div className="relative aspect-video bg-[#111] overflow-hidden group cursor-pointer">
-                <Image
-                  src={ph("Featured Video", 960, 540, "222222", "e6c46d")}
-                  alt="Featured video"
-                  fill
-                  unoptimized
-                  className="object-cover group-hover:scale-105 transition-transform duration-500"
-                />
-                <div className="absolute inset-0 flex items-center justify-center">
-                  <div className="w-16 h-16 md:w-20 md:h-20 rounded-full bg-white/90 flex items-center justify-center group-hover:bg-white transition-colors">
-                    <Play
-                      size={24}
-                      className="text-black ml-1 fill-black"
+              {homeVideos[0] ? (
+                <Link href={`/media/${homeVideos[0].slug}`} className="group block">
+                  <div className="relative aspect-video bg-[#111] overflow-hidden">
+                    <Image
+                      src={homeVideos[0].thumbnail_url || (homeVideos[0].embed_url ? `https://img.youtube.com/vi/${homeVideos[0].embed_url.match(/(?:youtu\.be\/|youtube\.com\/(?:watch\?v=|embed\/|v\/))([a-zA-Z0-9_-]{11})/)?.[1]}/hqdefault.jpg` : ph("Featured Video", 960, 540, "222222", "e6c46d"))}
+                      alt={homeVideos[0].title}
+                      fill
+                      unoptimized
+                      className="object-cover group-hover:scale-105 transition-transform duration-500"
                     />
+                    <div className="absolute inset-0 flex items-center justify-center">
+                      <div className="w-16 h-16 md:w-20 md:h-20 rounded-full bg-white/90 flex items-center justify-center group-hover:bg-white transition-colors">
+                        <Play size={24} className="text-black ml-1 fill-black" />
+                      </div>
+                    </div>
+                  </div>
+                  <div className="mt-5">
+                    <span className="text-white text-[10px] font-semibold uppercase tracking-eyebrow">Video</span>
+                    <h3 className="font-display text-xl md:text-2xl font-semibold text-white mt-3 leading-snug group-hover:text-[#fee198] transition-colors">
+                      {homeVideos[0].title}
+                    </h3>
+                  </div>
+                </Link>
+              ) : (
+                <div>
+                  <div className="relative aspect-video bg-[#111] overflow-hidden">
+                    <Image src={ph("Featured Video", 960, 540, "222222", "e6c46d")} alt="Featured video" fill unoptimized className="object-cover" />
+                    <div className="absolute inset-0 flex items-center justify-center">
+                      <div className="w-16 h-16 md:w-20 md:h-20 rounded-full bg-white/90 flex items-center justify-center">
+                        <Play size={24} className="text-black ml-1 fill-black" />
+                      </div>
+                    </div>
+                  </div>
+                  <div className="mt-5">
+                    <span className="text-white text-[10px] font-semibold uppercase tracking-eyebrow">Watch &amp; Listen</span>
+                    <h3 className="font-display text-xl md:text-2xl font-semibold text-white mt-3 leading-snug">Video Content Coming Soon</h3>
+                    <p className="text-white/60 text-xs mt-3 uppercase tracking-wide">ATL Vibes &amp; Views</p>
                   </div>
                 </div>
-              </div>
-              <div className="mt-5">
-                <span className="text-white text-[10px] font-semibold uppercase tracking-eyebrow">
-                  News
-                </span>
-                <h3 className="font-display text-xl md:text-2xl font-semibold text-white mt-3 leading-snug">
-                  Video Content Coming Soon
-                </h3>
-                <p className="text-white/60 text-xs mt-3 uppercase tracking-wide">
-                  ATL Vibes &amp; Views
-                </p>
-              </div>
+              )}
             </div>
 
             {/* RIGHT — Video Playlist (~30%) */}
@@ -391,31 +406,24 @@ export default async function HomePage({
                 href="/media"
                 className="text-xs font-semibold uppercase tracking-eyebrow text-white/60 hover:text-[#fee198] transition-colors mb-6 block"
               >
-                More Posts →
+                More Videos →
               </Link>
               <div className="space-y-5">
-                {[
-                  {
-                    category: "Fashion",
-                    title: "Atlanta's Emerging Fashion Scene",
-                  },
-                  {
-                    category: "News",
-                    title: "BeltLine Phase 3 Update",
-                  },
-                  {
-                    category: "Creative",
-                    title: "Local Artists Transforming Westside",
-                  },
-                  {
-                    category: "Food",
-                    title: "Street Food Markets to Try",
-                  },
-                ].map((item, i) => (
-                  <div key={i} className="flex gap-4 group cursor-pointer">
+                {(homeVideos.slice(1).length > 0 ? homeVideos.slice(1).map((vid) => ({
+                  id: vid.id,
+                  slug: vid.slug,
+                  category: "Video",
+                  title: vid.title,
+                  thumb: vid.thumbnail_url || (vid.embed_url ? `https://img.youtube.com/vi/${vid.embed_url.match(/(?:youtu\.be\/|youtube\.com\/(?:watch\?v=|embed\/|v\/))([a-zA-Z0-9_-]{11})/)?.[1]}/hqdefault.jpg` : null),
+                })) : [
+                  { id: "1", slug: null, category: "Fashion", title: "Atlanta's Emerging Fashion Scene", thumb: null },
+                  { id: "2", slug: null, category: "News", title: "BeltLine Phase 3 Update", thumb: null },
+                  { id: "3", slug: null, category: "Creative", title: "Local Artists Transforming Westside", thumb: null },
+                ]).map((item) => (
+                  <div key={item.id} className="flex gap-4 group cursor-pointer">
                     <div className="relative w-28 h-20 shrink-0 bg-[#222] overflow-hidden">
                       <Image
-                        src={ph(item.title, 160, 100, "333333", "e6c46d")}
+                        src={item.thumb || ph(item.title, 160, 100, "333333", "e6c46d")}
                         alt={item.title}
                         fill
                         unoptimized
