@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useCallback } from "react";
+import { ImageIcon, X } from "lucide-react";
 import { PortalTopbar } from "@/components/portal/PortalTopbar";
 import { TabNav } from "@/components/portal/TabNav";
 import { FormGroup } from "@/components/portal/FormGroup";
@@ -57,6 +58,13 @@ export function SettingsClient({ initialSettings }: SettingsClientProps) {
   const [activeTab, setActiveTab] = useState("general");
   const [settings] = useState<SiteSetting[]>(initialSettings);
   const [saving, setSaving] = useState(false);
+  const [activeGroup, setActiveGroup] = useState<string | null>(null);
+  const [saveSuccess, setSaveSuccess] = useState(false);
+
+  function openModal(key: string) { setActiveGroup(key); }
+  function closeModal() { setActiveGroup(null); setSaveSuccess(false); }
+
+  const activeGroupLabel = PAGE_GROUPS.find((g) => g.key === activeGroup)?.label ?? "";
 
   /* Per-group hero state — keyed by group key */
   const [heroTypes, setHeroTypes] = useState<Record<string, string>>(() => {
@@ -91,27 +99,30 @@ export function SettingsClient({ initialSettings }: SettingsClientProps) {
     return init;
   });
 
-  const handleSavePageImages = useCallback(async () => {
+  const handleSaveGroup = useCallback(async () => {
+    if (!activeGroup) return;
     setSaving(true);
+    const key = activeGroup;
     const updates: Record<string, unknown>[] = [];
-    PAGE_GROUPS.forEach(({ key }) => {
-      const typeRow = settings.find((s) => s.key === `${key}_content_type`);
-      const mediaRow = settings.find((s) => s.key === `${key}_media_id`);
-      const postRow = settings.find((s) => s.key === `${key}_featured_post_id`);
-      const urlRow = settings.find((s) => s.key === `${key}_video_url`);
-      if (typeRow) updates.push({ id: typeRow.id, value_text: heroTypes[key] ?? "image" });
-      if (mediaRow) updates.push({ id: mediaRow.id, value_media_id: heroMedia[key]?.id ?? null });
-      if (postRow) updates.push({ id: postRow.id, value_post_id: heroPosts[key]?.id ?? null });
-      if (urlRow) updates.push({ id: urlRow.id, value_text: heroFallbacks[key] ?? null });
-    });
-    if (updates.length === 0) { setSaving(false); return; }
-    await fetch("/api/admin/settings", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ updates }),
-    });
+    const typeRow = settings.find((s) => s.key === `${key}_content_type`);
+    const mediaRow = settings.find((s) => s.key === `${key}_media_id`);
+    const postRow = settings.find((s) => s.key === `${key}_featured_post_id`);
+    const urlRow = settings.find((s) => s.key === `${key}_video_url`);
+    if (typeRow) updates.push({ id: typeRow.id, value_text: heroTypes[key] ?? "image" });
+    if (mediaRow) updates.push({ id: mediaRow.id, value_media_id: heroMedia[key]?.id ?? null });
+    if (postRow) updates.push({ id: postRow.id, value_post_id: heroPosts[key]?.id ?? null });
+    if (urlRow) updates.push({ id: urlRow.id, value_text: heroFallbacks[key] ?? null });
+    if (updates.length > 0) {
+      await fetch("/api/admin/settings", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ updates }),
+      });
+    }
     setSaving(false);
-  }, [settings, heroTypes, heroMedia, heroPosts, heroFallbacks]);
+    setSaveSuccess(true);
+    setTimeout(() => { setSaveSuccess(false); closeModal(); }, 1000);
+  }, [activeGroup, settings, heroTypes, heroMedia, heroPosts, heroFallbacks]);
 
   return (
     <>
@@ -202,25 +213,101 @@ export function SettingsClient({ initialSettings }: SettingsClientProps) {
 
         {/* ── Page Images Tab ── */}
         {activeTab === "page_images" && (
-          <div className="space-y-8 max-w-2xl">
+          <div className="space-y-5">
             <p className="text-[13px] text-[#6b7280]">
-              Set the hero image, video, or featured post for each public page. Changes take effect immediately on save.
+              Set the hero image, video, or featured post for each public page. Click Edit to configure a page.
             </p>
-            {PAGE_GROUPS.map(({ key, label }) => {
-              const hType = heroTypes[key] ?? "image";
-              return (
-                <div key={key} className="bg-white border border-[#e5e5e5] p-5 space-y-4">
-                  <h3 className="font-display text-[15px] font-semibold text-black">{label}</h3>
-                  <FormGroup label="Hero Type">
-                    <FormSelect
-                      options={[
-                        { value: "image", label: "Image" },
-                        { value: "video", label: "Video" },
-                        { value: "post", label: "Featured Blog Post" },
-                      ]}
+
+            {/* 2-column card grid */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              {PAGE_GROUPS.map(({ key, label }) => {
+                const contentType = heroTypes[key] || null;
+                const media = heroMedia[key] ?? null;
+                return (
+                  <div key={key} className="bg-white border border-[#e5e5e5] p-4 flex gap-4 items-start">
+                    {/* Thumbnail */}
+                    <div className="w-24 h-16 shrink-0 bg-[#f5f5f5] border border-[#e5e5e5] overflow-hidden">
+                      {media?.url ? (
+                        <img src={media.url} alt="" className="w-full h-full object-cover" />
+                      ) : (
+                        <div className="w-full h-full flex items-center justify-center">
+                          <ImageIcon size={20} className="text-[#d1d1d1]" />
+                        </div>
+                      )}
+                    </div>
+
+                    {/* Info */}
+                    <div className="flex-1 min-w-0">
+                      <p className="font-semibold text-sm text-[#1a1a1a] leading-tight">{label}</p>
+                      <div className="mt-1">
+                        {contentType && contentType !== "image" ? (
+                          <span className="text-xs px-2 py-0.5 rounded-full bg-[#f5f5f5] text-gray-500 capitalize">
+                            {contentType}
+                          </span>
+                        ) : media ? (
+                          <span className="text-xs px-2 py-0.5 rounded-full bg-[#f5f5f5] text-gray-500 capitalize">
+                            image
+                          </span>
+                        ) : (
+                          <span className="text-xs px-2 py-0.5 rounded-full bg-[#fff3f3] text-[#c1121f]">
+                            Not Set
+                          </span>
+                        )}
+                      </div>
+                      {media?.url && (
+                        <p className="text-xs text-gray-400 mt-1 truncate">
+                          {media.url.split("/").pop()}
+                        </p>
+                      )}
+                      {contentType === "post" && heroPosts[key] && (
+                        <p className="text-xs text-gray-400 mt-1 truncate">
+                          {heroPosts[key]!.title}
+                        </p>
+                      )}
+                    </div>
+
+                    {/* Edit button */}
+                    <button
+                      onClick={() => openModal(key)}
+                      className="shrink-0 text-xs font-semibold text-[#1a1a1a] border border-[#e5e5e5] px-3 py-1.5 hover:border-[#fee198] hover:bg-[#fffdf0] transition-colors"
+                    >
+                      Edit
+                    </button>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        )}
+
+        {/* ── Edit Modal ── */}
+        {activeGroup && (() => {
+          const key = activeGroup;
+          const hType = heroTypes[key] ?? "image";
+          return (
+            <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
+              <div className="bg-white w-full max-w-lg max-h-[90vh] overflow-y-auto">
+                {/* Header */}
+                <div className="flex items-center justify-between p-5 border-b border-[#e5e5e5]">
+                  <h3 className="font-display text-[16px] font-semibold">{activeGroupLabel}</h3>
+                  <button type="button" onClick={closeModal}>
+                    <X size={18} className="text-gray-400 hover:text-black transition-colors" />
+                  </button>
+                </div>
+
+                {/* Body */}
+                <div className="p-5 space-y-4">
+                  <FormGroup label="Hero Content Type">
+                    <select
                       value={hType}
                       onChange={(e) => setHeroTypes((prev) => ({ ...prev, [key]: e.target.value }))}
-                    />
+                      className="w-full h-[38px] px-3 text-[14px] font-body border border-[#e5e5e5] focus:border-[#e6c46d] focus:ring-2 focus:ring-[#fee198]/30 focus:outline-none transition-colors bg-white"
+                    >
+                      <option value="">— None —</option>
+                      <option value="image">Image</option>
+                      <option value="video">Video</option>
+                      <option value="post">Featured Blog Post</option>
+                    </select>
                   </FormGroup>
 
                   {(hType === "image" || hType === "video") && (
@@ -234,7 +321,7 @@ export function SettingsClient({ initialSettings }: SettingsClientProps) {
                   )}
 
                   {(hType === "image" || hType === "video") && (
-                    <FormGroup label="Fallback URL">
+                    <FormGroup label="Fallback URL" hint="Used if no media asset is selected">
                       <FormInput
                         value={heroFallbacks[key] ?? ""}
                         onChange={(e) => setHeroFallbacks((prev) => ({ ...prev, [key]: e.target.value }))}
@@ -244,7 +331,7 @@ export function SettingsClient({ initialSettings }: SettingsClientProps) {
                   )}
 
                   {hType === "post" && (
-                    <FormGroup label="Featured Post">
+                    <FormGroup label="Featured Blog Post">
                       <PostPicker
                         value={heroPosts[key] ?? null}
                         onChange={(post) => setHeroPosts((prev) => ({ ...prev, [key]: post }))}
@@ -252,20 +339,29 @@ export function SettingsClient({ initialSettings }: SettingsClientProps) {
                     </FormGroup>
                   )}
                 </div>
-              );
-            })}
 
-            <ButtonBar>
-              <button
-                onClick={handleSavePageImages}
-                disabled={saving}
-                className="inline-flex items-center px-6 py-2.5 rounded-full text-sm font-semibold bg-[#fee198] text-[#1a1a1a] hover:bg-[#fdd870] transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
-              >
-                {saving ? "Saving..." : "Save Page Images"}
-              </button>
-            </ButtonBar>
-          </div>
-        )}
+                {/* Footer */}
+                <div className="p-5 border-t border-[#e5e5e5] flex justify-end gap-3">
+                  <button
+                    type="button"
+                    onClick={closeModal}
+                    className="px-4 py-2 text-sm text-gray-500 hover:text-black transition-colors"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    type="button"
+                    onClick={handleSaveGroup}
+                    disabled={saving}
+                    className="inline-flex items-center justify-center px-6 py-2.5 rounded-full text-sm font-semibold bg-[#fee198] text-[#1a1a1a] hover:bg-[#e6c46d] transition-colors disabled:opacity-60"
+                  >
+                    {saving ? "Saving…" : saveSuccess ? "Saved!" : "Save"}
+                  </button>
+                </div>
+              </div>
+            </div>
+          );
+        })()}
 
         {/* ── Integrations Tab ── */}
         {activeTab === "integrations" && (
