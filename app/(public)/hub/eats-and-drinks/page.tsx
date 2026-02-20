@@ -19,6 +19,7 @@ import {
 } from "@/components/Sidebar";
 import { HubArchiveClient } from "@/components/HubArchiveClient";
 import type { HubArchiveConfig } from "@/components/HubArchiveClient";
+import { getPageHero, getHeroPost } from "@/lib/queries/settings";
 
 export const dynamic = "force-dynamic";
 
@@ -56,6 +57,9 @@ const HUB_CONFIG: HubArchiveConfig = {
    CONSTANTS
    ============================================================ */
 const PH_HERO = "/images/default-hero.png";
+
+  const _hero = await getPageHero("hub_eats").catch(() => ({ type: null, imageUrl: null, videoUrl: null, postId: null, alt: null }));
+  const _heroPost = _hero.type === "post" ? await getHeroPost(_hero.postId).catch(() => null) : null;
 
 /**
  * Known dining-related category slugs.
@@ -155,7 +159,10 @@ export default async function EatsAndDrinksHubPage({
 
       {/* ========== 1. HERO ========== */}
       <HeroSection
-        backgroundImage={PH_HERO}
+        heroType={(_hero.type ?? "image") as "image" | "video" | "post"}
+        backgroundImage={_hero.imageUrl ?? PH_HERO}
+        videoUrl={_hero.videoUrl ?? undefined}
+        heroPost={_heroPost}
         eyebrow="The Hub"
         title="Dining in Atlanta"
         description="Restaurants, cafés, bars, and local food spots worth knowing."

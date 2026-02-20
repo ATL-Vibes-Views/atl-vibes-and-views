@@ -6,6 +6,7 @@ import { NewsletterBlock } from "@/components/ui/NewsletterBlock";
 import { ShortsCarousel } from "@/components/ui/ShortsCarousel";
 import { getMediaItems } from "@/lib/queries";
 import { MediaLandingClient } from "./MediaLandingClient";
+import { getPageHero, getHeroPost } from "@/lib/queries/settings";
 
 /* ============================================================
    MEDIA — /media
@@ -39,6 +40,9 @@ export default async function MediaPage({
 
   /* Fetch items for active tab */
   const items = await getMediaItems({ mediaType: activeTab }).catch(() => []);
+
+  const _hero = await getPageHero("media_page").catch(() => ({ type: null, imageUrl: null, videoUrl: null, postId: null, alt: null }));
+  const _heroPost = _hero.type === "post" ? await getHeroPost(_hero.postId).catch(() => null) : null;
 
   /* Fetch shorts separately */
   const shorts = await getMediaItems({ mediaType: "short", limit: 12 }).catch(() => []);

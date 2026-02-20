@@ -21,6 +21,7 @@ import {
   getBusinessCountsByNeighborhood,
   getStoryCountsByNeighborhood,
 } from "@/lib/queries";
+import { getPageHero, getHeroPost } from "@/lib/queries/settings";
 import type { Metadata } from "next";
 
 export const dynamic = "force-dynamic";
@@ -137,6 +138,11 @@ export default async function NeighborhoodsLandingPage({
   const heroIntro = ci?.page_intro || DEFAULT_INTRO;
   const heroVideoUrl = ci?.hero_video_url || null;
   const heroImageUrl = ci?.hero_image_url || PH_HERO;
+  const _hero = await getPageHero("neighborhoods_landing").catch(() => ({ type: null, imageUrl: null, videoUrl: null, postId: null, alt: null }));
+  const _heroPost = _hero.type === "post" ? await getHeroPost(_hero.postId).catch(() => null) : null;
+  const effectiveHeroType = _hero.type ?? "image";
+  const effectiveHeroImage = _hero.imageUrl ?? heroImageUrl;
+  const effectiveHeroVideo = _hero.videoUrl ?? heroVideoUrl;
 
   /* ── Business + story counts per neighborhood ── */
   const [bizCounts, storyCounts] = await Promise.all([
@@ -245,39 +251,38 @@ export default async function NeighborhoodsLandingPage({
       {/* ========== 1. HERO ========== */}
       <section className="relative w-full">
         <div className="relative w-full h-[50vh] sm:h-[55vh] md:h-[65vh] overflow-hidden">
-          {heroVideoUrl ? (
-            <video
-              autoPlay
-              muted
-              loop
-              playsInline
-              className="absolute inset-0 w-full h-full object-cover"
-            >
-              <source src={heroVideoUrl} type="video/mp4" />
+          {effectiveHeroType === "video" && effectiveHeroVideo ? (
+            <video autoPlay muted loop playsInline className="absolute inset-0 w-full h-full object-cover">
+              <source src={effectiveHeroVideo} type="video/mp4" />
             </video>
+          ) : effectiveHeroType === "post" && _heroPost ? (
+            <Image src={_heroPost.featured_image_url ?? effectiveHeroImage} alt={_heroPost.title} fill unoptimized className="object-cover" priority sizes="100vw" />
           ) : (
-            <Image
-              src={heroImageUrl}
-              alt={heroTitle}
-              fill
-              unoptimized
-              className="object-cover"
-              priority
-              sizes="100vw"
-            />
+            <Image src={effectiveHeroImage} alt={heroTitle} fill unoptimized className="object-cover" priority sizes="100vw" />
           )}
           <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/40 to-transparent" />
         </div>
         <div className="absolute inset-0 flex flex-col items-center justify-center text-center px-6 md:px-20">
-          <span className="text-[#e6c46d] text-[11px] font-semibold uppercase tracking-[0.15em] mb-3">
-            Atlanta Neighborhoods
-          </span>
-          <h1 className="font-display text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-semibold text-white max-w-4xl leading-tight">
-            {heroTitle}
-          </h1>
-          <p className="text-white/70 text-sm md:text-base mt-4 max-w-xl">
-            {heroIntro}
-          </p>
+          {effectiveHeroType === "post" && _heroPost ? (
+            <>
+              {_heroPost.category && (
+                <span className="inline-block bg-[#c1121f] text-white text-[11px] font-semibold uppercase tracking-[0.12em] px-3 py-1 mb-4">{_heroPost.category}</span>
+              )}
+              <h1 className="font-display text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-semibold text-white max-w-4xl leading-tight">{_heroPost.title}</h1>
+              {(_heroPost.author || _heroPost.published_at) && (
+                <p className="text-white/70 text-sm mt-3">
+                  {_heroPost.author ? `BY ${_heroPost.author.toUpperCase()}` : ""}{_heroPost.author && _heroPost.published_at ? " · " : ""}{_heroPost.published_at ? new Date(_heroPost.published_at).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" }) : ""}
+                </p>
+              )}
+              <Link href={`/stories/${_heroPost.slug}`} className="text-white/70 text-sm hover:text-white transition-colors mt-2">Read Story →</Link>
+            </>
+          ) : (
+            <>
+              <span className="text-[#e6c46d] text-[11px] font-semibold uppercase tracking-[0.15em] mb-3">Atlanta Neighborhoods</span>
+              <h1 className="font-display text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-semibold text-white max-w-4xl leading-tight">{heroTitle}</h1>
+              <p className="text-white/70 text-sm md:text-base mt-4 max-w-xl">{heroIntro}</p>
+            </>
+          )}
         </div>
       </section>
 

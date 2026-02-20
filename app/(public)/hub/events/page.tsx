@@ -9,6 +9,8 @@ import {
   getNeighborhoodIdsForArea,
   getNeighborhoodsByPopularity,
 } from "@/lib/queries";
+import { getPageHero, getHeroPost } from "@/lib/queries/settings";
+import { HeroSection } from "@/components/ui/HeroSection";
 
 export const dynamic = "force-dynamic";
 
@@ -60,6 +62,10 @@ export default async function EventsArchivePage({
   const mode = filters.mode || "upcoming";
 
   const today = new Date().toISOString().split("T")[0];
+
+  /* ── Hero ── */
+  const _hero = await getPageHero("hub_events").catch(() => ({ type: null, imageUrl: null, videoUrl: null, postId: null, alt: null }));
+  const _heroPost = _hero.type === "post" ? await getHeroPost(_hero.postId).catch(() => null) : null;
 
   /* ── Parallel: areas, neighborhoods, popular neighborhoods ── */
   const [areas, allNeighborhoods, popularNeighborhoods] = await Promise.all([
@@ -210,66 +216,16 @@ export default async function EventsArchivePage({
 
   return (
     <>
-      {/* ========== 1. HERO (static/contextual) ========== */}
-      <section className="relative w-full bg-[#1a1a1a]">
-        {/* Desktop: media left / text right */}
-        <div className="hidden md:grid md:grid-cols-2 min-h-[420px] lg:min-h-[480px]">
-          {/* Media (left) */}
-          <div className="relative overflow-hidden">
-            <Image
-              src={PH_HERO}
-              alt="Events in Atlanta"
-              fill
-              unoptimized
-              className="object-cover"
-              priority
-            />
-          </div>
-          {/* Text (right) */}
-          <div className="flex flex-col justify-center px-12 lg:px-16 py-16">
-            <span className="text-[#e6c46d] text-[11px] font-semibold uppercase tracking-[0.15em] mb-4">
-              Explore Atlanta
-            </span>
-            <h1 className="font-display text-4xl lg:text-5xl xl:text-6xl font-semibold text-white leading-[1.05]">
-              Events in Atlanta
-            </h1>
-            <p className="text-white/60 text-sm md:text-base mt-4 max-w-md">
-              Concerts, food festivals, art walks, and everything happening
-              across the city. Find your next Atlanta experience.
-            </p>
-          </div>
-        </div>
-
-        {/* Mobile: image top, headline overlaid, description below */}
-        <div className="md:hidden">
-          <div className="relative w-full aspect-[16/10] overflow-hidden">
-            <Image
-              src={PH_HERO}
-              alt="Events in Atlanta"
-              fill
-              unoptimized
-              className="object-cover"
-              priority
-            />
-            {/* Headline overlaid on image (no gradient, text shadow for readability) */}
-            <div className="absolute bottom-0 left-0 right-0 p-6" style={{ textShadow: "0 1px 4px rgba(0,0,0,0.6)" }}>
-              <span className="text-[#e6c46d] text-[10px] font-semibold uppercase tracking-[0.15em]">
-                Explore Atlanta
-              </span>
-              <h1 className="font-display text-3xl font-semibold text-white leading-[1.1] mt-1">
-                Events in Atlanta
-              </h1>
-            </div>
-          </div>
-          {/* Description below image */}
-          <div className="px-6 py-5 bg-[#1a1a1a]">
-            <p className="text-white/60 text-sm">
-              Concerts, food festivals, art walks, and everything happening
-              across the city.
-            </p>
-          </div>
-        </div>
-      </section>
+      {/* ========== 1. HERO ========== */}
+      <HeroSection
+        eyebrow="Explore Atlanta"
+        title="Events in Atlanta"
+        description="Concerts, food festivals, art walks, and everything happening across the city. Find your next Atlanta experience."
+        heroType={(_hero.type ?? "image") as "image" | "video" | "post"}
+        backgroundImage={_hero.imageUrl ?? PH_HERO}
+        videoUrl={_hero.videoUrl ?? undefined}
+        heroPost={_heroPost}
+      />
 
       {/* ========== 2. BREADCRUMBS ========== */}
       <div className="site-container pt-6 pb-2">

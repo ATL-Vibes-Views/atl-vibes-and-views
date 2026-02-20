@@ -13,6 +13,7 @@ import {
   getCategoryBySlug,
   getMediaItems,
 } from "@/lib/queries";
+import { getRecordHero, getHeroPost } from "@/lib/queries/settings";
 
 export const dynamic = "force-dynamic";
 
@@ -114,6 +115,10 @@ export default async function NeighborhoodDetailPage({
   /* ── Neighborhood record (includes area via join) ── */
   const neighborhood = await getNeighborhoodBySlug(slug);
   if (!neighborhood) return notFound();
+
+  /* ── Hero ── */
+  const _hero = await getRecordHero(neighborhood as unknown as Record<string, unknown>).catch(() => ({ type: null, imageUrl: null, videoUrl: null, postId: null, alt: null }));
+  const _heroPost = _hero.type === "post" ? await getHeroPost(_hero.postId).catch(() => null) : null;
 
   const area = neighborhood.areas;
   const areaName = area?.name || "Atlanta";
@@ -303,7 +308,10 @@ export default async function NeighborhoodDetailPage({
     <LocationDetailContent
       name={neighborhood.name}
       tagline={neighborhood.tagline}
-      heroImageUrl={neighborhood.hero_image_url}
+      heroImageUrl={_hero.imageUrl ?? neighborhood.hero_image_url}
+      heroType={(_hero.type ?? "image") as "image" | "video" | "post"}
+      heroVideoUrl={_hero.videoUrl ?? undefined}
+      heroPost={_heroPost}
       eyebrow={areaName}
       breadcrumbs={breadcrumbs}
       searchPlaceholder={`Search in ${neighborhood.name}\u2026`}

@@ -80,7 +80,7 @@ export function MediaPicker({
   allowedTypes,
 }: MediaPickerProps) {
   const [open, setOpen] = useState(false);
-  const [tab, setTab] = useState<"upload" | "library">("upload");
+  const [tab, setTab] = useState<"upload" | "library">("library");
 
   // Upload tab state
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
@@ -101,6 +101,7 @@ export function MediaPicker({
   const [folderFilter, setFolderFilter] = useState("all");
   const [selected, setSelected] = useState<MediaAssetRow | null>(null);
   const [page, setPage] = useState(0);
+  const pageRef = useRef(0);
   const [hasMore, setHasMore] = useState(false);
 
   const PAGE_SIZE = 48;
@@ -109,7 +110,7 @@ export function MediaPicker({
     setLibraryLoading(true);
     setLibraryError("");
     const supabase = createBrowserClient();
-    const offset = reset ? 0 : page * PAGE_SIZE;
+    const offset = reset ? 0 : pageRef.current * PAGE_SIZE;
 
     let query = supabase
       .from("media_assets")
@@ -130,13 +131,20 @@ export function MediaPicker({
       const rows = data ?? [];
       setAssets(reset ? rows : (prev) => [...prev, ...rows]);
       setHasMore(rows.length === PAGE_SIZE);
-      if (!reset) setPage((p) => p + 1);
+      if (reset) {
+        pageRef.current = 1;
+        setPage(1);
+      } else {
+        pageRef.current += 1;
+        setPage((p) => p + 1);
+      }
     }
     setLibraryLoading(false);
-  }, [page, allowedTypes]);
+  }, [allowedTypes]);
 
   useEffect(() => {
     if (open && tab === "library") {
+      pageRef.current = 0;
       setPage(0);
       loadAssets(true);
     }

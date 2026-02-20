@@ -9,6 +9,7 @@ import {
   getNeighborhoodsByPopularity,
   getUpcomingEvents,
 } from "@/lib/queries";
+import { getPageHero, getHeroPost } from "@/lib/queries/settings";
 import type { Metadata } from "next";
 
 /* ============================================================
@@ -76,6 +77,8 @@ export default async function AreasLandingPage({
   const heroTitle = ci?.page_title || "Explore Atlanta by Area";
   const heroIntro = ci?.page_intro || "Discover Atlanta's neighborhoods, restaurants, events, and culture across every area of the city.";
   const heroImageUrl = ci?.hero_image_url || "https://placehold.co/1920x600/1a1a1a/e6c46d?text=Explore+Areas";
+  const _hero = await getPageHero("areas_landing").catch(() => ({ type: null, imageUrl: null, videoUrl: null, postId: null, alt: null }));
+  const _heroPost = _hero.type === "post" ? await getHeroPost(_hero.postId).catch(() => null) : null;
 
   /* ── Search: filter areas ── */
   const filteredAreas = search
@@ -94,7 +97,10 @@ export default async function AreasLandingPage({
       heroContent={
         <HeroSection
           variant="overlay"
-          backgroundImage={heroImageUrl}
+          heroType={(_hero.type ?? "image") as "image" | "video" | "post"}
+          backgroundImage={_hero.imageUrl ?? heroImageUrl}
+          videoUrl={_hero.videoUrl ?? undefined}
+          heroPost={_heroPost}
           eyebrow="Explore Atlanta"
           title={heroTitle}
           description={heroIntro}

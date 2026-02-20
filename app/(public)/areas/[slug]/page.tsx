@@ -28,6 +28,7 @@ import {
   getMediaItems,
   getBusinessCountsByNeighborhood,
 } from "@/lib/queries";
+import { getRecordHero, getHeroPost } from "@/lib/queries/settings";
 
 export const dynamic = "force-dynamic";
 
@@ -121,6 +122,10 @@ export default async function AreaDetailPage({
   /* ── Step 0: Area record + neighborhood IDs ── */
   const area = await getAreaBySlug(slug);
   if (!area) return notFound();
+
+  /* ── Hero ── */
+  const _hero = await getRecordHero(area as unknown as Record<string, unknown>).catch(() => ({ type: null, imageUrl: null, videoUrl: null, postId: null, alt: null }));
+  const _heroPost = _hero.type === "post" ? await getHeroPost(_hero.postId).catch(() => null) : null;
 
   const neighborhoodIds = await getNeighborhoodIdsForArea(area.id);
   const hasNeighborhoods = neighborhoodIds.length > 0;
@@ -244,7 +249,10 @@ export default async function AreaDetailPage({
       {/* ========== 1. HERO ========== */}
       <HeroSection
         variant="overlay"
-        backgroundImage={area.hero_image_url || PH_HERO}
+        heroType={(_hero.type ?? "image") as "image" | "video" | "post"}
+        backgroundImage={_hero.imageUrl ?? area.hero_image_url ?? PH_HERO}
+        videoUrl={_hero.videoUrl ?? undefined}
+        heroPost={_heroPost}
         eyebrow="Explore Atlanta"
         title={area.name}
         description={area.tagline}

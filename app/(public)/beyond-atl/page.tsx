@@ -8,6 +8,7 @@ import {
   getNeighborhoodsByPopularity,
   getUpcomingEvents,
 } from "@/lib/queries";
+import { getPageHero, getHeroPost } from "@/lib/queries/settings";
 import type { Metadata } from "next";
 
 /* ============================================================
@@ -41,6 +42,10 @@ export default async function BeyondATLLandingPage({
   const { q } = await searchParams;
   const search = q?.trim() || undefined;
 
+  /* ── Hero ── */
+  const _hero = await getPageHero("beyond_atl").catch(() => ({ type: null, imageUrl: null, videoUrl: null, postId: null, alt: null }));
+  const _heroPost = _hero.type === "post" ? await getHeroPost(_hero.postId).catch(() => null) : null;
+
   /* ── Data fetch — single parallel batch ── */
   const fetchStart = Date.now();
   const [
@@ -73,11 +78,14 @@ export default async function BeyondATLLandingPage({
       searchResultsLabel="Cities"
       heroContent={
         <HeroSection
-          variant="overlay"
-          backgroundImage="https://placehold.co/1920x600/1a1a1a/e6c46d?text=Beyond+ATL"
           eyebrow="Beyond ATL"
-          title="Explore Other Cities"
-          description="From Decatur to Marietta — discover what’s happening across metro Atlanta and beyond."
+          title="Beyond Atlanta"
+          variant="overlay"
+          heroType={(_hero.type ?? "image") as "image" | "video" | "post"}
+          backgroundImage={_hero.imageUrl ?? "https://placehold.co/1920x600/1a1a1a/e6c46d?text=Beyond+ATL"}
+          videoUrl={_hero.videoUrl ?? undefined}
+          heroPost={_heroPost}
+          description="From Decatur to Marietta — discover what's happening across metro Atlanta and beyond."
         />
       }
       filteredCards={filteredCities}

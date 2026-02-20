@@ -18,6 +18,8 @@ import { ButtonBar } from "@/components/portal/ButtonBar";
 import { StatCard } from "@/components/portal/StatCard";
 import { StatGrid } from "@/components/portal/StatGrid";
 import { AdminDataTable } from "@/components/portal/AdminDataTable";
+import { MediaPicker } from "@/components/admin/MediaPicker";
+import { PostPicker } from "@/components/admin/PostPicker";
 
 interface BusinessRow { id: string; business_name: string; status: string; tier: string }
 interface StoryRow { id: string; title: string; status: string; published_at: string | null }
@@ -33,6 +35,7 @@ interface NeighborhoodDetailClientProps {
 
 const TABS = [
   { label: "Details", key: "details" },
+  { label: "Hero", key: "hero" },
   { label: "Related Content", key: "related" },
   { label: "Map Data", key: "map" },
 ];
@@ -66,6 +69,32 @@ export function NeighborhoodDetailClient({ neighborhood: n, businesses, stories,
   const nId = n?.id as string | undefined;
   const [activeTab, setActiveTab] = useState("details");
   const [saving, setSaving] = useState(false);
+
+  /* ── Hero tab state ── */
+  const [heroContentType, setHeroContentType] = useState<"image" | "video" | "post">(field(n, "hero_content_type") as "image" | "video" | "post" || "image");
+  const [heroMedia, setHeroMedia] = useState<{ id: string; url: string } | null>(() => {
+    const mediaId = field(n, "hero_media_id");
+    const mediaUrl = field(n, "hero_image_url");
+    return mediaId && mediaUrl ? { id: mediaId, url: mediaUrl } : null;
+  });
+  const [heroPost, setHeroPost] = useState<{ id: string; title: string } | null>(
+    field(n, "hero_featured_post_id") ? { id: field(n, "hero_featured_post_id"), title: "Loading…" } : null
+  );
+  const [heroFallbackUrl, setHeroFallbackUrl] = useState(field(n, "hero_image_url"));
+
+  const handleSaveHero = useCallback(async () => {
+    if (!nId) return;
+    setSaving(true);
+    const result = await updateNeighborhood(nId, {
+      hero_content_type: heroContentType,
+      hero_media_id: heroMedia?.id || null,
+      hero_featured_post_id: heroPost?.id || null,
+      hero_image_url: heroFallbackUrl || null,
+    });
+    setSaving(false);
+    if ("error" in result && result.error) { alert("Error: " + result.error); return; }
+    router.refresh();
+  }, [nId, heroContentType, heroMedia, heroPost, heroFallbackUrl, router]);
 
   const handleToggle = useCallback(async (fieldName: string, currentValue: boolean) => {
     if (!nId) return;
@@ -108,6 +137,59 @@ export function NeighborhoodDetailClient({ neighborhood: n, businesses, stories,
         <p className="text-[13px] text-[#6b7280]">{n?.areas?.name ?? "—"}</p>
 
         <TabNav tabs={TABS} activeTab={activeTab} onTabChange={setActiveTab} />
+
+        {/* Tab 2 — Hero */}
+        {activeTab === "hero" && (
+          <div className="space-y-6">
+            <FormGroup label="Hero Content Type">
+              <FormSelect
+                options={[
+                  { value: "image", label: "Image" },
+                  { value: "video", label: "Video" },
+                  { value: "post", label: "Featured Blog Post" },
+                ]}
+                value={heroContentType}
+                onChange={(e) => setHeroContentType(e.target.value as "image" | "video" | "post")}
+              />
+            </FormGroup>
+
+            {(heroContentType === "image" || heroContentType === "video") && (
+              <FormGroup label={heroContentType === "video" ? "Video Asset" : "Hero Image"}>
+                <MediaPicker
+                  value={heroMedia}
+                  onChange={setHeroMedia}
+                  allowedTypes={heroContentType === "video" ? ["video"] : ["image"]}
+                />
+              </FormGroup>
+            )}
+
+            {(heroContentType === "image" || heroContentType === "video") && (
+              <FormGroup label="Fallback URL (if no asset selected)">
+                <FormInput
+                  value={heroFallbackUrl}
+                  onChange={(e) => setHeroFallbackUrl(e.target.value)}
+                  placeholder="https://..."
+                />
+              </FormGroup>
+            )}
+
+            {heroContentType === "post" && (
+              <FormGroup label="Featured Post">
+                <PostPicker value={heroPost} onChange={setHeroPost} />
+              </FormGroup>
+            )}
+
+            <ButtonBar>
+              <button
+                onClick={handleSaveHero}
+                disabled={saving}
+                className="inline-flex items-center px-6 py-2.5 rounded-full text-sm font-semibold bg-[#fee198] text-[#1a1a1a] hover:bg-[#fdd870] transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+              >
+                {saving ? "Saving..." : "Save Hero"}
+              </button>
+            </ButtonBar>
+          </div>
+        )}
 
         {/* Tab 1 — Details */}
         {activeTab === "details" && (

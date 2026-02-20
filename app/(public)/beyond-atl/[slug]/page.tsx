@@ -13,6 +13,7 @@ import {
   getCategoryBySlug,
   getMediaItems,
 } from "@/lib/queries";
+import { getRecordHero, getHeroPost } from "@/lib/queries/settings";
 
 export const dynamic = "force-dynamic";
 
@@ -88,6 +89,10 @@ export default async function CityDetailPage({
   /* ── City record ── */
   const city = await getCityBySlug(slug);
   if (!city) return notFound();
+
+  /* ── Hero ── */
+  const _hero = await getRecordHero(city as unknown as Record<string, unknown>).catch(() => ({ type: null, imageUrl: null, videoUrl: null, postId: null, alt: null }));
+  const _heroPost = _hero.type === "post" ? await getHeroPost(_hero.postId).catch(() => null) : null;
 
   /* ── Other cities for sidebar/pills ── */
   const otherCities = await getCities({
@@ -200,7 +205,10 @@ export default async function CityDetailPage({
     <LocationDetailContent
       name={city.name}
       tagline={city.tagline}
-      heroImageUrl={city.hero_image_url}
+      heroImageUrl={_hero.imageUrl ?? city.hero_image_url}
+      heroType={(_hero.type ?? "image") as "image" | "video" | "post"}
+      heroVideoUrl={_hero.videoUrl ?? undefined}
+      heroPost={_heroPost}
       eyebrow="Beyond ATL"
       breadcrumbs={[
         { label: "Home", href: "/" },

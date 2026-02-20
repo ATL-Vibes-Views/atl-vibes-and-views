@@ -3,9 +3,11 @@
 import { useRouter, usePathname, useSearchParams } from "next/navigation";
 import { Fragment, useCallback, useState, useTransition } from "react";
 import Image from "next/image";
+import Link from "next/link";
 import { Search, X, ChevronDown, ArrowRight, FileText } from "lucide-react";
 import { RelatedStoryCard } from "@/components/ui/RelatedStoryCard";
 import { AdBlock } from "@/components/ui/AdBlock";
+import type { HeroPost } from "@/components/ui/HeroSection";
 
 /* ============================================================
    TYPES
@@ -46,6 +48,9 @@ interface StoriesArchiveClientProps {
   heroTitle: string;
   heroSubtitle: string;
   heroImage?: string;
+  heroType?: "image" | "video" | "post";
+  videoUrl?: string;
+  heroPost?: HeroPost | null;
   showTabs?: boolean;
   currentFilters: {
     category?: string;
@@ -84,6 +89,9 @@ export function StoriesArchiveClient({
   heroTitle,
   heroSubtitle,
   heroImage,
+  heroType = "image",
+  videoUrl,
+  heroPost,
   showTabs = false,
   currentFilters,
 }: StoriesArchiveClientProps) {
@@ -182,30 +190,47 @@ export function StoriesArchiveClient({
   return (
     <>
       {/* ========== HERO ========== */}
-      <section className="relative w-full h-[180px] md:h-[220px] overflow-hidden">
-        <Image
-          src={heroImage || PH_HERO}
-          alt={heroTitle}
-          fill
-          unoptimized
-          priority
-          className="object-cover"
-        />
-        <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/40 to-black/20" />
-        <div className="absolute inset-0 flex items-end">
-          <div className="site-container pb-8 md:pb-10">
-            <span className="text-[#e6c46d] text-[11px] font-semibold uppercase tracking-[0.15em] mb-2 block">
-              {contentType === "news" ? "Atlanta News" : contentType === "guide" ? "Local Knowledge" : "Stories"}
-            </span>
-            <h1 className="font-display text-3xl md:text-4xl lg:text-5xl font-semibold text-white leading-[1.05]">
-              {heroTitle}
-            </h1>
-            <p className="text-white/60 text-sm mt-2 max-w-lg">
-              {heroSubtitle}
-            </p>
-          </div>
-        </div>
-      </section>
+      {(() => {
+        const effectiveType = heroType === "video" && videoUrl ? "video" : heroType === "post" && heroPost ? "post" : "image";
+        const bgSrc = effectiveType === "post" ? (heroPost?.featured_image_url ?? PH_HERO) : (heroImage ?? PH_HERO);
+        const heroContent = (
+          <section className={`relative w-full h-[180px] md:h-[220px] overflow-hidden ${effectiveType === "post" ? "cursor-pointer group" : ""}`}>
+            {effectiveType === "video" && videoUrl ? (
+              <video src={videoUrl} autoPlay muted loop playsInline className="absolute inset-0 w-full h-full object-cover" />
+            ) : (
+              <Image src={bgSrc} alt={effectiveType === "post" ? (heroPost?.title ?? heroTitle) : heroTitle} fill unoptimized priority className={`object-cover ${effectiveType === "post" ? "transition-transform duration-700 group-hover:scale-105" : ""}`} />
+            )}
+            <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/40 to-black/20" />
+            <div className="absolute inset-0 flex items-end">
+              <div className="site-container pb-8 md:pb-10">
+                {effectiveType === "post" && heroPost ? (
+                  <>
+                    {heroPost.category && (
+                      <span className="inline-block bg-[#c1121f] text-white text-[10px] font-semibold uppercase tracking-[0.12em] px-2 py-0.5 mb-2">{heroPost.category}</span>
+                    )}
+                    <h1 className="font-display text-3xl md:text-4xl lg:text-5xl font-semibold text-white leading-[1.05]">{heroPost.title}</h1>
+                    {(heroPost.author || heroPost.published_at) && (
+                      <p className="text-white/70 text-xs mt-1">
+                        {heroPost.author ? `BY ${heroPost.author.toUpperCase()}` : ""}{heroPost.author && heroPost.published_at ? " · " : ""}{heroPost.published_at ? new Date(heroPost.published_at).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" }) : ""}
+                      </p>
+                    )}
+                    <p className="text-white/70 text-sm mt-1">Read Story →</p>
+                  </>
+                ) : (
+                  <>
+                    <span className="text-[#e6c46d] text-[11px] font-semibold uppercase tracking-[0.15em] mb-2 block">
+                      {contentType === "news" ? "Atlanta News" : contentType === "guide" ? "Local Knowledge" : "Stories"}
+                    </span>
+                    <h1 className="font-display text-3xl md:text-4xl lg:text-5xl font-semibold text-white leading-[1.05]">{heroTitle}</h1>
+                    <p className="text-white/60 text-sm mt-2 max-w-lg">{heroSubtitle}</p>
+                  </>
+                )}
+              </div>
+            </div>
+          </section>
+        );
+        return effectiveType === "post" && heroPost ? <Link href={`/stories/${heroPost.slug}`}>{heroContent}</Link> : heroContent;
+      })()}
 
       {/* ========== TABS + FILTER BAR ========== */}
       <section className="site-container py-8 md:py-10">

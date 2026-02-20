@@ -47,5 +47,11 @@ export function createServiceRoleClient() {
   );
 }
 
-/* --- Default export for quick imports --- */
-export const supabase = createServerClient();
+/* --- Default export for quick imports (lazy to avoid build-time env errors) --- */
+let _defaultClient: ReturnType<typeof createServerClient> | null = null;
+export const supabase = new Proxy({} as ReturnType<typeof createServerClient>, {
+  get(_target, prop) {
+    if (!_defaultClient) _defaultClient = createServerClient();
+    return (_defaultClient as unknown as Record<string | symbol, unknown>)[prop];
+  },
+});
