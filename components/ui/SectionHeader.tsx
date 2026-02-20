@@ -24,7 +24,7 @@ export function SectionHeader({
     >
       <div>
         {eyebrow && (
-          <span className="text-[11px] font-semibold uppercase tracking-[0.1em] text-red-brand">
+          <span className="inline-block bg-[#fee198] text-[#1a1a1a] text-xs font-bold uppercase tracking-wider px-3 py-1 rounded-full">
             {eyebrow}
           </span>
         )}

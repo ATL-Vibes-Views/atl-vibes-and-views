@@ -412,6 +412,7 @@ export interface MediaItem {
   media_type: "video" | "audio" | "podcast" | "short";
   source_type: "embed" | "asset";
   embed_url: string | null;
+  thumbnail_url: string | null;
   status: string;
   published_at: string | null;
   is_featured: boolean;
