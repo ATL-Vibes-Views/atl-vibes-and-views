@@ -26,7 +26,7 @@ const TABS = [
 
 /* Page groups shown in the Page Images tab */
 const PAGE_GROUPS = [
-  { key: "home", label: "Homepage" },
+  { key: "homepage", label: "Homepage" },
   { key: "stories", label: "Stories" },
   { key: "city_watch", label: "City Watch" },
   { key: "hub_atlanta_guide", label: "Atlanta Guide" },
@@ -40,6 +40,14 @@ const PAGE_GROUPS = [
   { key: "media_page", label: "Media" },
   { key: "newsletters", label: "Newsletters" },
   { key: "newsletters_archive", label: "Newsletter Archive" },
+  { key: "about", label: "About" },
+  { key: "contact", label: "Contact" },
+  { key: "partner", label: "Partner — Main" },
+  { key: "partner_about", label: "Partner — About" },
+  { key: "partner_editorial", label: "Partner — Editorial" },
+  { key: "partner_marketing", label: "Partner — Marketing" },
+  { key: "partner_events", label: "Partner — Events" },
+  { key: "partner_contact", label: "Partner — Contact" },
 ];
 
 type SiteSetting = Record<string, unknown>;
