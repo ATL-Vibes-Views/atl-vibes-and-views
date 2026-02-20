@@ -161,6 +161,8 @@ export function BusinessForm({
 }: BusinessFormProps) {
   const streetAddressRef = useRef<HTMLInputElement>(null);
   const autocompleteRef = useRef<any>(null);
+  const dataRef = useRef(data);
+  useEffect(() => { dataRef.current = data; });
 
   const update = <K extends keyof BusinessFormData>(
     key: K,
@@ -197,14 +199,18 @@ export function BusinessForm({
           if (t.includes("postal_code")) zip = comp.long_name;
         }
         const street = streetNumber && route ? `${streetNumber} ${route}` : (place.formatted_address ?? "");
-        onChange({ ...data, street_address: street, city_text: city, state, zip_code: zip, latitude: lat, longitude: lng });
+        const locationFields = { street_address: street, city_text: city, state, zip_code: zip, latitude: lat, longitude: lng };
+        onChange({ ...dataRef.current, ...locationFields });
         /* 3D: neighborhood lookup via Supabase RPC */
         if (lat !== null && lng !== null) {
           import("@/lib/supabase").then(({ createBrowserClient }) => {
             const sb = createBrowserClient() as any;
             sb.rpc("find_neighborhood_by_point", { p_lat: lat, p_lng: lng })
               .then(({ data: rows }: { data: any }) => {
-                if (rows?.length) onChange({ ...data, street_address: street, city_text: city, state, zip_code: zip, latitude: lat, longitude: lng, neighborhood_id: rows[0].id });
+                if (rows?.length) {
+                  /* Use dataRef to avoid stale closure overwriting address fields */
+                  onChange({ ...dataRef.current, ...locationFields, neighborhood_id: rows[0].id });
+                }
               });
           }).catch(() => {});
         }
