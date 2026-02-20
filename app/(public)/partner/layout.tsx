@@ -1,3 +1,5 @@
+export const dynamic = "force-dynamic";
+
 import { PartnerHeader } from "@/components/partner/PartnerHeader";
 import { PartnerFooter } from "@/components/partner/PartnerFooter";
 import { MediaKitProvider } from "@/components/partner/MediaKitModal";
