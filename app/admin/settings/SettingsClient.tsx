@@ -56,7 +56,7 @@ function getVal(settings: SiteSetting[], key: string): string {
 
 export function SettingsClient({ initialSettings }: SettingsClientProps) {
   const [activeTab, setActiveTab] = useState("general");
-  const [settings] = useState<SiteSetting[]>(initialSettings);
+  const [settings, setSettings] = useState<SiteSetting[]>(initialSettings);
   const [saving, setSaving] = useState(false);
   const [activeGroup, setActiveGroup] = useState<string | null>(null);
   const [saveSuccess, setSaveSuccess] = useState(false);
@@ -154,11 +154,23 @@ export function SettingsClient({ initialSettings }: SettingsClientProps) {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ updates }),
       });
+      setSettings((prev) =>
+        prev.map((s) => {
+          const match = updates.find((u) => u.id === s.id);
+          if (!match) return s;
+          return {
+            ...s,
+            value_text: (match.value_text as string) ?? s.value_text,
+            value_media_id: (match.value_media_id as string) ?? s.value_media_id,
+            value_post_id: (match.value_post_id as string) ?? s.value_post_id,
+          };
+        })
+      );
     }
     setSaving(false);
     setSaveSuccess(true);
     setTimeout(() => { setSaveSuccess(false); closeModal(); }, 1000);
-  }, [activeGroup, settings, heroTypes, heroMedia, heroPosts, heroFallbacks]);
+  }, [activeGroup, settings, setSettings, heroTypes, heroMedia, heroPosts, heroFallbacks]);
 
   return (
     <>
