@@ -35,11 +35,11 @@ import type {
   NewsletterPost,
 } from "./types";
 
-/* Module-level singleton — reuse one client per serverless invocation
-   instead of creating a fresh TCP+TLS connection per query call.
-   This prevents connection exhaustion on Vercel cold starts. */
-const _sb = createServerClient();
+/* Module-level singleton — lazy so env vars are available at call time,
+   not at module evaluation (prevents build-time "supabaseKey is required" crash). */
+let _sb: ReturnType<typeof createServerClient> | null = null;
 function sb() {
+  if (!_sb) _sb = createServerClient();
   return _sb;
 }
 
