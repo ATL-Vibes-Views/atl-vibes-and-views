@@ -22,28 +22,30 @@ export default async function DashboardLayout({
   const owner = getMockBusinessOwner();
   const supabase = createServerClient();
 
-  const { data: business } = (await supabase
-    .from("business_listings")
-    .select("business_name, slug, status, tier, is_founding_member")
-    .eq("id", owner.business_id!)
-    .single()) as {
-    data: {
-      business_name: string;
-      slug: string;
-      status: string;
-      tier: string;
-      is_founding_member: boolean;
-    } | null;
-  };
+  type BusinessRow = { business_name: string; slug: string; status: string; tier: string; is_founding_member: boolean };
+  type SponsorRow = { is_active: boolean };
 
-  const { data: sponsor } = (await supabase
-    .from("sponsors")
-    .select("is_active")
-    .eq("business_id", owner.business_id!)
-    .eq("is_active", true)
-    .maybeSingle()) as {
-    data: { is_active: boolean } | null;
-  };
+  let business: BusinessRow | null = null;
+  let sponsor: SponsorRow | null = null;
+
+  try {
+    const { data: b } = await supabase
+      .from("business_listings")
+      .select("business_name, slug, status, tier, is_founding_member")
+      .eq("id", owner.business_id!)
+      .single();
+    business = b as BusinessRow | null;
+
+    const { data: s } = await supabase
+      .from("sponsors")
+      .select("is_active")
+      .eq("business_id", owner.business_id!)
+      .eq("is_active", true)
+      .maybeSingle();
+    sponsor = s as SponsorRow | null;
+  } catch {
+    // Supabase unreachable — render layout with empty state
+  }
 
   const state = getBusinessState(business, sponsor);
   const listingSlug = business?.slug ?? "";

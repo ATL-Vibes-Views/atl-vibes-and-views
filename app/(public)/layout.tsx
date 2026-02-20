@@ -9,7 +9,7 @@ export default async function PublicLayout({
 }: {
   children: React.ReactNode;
 }) {
-  const exploreData = await getNeighborhoodsGrouped();
+  const exploreData = await getNeighborhoodsGrouped().catch(() => []);
 
   return (
     <>
