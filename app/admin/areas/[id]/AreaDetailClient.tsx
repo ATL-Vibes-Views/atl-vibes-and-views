@@ -54,9 +54,11 @@ export function AreaDetailClient({ area, isNew, neighborhoods, cities }: AreaDet
 
   /* ── Hero tab state ── */
   const [heroContentType, setHeroContentType] = useState<"image" | "video" | "post">(field(area, "hero_content_type") as "image" | "video" | "post" || "image");
-  const [heroMedia, setHeroMedia] = useState<{ id: string; url: string } | null>(
-    field(area, "hero_media_id") ? { id: field(area, "hero_media_id"), url: field(area, "hero_image_url") ?? "" } : null
-  );
+  const [heroMedia, setHeroMedia] = useState<{ id: string; url: string } | null>(() => {
+    const mediaId = field(area, "hero_media_id");
+    const mediaUrl = field(area, "hero_image_url");
+    return mediaId && mediaUrl ? { id: mediaId, url: mediaUrl } : null;
+  });
   const [heroPost, setHeroPost] = useState<{ id: string; title: string } | null>(
     field(area, "hero_featured_post_id") ? { id: field(area, "hero_featured_post_id"), title: "Loading…" } : null
   );

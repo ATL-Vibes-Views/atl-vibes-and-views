@@ -72,9 +72,11 @@ export function NeighborhoodDetailClient({ neighborhood: n, businesses, stories,
 
   /* ── Hero tab state ── */
   const [heroContentType, setHeroContentType] = useState<"image" | "video" | "post">(field(n, "hero_content_type") as "image" | "video" | "post" || "image");
-  const [heroMedia, setHeroMedia] = useState<{ id: string; url: string } | null>(
-    field(n, "hero_media_id") ? { id: field(n, "hero_media_id"), url: field(n, "hero_image_url") ?? "" } : null
-  );
+  const [heroMedia, setHeroMedia] = useState<{ id: string; url: string } | null>(() => {
+    const mediaId = field(n, "hero_media_id");
+    const mediaUrl = field(n, "hero_image_url");
+    return mediaId && mediaUrl ? { id: mediaId, url: mediaUrl } : null;
+  });
   const [heroPost, setHeroPost] = useState<{ id: string; title: string } | null>(
     field(n, "hero_featured_post_id") ? { id: field(n, "hero_featured_post_id"), title: "Loading…" } : null
   );

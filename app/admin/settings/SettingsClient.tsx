@@ -70,7 +70,8 @@ export function SettingsClient({ initialSettings }: SettingsClientProps) {
     const init: Record<string, { id: string; url: string } | null> = {};
     PAGE_GROUPS.forEach(({ key }) => {
       const mediaId = getVal(initialSettings, `${key}_media_id`);
-      init[key] = mediaId ? { id: mediaId, url: "" } : null;
+      const mediaUrl = getVal(initialSettings, `${key}_video_url`) || getVal(initialSettings, `${key}_image_url`);
+      init[key] = mediaId && mediaUrl ? { id: mediaId, url: mediaUrl } : null;
     });
     return init;
   });
