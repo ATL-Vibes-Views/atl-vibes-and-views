@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useCallback, useEffect } from "react";
-import { ImageIcon, X } from "lucide-react";
+import { ImageIcon, X, Video } from "lucide-react";
 import { PortalTopbar } from "@/components/portal/PortalTopbar";
 import { TabNav } from "@/components/portal/TabNav";
 import { FormGroup } from "@/components/portal/FormGroup";
@@ -68,7 +68,9 @@ export function SettingsClient({ initialSettings }: SettingsClientProps) {
 
   /* Media cache — preloaded on mount so card thumbnails show current hero images */
   type MediaCacheEntry = { id: string; file_url: string; file_name: string; mime_type: string; title: string | null };
+  type PostCacheEntry = { id: string; title: string; featured_image_url: string | null };
   const [mediaCache, setMediaCache] = useState<Record<string, MediaCacheEntry>>({});
+  const [postCache, setPostCache] = useState<Record<string, PostCacheEntry>>({});
 
   useEffect(() => {
     const ids = settings
@@ -81,6 +83,21 @@ export function SettingsClient({ initialSettings }: SettingsClientProps) {
         const cache: Record<string, MediaCacheEntry> = {};
         assets.forEach((a) => (cache[a.id] = a));
         setMediaCache(cache);
+      })
+      .catch(() => {});
+  }, [settings]);
+
+  useEffect(() => {
+    const postIds = settings
+      .map((s) => s.value_post_id)
+      .filter(Boolean) as string[];
+    if (!postIds.length) return;
+    fetch(`/api/admin/posts?ids=${postIds.join(",")}`)
+      .then((r) => r.json())
+      .then((posts: PostCacheEntry[]) => {
+        const cache: Record<string, PostCacheEntry> = {};
+        posts.forEach((p) => (cache[p.id] = p));
+        setPostCache(cache);
       })
       .catch(() => {});
   }, [settings]);
@@ -240,25 +257,60 @@ export function SettingsClient({ initialSettings }: SettingsClientProps) {
             {/* 2-column card grid */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               {PAGE_GROUPS.map(({ key, label }) => {
-                const contentType = heroTypes[key] || null;
-                const mediaSetting = settings.find(
-                  (s) => s.key === `${key}_media_id`
-                );
-                const currentMedia = mediaSetting?.value_media_id
-                  ? mediaCache[mediaSetting.value_media_id as string] ?? null
-                  : null;
-                /* Also fall back to in-memory heroMedia url if picker was used this session */
-                const thumbUrl = currentMedia?.file_url ?? heroMedia[key]?.url ?? null;
-                const thumbLabel = currentMedia
-                  ? (currentMedia.title ?? currentMedia.file_name)
-                  : heroMedia[key]?.url?.split("/").pop() ?? null;
+                /* Resolve saved values from settings rows */
+                const contentTypeSetting = settings.find((s) => s.key === `${key}_content_type`);
+                const mediaSetting = settings.find((s) => s.key === `${key}_media_id`);
+                const postSetting = settings.find((s) => s.key === `${key}_featured_post_id`);
+
+                const savedType = (contentTypeSetting?.value_text as string) || null;
+                /* In-session edits take precedence over saved values */
+                const contentType = heroTypes[key] || savedType || null;
+
+                const savedMediaId = mediaSetting?.value_media_id as string | undefined;
+                const currentMedia = savedMediaId ? (mediaCache[savedMediaId] ?? null) : null;
+
+                const savedPostId = postSetting?.value_post_id as string | undefined;
+                const currentPost = savedPostId ? (postCache[savedPostId] ?? null) : null;
+
+                /* In-session picker selection overrides saved media */
+                const sessionMedia = heroMedia[key] ?? null;
+                const sessionPost = heroPosts[key] ?? null;
+
                 return (
                   <div key={key} className="bg-white border border-[#e5e5e5] p-4 flex gap-4 items-start">
                     {/* Thumbnail */}
                     <div className="w-24 h-16 shrink-0 bg-[#f5f5f5] border border-[#e5e5e5] overflow-hidden">
-                      {thumbUrl ? (
-                        <img src={thumbUrl} alt="" className="w-full h-full object-cover" />
+                      {contentType === "video" ? (
+                        /* Video — dark box with icon */
+                        <div className="w-full h-full bg-[#1a1a1a] flex flex-col items-center justify-center gap-1">
+                          <Video size={18} className="text-white/70" />
+                          {(currentMedia ?? sessionMedia) && (
+                            <span className="text-[9px] text-white/50 truncate px-1 max-w-full">
+                              {currentMedia?.file_name ?? sessionMedia?.url?.split("/").pop()}
+                            </span>
+                          )}
+                        </div>
+                      ) : contentType === "post" ? (
+                        /* Post — featured image or placeholder */
+                        (() => {
+                          const postThumb = currentPost?.featured_image_url ?? null;
+                          return postThumb ? (
+                            <img src={postThumb} alt="" className="w-full h-full object-cover" />
+                          ) : (
+                            <div className="w-full h-full flex items-center justify-center bg-[#f0f0f0]">
+                              <ImageIcon size={20} className="text-[#d1d1d1]" />
+                            </div>
+                          );
+                        })()
+                      ) : (currentMedia?.file_url ?? sessionMedia?.url) ? (
+                        /* Image */
+                        <img
+                          src={currentMedia?.file_url ?? sessionMedia?.url}
+                          alt=""
+                          className="w-full h-full object-cover"
+                        />
                       ) : (
+                        /* Not set */
                         <div className="w-full h-full flex items-center justify-center">
                           <ImageIcon size={20} className="text-[#d1d1d1]" />
                         </div>
@@ -269,13 +321,17 @@ export function SettingsClient({ initialSettings }: SettingsClientProps) {
                     <div className="flex-1 min-w-0">
                       <p className="font-semibold text-sm text-[#1a1a1a] leading-tight">{label}</p>
                       <div className="mt-1">
-                        {contentType && contentType !== "image" ? (
-                          <span className="text-xs px-2 py-0.5 rounded-full bg-[#f5f5f5] text-gray-500 capitalize">
-                            {contentType}
+                        {contentType === "post" ? (
+                          <span className="text-xs px-2 py-0.5 rounded-full bg-[#f5f5f5] text-gray-500">
+                            Featured Post
                           </span>
-                        ) : thumbUrl ? (
-                          <span className="text-xs px-2 py-0.5 rounded-full bg-[#f5f5f5] text-gray-500 capitalize">
-                            image
+                        ) : contentType === "video" ? (
+                          <span className="text-xs px-2 py-0.5 rounded-full bg-[#f5f5f5] text-gray-500">
+                            Video
+                          </span>
+                        ) : (currentMedia ?? sessionMedia) ? (
+                          <span className="text-xs px-2 py-0.5 rounded-full bg-[#f5f5f5] text-gray-500">
+                            Image
                           </span>
                         ) : (
                           <span className="text-xs px-2 py-0.5 rounded-full bg-[#fff3f3] text-[#c1121f]">
@@ -283,12 +339,15 @@ export function SettingsClient({ initialSettings }: SettingsClientProps) {
                           </span>
                         )}
                       </div>
-                      {thumbLabel && (
-                        <p className="text-xs text-gray-400 mt-1 truncate">{thumbLabel}</p>
-                      )}
-                      {contentType === "post" && heroPosts[key] && (
+                      {/* Subtitle */}
+                      {contentType === "post" && (currentPost ?? sessionPost) && (
                         <p className="text-xs text-gray-400 mt-1 truncate">
-                          {heroPosts[key]!.title}
+                          {currentPost?.title ?? sessionPost?.title}
+                        </p>
+                      )}
+                      {contentType !== "post" && (currentMedia ?? sessionMedia) && (
+                        <p className="text-xs text-gray-400 mt-1 truncate">
+                          {currentMedia ? (currentMedia.title ?? currentMedia.file_name) : sessionMedia?.url?.split("/").pop()}
                         </p>
                       )}
                     </div>
