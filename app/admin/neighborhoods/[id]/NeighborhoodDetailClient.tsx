@@ -19,6 +19,7 @@ import { StatCard } from "@/components/portal/StatCard";
 import { StatGrid } from "@/components/portal/StatGrid";
 import { AdminDataTable } from "@/components/portal/AdminDataTable";
 import { MediaPicker } from "@/components/admin/MediaPicker";
+import { PostPicker } from "@/components/admin/PostPicker";
 
 interface BusinessRow { id: string; business_name: string; status: string; tier: string }
 interface StoryRow { id: string; title: string; status: string; published_at: string | null }
@@ -72,9 +73,11 @@ export function NeighborhoodDetailClient({ neighborhood: n, businesses, stories,
   /* ── Hero tab state ── */
   const [heroContentType, setHeroContentType] = useState<"image" | "video" | "post">(field(n, "hero_content_type") as "image" | "video" | "post" || "image");
   const [heroMedia, setHeroMedia] = useState<{ id: string; url: string } | null>(
-    field(n, "hero_media_id") ? { id: field(n, "hero_media_id"), url: field(n, "hero_image_url") } : null
+    field(n, "hero_media_id") ? { id: field(n, "hero_media_id"), url: field(n, "hero_image_url") ?? "" } : null
   );
-  const [heroPostId, setHeroPostId] = useState(field(n, "hero_featured_post_id"));
+  const [heroPost, setHeroPost] = useState<{ id: string; title: string } | null>(
+    field(n, "hero_featured_post_id") ? { id: field(n, "hero_featured_post_id"), title: "Loading…" } : null
+  );
   const [heroFallbackUrl, setHeroFallbackUrl] = useState(field(n, "hero_image_url"));
 
   const handleSaveHero = useCallback(async () => {
@@ -83,13 +86,13 @@ export function NeighborhoodDetailClient({ neighborhood: n, businesses, stories,
     const result = await updateNeighborhood(nId, {
       hero_content_type: heroContentType,
       hero_media_id: heroMedia?.id || null,
-      hero_featured_post_id: heroPostId || null,
+      hero_featured_post_id: heroPost?.id || null,
       hero_image_url: heroFallbackUrl || null,
     });
     setSaving(false);
     if ("error" in result && result.error) { alert("Error: " + result.error); return; }
     router.refresh();
-  }, [nId, heroContentType, heroMedia, heroPostId, heroFallbackUrl, router]);
+  }, [nId, heroContentType, heroMedia, heroPost, heroFallbackUrl, router]);
 
   const handleToggle = useCallback(async (fieldName: string, currentValue: boolean) => {
     if (!nId) return;
@@ -169,12 +172,8 @@ export function NeighborhoodDetailClient({ neighborhood: n, businesses, stories,
             )}
 
             {heroContentType === "post" && (
-              <FormGroup label="Featured Post ID">
-                <FormInput
-                  value={heroPostId}
-                  onChange={(e) => setHeroPostId(e.target.value)}
-                  placeholder="blog post UUID"
-                />
+              <FormGroup label="Featured Post">
+                <PostPicker value={heroPost} onChange={setHeroPost} />
               </FormGroup>
             )}
 

@@ -17,6 +17,7 @@ import { ToggleSwitch } from "@/components/portal/ToggleSwitch";
 import { ButtonBar } from "@/components/portal/ButtonBar";
 import { AdminDataTable } from "@/components/portal/AdminDataTable";
 import { MediaPicker } from "@/components/admin/MediaPicker";
+import { PostPicker } from "@/components/admin/PostPicker";
 
 interface NeighborhoodRow { id: string; name: string; slug: string; is_active: boolean }
 
@@ -54,9 +55,11 @@ export function AreaDetailClient({ area, isNew, neighborhoods, cities }: AreaDet
   /* ── Hero tab state ── */
   const [heroContentType, setHeroContentType] = useState<"image" | "video" | "post">(field(area, "hero_content_type") as "image" | "video" | "post" || "image");
   const [heroMedia, setHeroMedia] = useState<{ id: string; url: string } | null>(
-    field(area, "hero_media_id") ? { id: field(area, "hero_media_id"), url: field(area, "hero_image_url") } : null
+    field(area, "hero_media_id") ? { id: field(area, "hero_media_id"), url: field(area, "hero_image_url") ?? "" } : null
   );
-  const [heroPostId, setHeroPostId] = useState(field(area, "hero_featured_post_id"));
+  const [heroPost, setHeroPost] = useState<{ id: string; title: string } | null>(
+    field(area, "hero_featured_post_id") ? { id: field(area, "hero_featured_post_id"), title: "Loading…" } : null
+  );
   const [heroFallbackUrl, setHeroFallbackUrl] = useState(field(area, "hero_image_url"));
 
   const handleSaveHero = useCallback(async () => {
@@ -65,13 +68,13 @@ export function AreaDetailClient({ area, isNew, neighborhoods, cities }: AreaDet
     const result = await updateArea(areaId, {
       hero_content_type: heroContentType,
       hero_media_id: heroMedia?.id || null,
-      hero_featured_post_id: heroPostId || null,
+      hero_featured_post_id: heroPost?.id || null,
       hero_image_url: heroFallbackUrl || null,
     });
     setSaving(false);
     if ("error" in result && result.error) { alert("Error: " + result.error); return; }
     router.refresh();
-  }, [areaId, heroContentType, heroMedia, heroPostId, heroFallbackUrl, router]);
+  }, [areaId, heroContentType, heroMedia, heroPost, heroFallbackUrl, router]);
 
   const handleToggle = useCallback(async (fieldName: string, currentValue: boolean) => {
     if (!areaId) return;
@@ -181,12 +184,8 @@ export function AreaDetailClient({ area, isNew, neighborhoods, cities }: AreaDet
             )}
 
             {heroContentType === "post" && (
-              <FormGroup label="Featured Post ID">
-                <FormInput
-                  value={heroPostId}
-                  onChange={(e) => setHeroPostId(e.target.value)}
-                  placeholder="blog post UUID"
-                />
+              <FormGroup label="Featured Post">
+                <PostPicker value={heroPost} onChange={setHeroPost} />
               </FormGroup>
             )}
 

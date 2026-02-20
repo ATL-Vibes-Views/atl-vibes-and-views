@@ -10,6 +10,7 @@ import { FormSelect } from "@/components/portal/FormSelect";
 import { ToggleSwitch } from "@/components/portal/ToggleSwitch";
 import { ButtonBar } from "@/components/portal/ButtonBar";
 import { MediaPicker } from "@/components/admin/MediaPicker";
+import { PostPicker } from "@/components/admin/PostPicker";
 
 /* ============================================================
    SETTINGS — 4 tabs: General, SEO, Integrations, Page Images
@@ -69,15 +70,15 @@ export function SettingsClient({ initialSettings }: SettingsClientProps) {
     const init: Record<string, { id: string; url: string } | null> = {};
     PAGE_GROUPS.forEach(({ key }) => {
       const mediaId = getVal(initialSettings, `${key}_media_id`);
-      const mediaUrl = getVal(initialSettings, `${key}_video_url`) || "";
-      init[key] = mediaId ? { id: mediaId, url: mediaUrl } : null;
+      init[key] = mediaId ? { id: mediaId, url: "" } : null;
     });
     return init;
   });
-  const [heroPostIds, setHeroPostIds] = useState<Record<string, string>>(() => {
-    const init: Record<string, string> = {};
+  const [heroPosts, setHeroPosts] = useState<Record<string, { id: string; title: string } | null>>(() => {
+    const init: Record<string, { id: string; title: string } | null> = {};
     PAGE_GROUPS.forEach(({ key }) => {
-      init[key] = getVal(initialSettings, `${key}_featured_post_id`);
+      const postId = getVal(initialSettings, `${key}_featured_post_id`);
+      init[key] = postId ? { id: postId, title: "Loading…" } : null;
     });
     return init;
   });
@@ -99,7 +100,7 @@ export function SettingsClient({ initialSettings }: SettingsClientProps) {
       const urlRow = settings.find((s) => s.key === `${key}_video_url`);
       if (typeRow) updates.push({ id: typeRow.id, value_text: heroTypes[key] ?? "image" });
       if (mediaRow) updates.push({ id: mediaRow.id, value_media_id: heroMedia[key]?.id ?? null });
-      if (postRow) updates.push({ id: postRow.id, value_post_id: heroPostIds[key] ?? null });
+      if (postRow) updates.push({ id: postRow.id, value_post_id: heroPosts[key]?.id ?? null });
       if (urlRow) updates.push({ id: urlRow.id, value_text: heroFallbacks[key] ?? null });
     });
     if (updates.length === 0) { setSaving(false); return; }
@@ -109,7 +110,7 @@ export function SettingsClient({ initialSettings }: SettingsClientProps) {
       body: JSON.stringify({ updates }),
     });
     setSaving(false);
-  }, [settings, heroTypes, heroMedia, heroPostIds, heroFallbacks]);
+  }, [settings, heroTypes, heroMedia, heroPosts, heroFallbacks]);
 
   return (
     <>
@@ -242,11 +243,10 @@ export function SettingsClient({ initialSettings }: SettingsClientProps) {
                   )}
 
                   {hType === "post" && (
-                    <FormGroup label="Featured Post ID">
-                      <FormInput
-                        value={heroPostIds[key] ?? ""}
-                        onChange={(e) => setHeroPostIds((prev) => ({ ...prev, [key]: e.target.value }))}
-                        placeholder="blog post UUID"
+                    <FormGroup label="Featured Post">
+                      <PostPicker
+                        value={heroPosts[key] ?? null}
+                        onChange={(post) => setHeroPosts((prev) => ({ ...prev, [key]: post }))}
                       />
                     </FormGroup>
                   )}
