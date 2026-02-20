@@ -28,8 +28,14 @@ export function createServerClient() {
 let browserClient: ReturnType<typeof createClient<Database>> | null = null;
 
 export function createBrowserClient() {
+  if (typeof window === "undefined") return createClient<Database>(supabaseUrl, supabaseAnonKey);
   if (!browserClient) {
-    browserClient = createClient<Database>(supabaseUrl, supabaseAnonKey);
+    browserClient = createClient<Database>(supabaseUrl, supabaseAnonKey, {
+      auth: {
+        storageKey: "avv-auth",
+        persistSession: true,
+      },
+    });
   }
   return browserClient;
 }
