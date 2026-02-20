@@ -166,6 +166,17 @@ export function SettingsClient({ initialSettings }: SettingsClientProps) {
           };
         })
       );
+      const savedPost = heroPosts[key];
+      if (heroTypes[key] === "post" && savedPost?.id) {
+        fetch(`/api/admin/posts?ids=${savedPost.id}`)
+          .then((r) => r.json())
+          .then((posts: { id: string; title: string; featured_image_url: string | null }[]) => {
+            if (posts.length > 0) {
+              setPostCache((prev) => ({ ...prev, [posts[0].id]: posts[0] }));
+            }
+          })
+          .catch(() => {});
+      }
     }
     setSaving(false);
     setSaveSuccess(true);
