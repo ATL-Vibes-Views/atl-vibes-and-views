@@ -20,6 +20,7 @@ interface MediaClientItem {
   description: string | null;
   media_type: string;
   embed_url: string | null;
+  thumbnail_url: string | null;
   published_at: string | null;
   is_featured: boolean;
 }
@@ -51,6 +52,7 @@ function getThumbnail(item: MediaClientItem): string {
     const ytId = extractYouTubeId(item.embed_url);
     if (ytId) return `https://img.youtube.com/vi/${ytId}/hqdefault.jpg`;
   }
+  if (item.thumbnail_url) return item.thumbnail_url;
   return item.media_type === "podcast" ? PH_PODCAST : PH_VIDEO;
 }
 

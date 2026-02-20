@@ -73,6 +73,7 @@ export default async function MediaPage({
             description: m.description,
             media_type: m.media_type,
             embed_url: m.embed_url,
+            thumbnail_url: m.thumbnail_url,
             published_at: m.published_at,
             is_featured: m.is_featured,
           }))}
