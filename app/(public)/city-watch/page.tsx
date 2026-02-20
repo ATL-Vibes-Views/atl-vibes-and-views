@@ -13,6 +13,8 @@ import type { BlogPostFull } from "@/lib/types";
    News archive: development, transit, policy, openings, breaking news
    ============================================================ */
 
+export const dynamic = "force-dynamic";
+
 export const metadata: Metadata = {
   title: "City Watch — Atlanta News & Development",
   description:

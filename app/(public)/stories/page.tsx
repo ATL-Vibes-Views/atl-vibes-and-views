@@ -13,6 +13,8 @@ import type { BlogPostFull } from "@/lib/types";
    Master blog archive: all content types (news + guides)
    ============================================================ */
 
+export const dynamic = "force-dynamic";
+
 export const metadata: Metadata = {
   title: "Stories — Atlanta News, Guides & Culture",
   description:

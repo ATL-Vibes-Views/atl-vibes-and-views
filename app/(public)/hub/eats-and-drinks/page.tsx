@@ -20,6 +20,8 @@ import {
 import { HubArchiveClient } from "@/components/HubArchiveClient";
 import type { HubArchiveConfig } from "@/components/HubArchiveClient";
 
+export const dynamic = "force-dynamic";
+
 export const metadata: Metadata = {
   title: "Eats & Drinks — Dining in Atlanta",
   description:

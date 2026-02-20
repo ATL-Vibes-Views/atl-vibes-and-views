@@ -10,6 +10,8 @@ import { getNewsletters } from "@/lib/queries";
    Past editions of the ATL Vibes & Views newsletter
    ============================================================ */
 
+export const dynamic = "force-dynamic";
+
 export const metadata: Metadata = {
   title: "Newsletter Archive — ATL Vibes & Views",
   description:

@@ -17,7 +17,7 @@ import type { Metadata } from "next";
    This file handles data-fetching only.
    ============================================================ */
 
-export const revalidate = 3600; // ISR: regenerate every hour
+export const dynamic = "force-dynamic";
 
 export const metadata: Metadata = {
   title: "Beyond ATL — Explore Cities Outside Atlanta | ATL Vibes & Views",

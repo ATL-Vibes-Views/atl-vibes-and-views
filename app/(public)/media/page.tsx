@@ -12,6 +12,8 @@ import { MediaLandingClient } from "./MediaLandingClient";
    Podcast episodes, video features, and short-form content
    ============================================================ */
 
+export const dynamic = "force-dynamic";
+
 export const metadata: Metadata = {
   title: "Media — Watch & Listen | ATL Vibes & Views",
   description:

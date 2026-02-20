@@ -10,6 +10,8 @@ import {
   getNeighborhoodsByPopularity,
 } from "@/lib/queries";
 
+export const dynamic = "force-dynamic";
+
 export const metadata: Metadata = {
   title: "Events in Atlanta",
   description:

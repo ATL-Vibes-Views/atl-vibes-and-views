@@ -23,6 +23,8 @@ import {
 } from "@/lib/queries";
 import type { Metadata } from "next";
 
+export const dynamic = "force-dynamic";
+
 /* ============================================================
    NEIGHBORHOOD LANDING PAGE — /neighborhoods — Server Component
 

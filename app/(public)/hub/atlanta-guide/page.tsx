@@ -13,6 +13,8 @@ import type { BlogPostFull } from "@/lib/types";
    Evergreen guides: neighborhood spotlights, best-of lists, local knowledge
    ============================================================ */
 
+export const dynamic = "force-dynamic";
+
 export const metadata: Metadata = {
   title: "Atlanta Guide — Best of ATL, Neighborhood Guides & More",
   description:

@@ -26,6 +26,8 @@ import {
   getMediaItems,
 } from "@/lib/queries";
 
+export const dynamic = "force-dynamic";
+
 export const metadata: Metadata = {
   title: "ATL Vibes & Views — The City. The Culture. The Conversation.",
   description:

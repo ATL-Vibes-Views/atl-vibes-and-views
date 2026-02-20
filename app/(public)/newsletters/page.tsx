@@ -20,6 +20,8 @@ import type { NewsletterCardData } from "@/components/newsletter/NewsletterCard"
    Ad Divider → Past Editions / Cross-promo (full-width grid)
    ============================================================ */
 
+export const dynamic = "force-dynamic";
+
 export const metadata: Metadata = {
   title: "Newsletter Archive — ATL Vibes & Views",
   description:

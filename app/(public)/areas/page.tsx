@@ -20,7 +20,7 @@ import type { Metadata } from "next";
    DO NOT TOUCH: app/page.tsx, app/areas/[slug]/page.tsx, components/Sidebar.tsx
    ============================================================ */
 
-export const revalidate = 3600; // ISR: regenerate every hour
+export const dynamic = "force-dynamic";
 
 /* ============================================================
    METADATA — from content_index or safe defaults
