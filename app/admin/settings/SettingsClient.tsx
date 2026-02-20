@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useCallback } from "react";
+import { useState, useCallback, useEffect } from "react";
 import { ImageIcon, X } from "lucide-react";
 import { PortalTopbar } from "@/components/portal/PortalTopbar";
 import { TabNav } from "@/components/portal/TabNav";
@@ -65,6 +65,25 @@ export function SettingsClient({ initialSettings }: SettingsClientProps) {
   function closeModal() { setActiveGroup(null); setSaveSuccess(false); }
 
   const activeGroupLabel = PAGE_GROUPS.find((g) => g.key === activeGroup)?.label ?? "";
+
+  /* Media cache — preloaded on mount so card thumbnails show current hero images */
+  type MediaCacheEntry = { id: string; file_url: string; file_name: string; mime_type: string; title: string | null };
+  const [mediaCache, setMediaCache] = useState<Record<string, MediaCacheEntry>>({});
+
+  useEffect(() => {
+    const ids = settings
+      .map((s) => s.value_media_id)
+      .filter(Boolean) as string[];
+    if (!ids.length) return;
+    fetch(`/api/admin/media-assets?ids=${ids.join(",")}`)
+      .then((r) => r.json())
+      .then((assets: MediaCacheEntry[]) => {
+        const cache: Record<string, MediaCacheEntry> = {};
+        assets.forEach((a) => (cache[a.id] = a));
+        setMediaCache(cache);
+      })
+      .catch(() => {});
+  }, [settings]);
 
   /* Per-group hero state — keyed by group key */
   const [heroTypes, setHeroTypes] = useState<Record<string, string>>(() => {
@@ -222,13 +241,23 @@ export function SettingsClient({ initialSettings }: SettingsClientProps) {
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               {PAGE_GROUPS.map(({ key, label }) => {
                 const contentType = heroTypes[key] || null;
-                const media = heroMedia[key] ?? null;
+                const mediaSetting = settings.find(
+                  (s) => s.key === `${key}_media_id`
+                );
+                const currentMedia = mediaSetting?.value_media_id
+                  ? mediaCache[mediaSetting.value_media_id as string] ?? null
+                  : null;
+                /* Also fall back to in-memory heroMedia url if picker was used this session */
+                const thumbUrl = currentMedia?.file_url ?? heroMedia[key]?.url ?? null;
+                const thumbLabel = currentMedia
+                  ? (currentMedia.title ?? currentMedia.file_name)
+                  : heroMedia[key]?.url?.split("/").pop() ?? null;
                 return (
                   <div key={key} className="bg-white border border-[#e5e5e5] p-4 flex gap-4 items-start">
                     {/* Thumbnail */}
                     <div className="w-24 h-16 shrink-0 bg-[#f5f5f5] border border-[#e5e5e5] overflow-hidden">
-                      {media?.url ? (
-                        <img src={media.url} alt="" className="w-full h-full object-cover" />
+                      {thumbUrl ? (
+                        <img src={thumbUrl} alt="" className="w-full h-full object-cover" />
                       ) : (
                         <div className="w-full h-full flex items-center justify-center">
                           <ImageIcon size={20} className="text-[#d1d1d1]" />
@@ -244,7 +273,7 @@ export function SettingsClient({ initialSettings }: SettingsClientProps) {
                           <span className="text-xs px-2 py-0.5 rounded-full bg-[#f5f5f5] text-gray-500 capitalize">
                             {contentType}
                           </span>
-                        ) : media ? (
+                        ) : thumbUrl ? (
                           <span className="text-xs px-2 py-0.5 rounded-full bg-[#f5f5f5] text-gray-500 capitalize">
                             image
                           </span>
@@ -254,10 +283,8 @@ export function SettingsClient({ initialSettings }: SettingsClientProps) {
                           </span>
                         )}
                       </div>
-                      {media?.url && (
-                        <p className="text-xs text-gray-400 mt-1 truncate">
-                          {media.url.split("/").pop()}
-                        </p>
+                      {thumbLabel && (
+                        <p className="text-xs text-gray-400 mt-1 truncate">{thumbLabel}</p>
                       )}
                       {contentType === "post" && heroPosts[key] && (
                         <p className="text-xs text-gray-400 mt-1 truncate">
