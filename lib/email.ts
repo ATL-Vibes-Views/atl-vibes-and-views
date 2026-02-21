@@ -3,10 +3,11 @@
 const WEBHOOK_URL = process.env.MAKE_EMAIL_WEBHOOK_URL;
 
 interface WebhookPayload {
-  type: "confirmation" | "admin_alert";
+  type: "confirmation" | "admin_alert" | "approval";
   to_email: string;
   submitter_name: string;
   submission_type: string;
+  tier?: string;
 }
 
 /**
@@ -73,5 +74,25 @@ export async function sendAdminNotification(
     to_email: submitterEmail, // Make.com scenario handles routing to admin inbox
     submitter_name: submitterName,
     submission_type: submissionType,
+  });
+}
+
+/**
+ * Send an approval email to the submitter when their submission is approved.
+ *
+ * Failures are logged but never thrown.
+ */
+export async function sendApprovalEmail(
+  email: string,
+  name: string,
+  submissionType: string,
+  tier: string
+): Promise<void> {
+  await postToWebhook({
+    type: "approval",
+    to_email: email,
+    submitter_name: name,
+    submission_type: submissionType,
+    tier,
   });
 }

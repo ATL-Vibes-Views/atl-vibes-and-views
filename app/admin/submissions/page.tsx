@@ -15,7 +15,7 @@ export default async function SubmissionsPage() {
 
   const { data: submissions, error } = (await supabase
     .from("submissions")
-    .select("id, submission_type, submitter_name, submitter_email, status, tier, stripe_session_id, stripe_customer_id, created_at, updated_at, data")
+    .select("id, submission_type, submitter_name, submitter_email, status, tier, stripe_session_id, stripe_customer_id, created_record_id, created_at, updated_at, data")
     .order("created_at", { ascending: false })
   ) as {
     data: {
@@ -27,6 +27,7 @@ export default async function SubmissionsPage() {
       tier: string | null;
       stripe_session_id: string | null;
       stripe_customer_id: string | null;
+      created_record_id: string | null;
       created_at: string;
       updated_at: string;
       data: Record<string, unknown> | null;
