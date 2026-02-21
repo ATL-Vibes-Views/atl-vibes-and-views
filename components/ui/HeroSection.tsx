@@ -126,7 +126,7 @@ export function HeroSection({
           {effectiveType === "post" && heroPost ? (
             <>
               {heroPost.category && (
-                <span className="inline-block bg-[#c1121f] text-white text-[11px] font-semibold uppercase tracking-[0.12em] px-3 py-1 mb-4">
+                <span className="inline-block bg-[#fee198] text-[#1a1a1a] text-[11px] font-semibold uppercase tracking-[0.12em] px-3 py-1 mb-4">
                   {heroPost.category}
                 </span>
               )}
@@ -190,7 +190,7 @@ export function HeroSection({
             {effectiveType === "post" && heroPost ? (
               <>
                 {heroPost.category && (
-                  <span className="inline-block bg-[#c1121f] text-white text-[11px] font-semibold uppercase tracking-[0.12em] px-3 py-1 mb-4 self-start">
+                  <span className="inline-block bg-[#fee198] text-[#1a1a1a] text-[11px] font-semibold uppercase tracking-[0.12em] px-3 py-1 mb-4 self-start">
                     {heroPost.category}
                   </span>
                 )}
