@@ -178,7 +178,7 @@ export async function getBlogPostsWithNeighborhood(opts?: {
 }): Promise<BlogPostFull[]> {
   let q = sb()
     .from("blog_posts")
-    .select("*, authors(*), categories(*), neighborhoods(*, areas(*))")
+    .select("*, authors(*), categories(*), neighborhoods!blog_posts_neighborhood_id_fkey(*, areas(*))")
     .eq("status", "published")
     .order("published_at", { ascending: false });
 
@@ -202,7 +202,7 @@ export async function getBlogPostBySlugFull(
 ): Promise<BlogPostFull | null> {
   const { data, error } = await sb()
     .from("blog_posts")
-    .select("*, authors(*), categories(*), neighborhoods(*, areas(*))")
+    .select("*, authors(*), categories(*), neighborhoods!blog_posts_neighborhood_id_fkey(*, areas(*))")
     .eq("slug", slug)
     .eq("status", "published")
     .single();
