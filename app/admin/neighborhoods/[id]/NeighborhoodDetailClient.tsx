@@ -71,7 +71,7 @@ export function NeighborhoodDetailClient({ neighborhood: n, businesses, stories,
   const [saving, setSaving] = useState(false);
 
   /* ── Hero tab state ── */
-  const [heroContentType, setHeroContentType] = useState<"image" | "video" | "post">(field(n, "hero_content_type") as "image" | "video" | "post" || "image");
+  const [heroContentType, setHeroContentType] = useState<"image" | "video" | "featured_post">(field(n, "hero_content_type") as "image" | "video" | "featured_post" || "image");
   const [heroMedia, setHeroMedia] = useState<MediaAssetValue | null>(() => {
     const mediaId = field(n, "hero_media_id");
     const mediaUrl = field(n, "hero_image_url");
@@ -146,10 +146,10 @@ export function NeighborhoodDetailClient({ neighborhood: n, businesses, stories,
                 options={[
                   { value: "image", label: "Image" },
                   { value: "video", label: "Video" },
-                  { value: "post", label: "Featured Blog Post" },
+                  { value: "featured_post", label: "Featured Blog Post" },
                 ]}
                 value={heroContentType}
-                onChange={(e) => setHeroContentType(e.target.value as "image" | "video" | "post")}
+                onChange={(e) => setHeroContentType(e.target.value as "image" | "video" | "featured_post")}
               />
             </FormGroup>
 
@@ -173,7 +173,7 @@ export function NeighborhoodDetailClient({ neighborhood: n, businesses, stories,
               </FormGroup>
             )}
 
-            {heroContentType === "post" && (
+            {heroContentType === "featured_post" && (
               <FormGroup label="Featured Post">
                 <PostPicker value={heroPost} onChange={setHeroPost} />
               </FormGroup>

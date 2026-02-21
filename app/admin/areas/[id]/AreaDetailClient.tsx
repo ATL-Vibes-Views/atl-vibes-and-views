@@ -53,7 +53,7 @@ export function AreaDetailClient({ area, isNew, neighborhoods, cities }: AreaDet
   const [saving, setSaving] = useState(false);
 
   /* ── Hero tab state ── */
-  const [heroContentType, setHeroContentType] = useState<"image" | "video" | "post">(field(area, "hero_content_type") as "image" | "video" | "post" || "image");
+  const [heroContentType, setHeroContentType] = useState<"image" | "video" | "featured_post">(field(area, "hero_content_type") as "image" | "video" | "featured_post" || "image");
   const [heroMedia, setHeroMedia] = useState<MediaAssetValue | null>(() => {
     const mediaId = field(area, "hero_media_id");
     const mediaUrl = field(area, "hero_image_url");
@@ -158,10 +158,10 @@ export function AreaDetailClient({ area, isNew, neighborhoods, cities }: AreaDet
                 options={[
                   { value: "image", label: "Image" },
                   { value: "video", label: "Video" },
-                  { value: "post", label: "Featured Blog Post" },
+                  { value: "featured_post", label: "Featured Blog Post" },
                 ]}
                 value={heroContentType}
-                onChange={(e) => setHeroContentType(e.target.value as "image" | "video" | "post")}
+                onChange={(e) => setHeroContentType(e.target.value as "image" | "video" | "featured_post")}
               />
             </FormGroup>
 
@@ -185,7 +185,7 @@ export function AreaDetailClient({ area, isNew, neighborhoods, cities }: AreaDet
               </FormGroup>
             )}
 
-            {heroContentType === "post" && (
+            {heroContentType === "featured_post" && (
               <FormGroup label="Featured Post">
                 <PostPicker value={heroPost} onChange={setHeroPost} />
               </FormGroup>
