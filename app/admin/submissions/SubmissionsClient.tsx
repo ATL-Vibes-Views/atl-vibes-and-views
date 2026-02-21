@@ -23,6 +23,7 @@ interface SubmissionRow {
   tier: string | null;
   stripe_session_id: string | null;
   stripe_customer_id: string | null;
+  created_record_id: string | null;
   created_at: string;
   updated_at: string;
   data: Record<string, unknown> | null;
@@ -232,11 +233,77 @@ export function SubmissionsClient({ submissions }: { submissions: SubmissionRow[
                             </div>
                           </div>
                           {item.data && (
-                            <div>
-                              <span className="text-[11px] font-semibold uppercase tracking-[0.1em] text-gray-400 block mb-2">Submission Data</span>
-                              <pre className="text-[12px] bg-white border border-gray-200 rounded p-3 overflow-x-auto whitespace-pre-wrap break-all">
-                                {JSON.stringify(item.data, null, 2)}
-                              </pre>
+                            <div className="mt-4">
+                              <span className="text-[11px] font-semibold uppercase tracking-[0.1em] text-gray-400 block mb-3">
+                                Submission Details
+                              </span>
+                              <div className="grid grid-cols-2 gap-3">
+                                {Object.entries(item.data).map(([key, value]) => {
+                                  if (!value) return null;
+
+                                  if (typeof value === "string" && (key.includes("logo") || key.includes("image") || key.includes("photo")) && value.startsWith("http")) {
+                                    return (
+                                      <div key={key} className="col-span-2">
+                                        <span className="text-[11px] font-semibold uppercase tracking-[0.1em] text-gray-400 block mb-1">
+                                          {key.replace(/_/g, " ")}
+                                        </span>
+                                        <img src={value} alt={key} className="h-32 object-cover rounded border border-gray-200" />
+                                      </div>
+                                    );
+                                  }
+
+                                  if (key === "photo_urls" && Array.isArray(value)) {
+                                    return (
+                                      <div key={key} className="col-span-2">
+                                        <span className="text-[11px] font-semibold uppercase tracking-[0.1em] text-gray-400 block mb-1">Photos</span>
+                                        <div className="grid grid-cols-4 gap-2">
+                                          {(value as string[]).map((url, i) => (
+                                            <img key={i} src={url} alt="" className="h-24 w-full object-cover rounded border border-gray-200" />
+                                          ))}
+                                        </div>
+                                      </div>
+                                    );
+                                  }
+
+                                  if (Array.isArray(value) || typeof value === "object") return null;
+
+                                  return (
+                                    <div key={key}>
+                                      <span className="text-[11px] font-semibold uppercase tracking-[0.1em] text-gray-400 block">
+                                        {key.replace(/_/g, " ")}
+                                      </span>
+                                      <p className="text-[13px] text-gray-800 mt-0.5">
+                                        {typeof value === "boolean" ? (value ? "Yes" : "No") : String(value)}
+                                      </p>
+                                    </div>
+                                  );
+                                })}
+                              </div>
+
+                              <div className="mt-4 pt-4 border-t border-gray-200">
+                                <label className="text-[11px] font-semibold uppercase tracking-[0.1em] text-gray-400 block mb-1">
+                                  Reviewer Notes
+                                </label>
+                                <textarea
+                                  placeholder="Add notes..."
+                                  className="w-full text-[13px] border border-gray-200 rounded px-3 py-2 focus:outline-none focus:border-[#e6c46d]"
+                                  rows={2}
+                                />
+                              </div>
+
+                              {item.created_record_id && (
+                                <div className="mt-3">
+                                  <a
+                                    href={item.submission_type === "business"
+                                      ? `/admin/businesses/${item.created_record_id}`
+                                      : `/admin/events/${item.created_record_id}`}
+                                    className="text-[12px] text-[#c1121f] font-semibold hover:underline"
+                                    target="_blank"
+                                  >
+                                    View Created Record →
+                                  </a>
+                                </div>
+                              )}
                             </div>
                           )}
                         </td>

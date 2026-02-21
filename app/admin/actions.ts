@@ -2,6 +2,7 @@
 
 import { createServiceRoleClient } from "@/lib/supabase";
 import { revalidatePath } from "next/cache";
+import { sendApprovalEmail } from "@/lib/email";
 
 /* ============================================================
    ADMIN SERVER ACTIONS
@@ -421,6 +422,110 @@ export async function updateReviewStatus(id: string, status: string) {
 
 export async function updateSubmissionStatus(id: string, status: string) {
   const supabase = createServiceRoleClient();
+
+  if (status === "approved") {
+    const { data: submission } = await supabase
+      .from("submissions")
+      .select("*")
+      .eq("id", id)
+      .single() as { data: Record<string, unknown> | null };
+
+    if (submission) {
+      const data = submission.data as Record<string, unknown>;
+      const tier = ((submission.tier as string | null) ?? "free").toLowerCase();
+      let createdRecordId: string | null = null;
+
+      if (submission.submission_type === "business") {
+        const slug = slugify(data.business_name as string);
+        const { data: record } = await supabase
+          .from("business_listings")
+          .insert({
+            business_name: data.business_name,
+            slug,
+            street_address: data.street_address ?? "",
+            state: data.state ?? "GA",
+            zip_code: data.zip_code ?? "",
+            neighborhood_id: data.neighborhood_id ?? null,
+            city_id: data.city_id ?? null,
+            phone: data.phone ?? null,
+            description: data.description ?? null,
+            category_id: data.category_id ?? null,
+            logo_url: data.logo_url ?? null,
+            website: data.website ?? null,
+            instagram: data.instagram ?? null,
+            facebook: data.facebook ?? null,
+            tiktok: data.tiktok ?? null,
+            x_twitter: data.x_twitter ?? null,
+            video_url: data.video_url ?? null,
+            photo_urls: data.photo_urls ?? [],
+            special_offers: data.special_offers ?? null,
+            tagline: data.tagline ?? null,
+            tier,
+            status: "active",
+            is_featured: false,
+            featured_on_map: false,
+            display_identity_publicly: data.display_identity_publicly ?? false,
+            certified_diversity_program: data.certified_diversity_program ?? false,
+            tier_auto_downgraded: false,
+            map_pin_style: "default",
+            claimed: false,
+            claim_status: "unclaimed",
+          } as never)
+          .select("id")
+          .single() as { data: { id: string } | null };
+        createdRecordId = record?.id ?? null;
+      }
+
+      if (submission.submission_type === "event") {
+        const slug = slugify(data.title as string);
+        const { data: record } = await supabase
+          .from("events")
+          .insert({
+            title: data.title,
+            slug,
+            start_date: data.start_date,
+            description: data.description ?? null,
+            venue_name: data.venue_name ?? null,
+            neighborhood_id: data.neighborhood_id ?? null,
+            city_id: data.city_id ?? null,
+            logo_url: data.logo_url ?? null,
+            featured_image_url: data.featured_image_url ?? null,
+            photo_urls: data.photo_urls ?? [],
+            video_url: data.video_url ?? null,
+            is_free: data.is_free ?? true,
+            tier,
+            status: "active",
+            is_recurring: false,
+            is_featured: false,
+            featured_on_map: false,
+            is_comped: false,
+            payment_status: "none",
+          } as never)
+          .select("id")
+          .single() as { data: { id: string } | null };
+        createdRecordId = record?.id ?? null;
+      }
+
+      if (createdRecordId) {
+        await supabase
+          .from("submissions")
+          .update({ created_record_id: createdRecordId } as never)
+          .eq("id", id);
+      }
+
+      try {
+        await sendApprovalEmail(
+          submission.submitter_email as string,
+          submission.submitter_name as string,
+          submission.submission_type as string,
+          tier
+        );
+      } catch (e) {
+        console.error("Approval email failed:", e);
+      }
+    }
+  }
+
   const { error } = await supabase
     .from("submissions")
     .update({
@@ -429,8 +534,11 @@ export async function updateSubmissionStatus(id: string, status: string) {
       updated_at: new Date().toISOString(),
     } as never)
     .eq("id", id);
+
   if (error) return { error: error.message };
   revalidatePath("/admin/submissions");
+  revalidatePath("/hub/businesses");
+  revalidatePath("/hub/events");
   return { success: true };
 }
 
