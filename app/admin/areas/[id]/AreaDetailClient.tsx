@@ -153,6 +153,16 @@ export function AreaDetailClient({ area, isNew, neighborhoods, cities }: AreaDet
         {/* Tab 2 — Hero */}
         {activeTab === "hero" && (
           <div className="space-y-6">
+            <div className="flex justify-end mb-4">
+              <a
+                href={`/areas/${field(area, "slug")}`}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-flex items-center gap-1.5 px-3 py-1.5 text-[12px] font-semibold text-[#6b7280] border border-[#e5e7eb] rounded hover:text-black hover:border-black transition-colors"
+              >
+                View Page ↗
+              </a>
+            </div>
             <FormGroup label="Hero Content Type">
               <FormSelect
                 options={[
