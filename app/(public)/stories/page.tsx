@@ -71,7 +71,7 @@ export default async function StoriesPage({
 
   /* ── Fetch areas for filter dropdown ── */
   const _hero = await getPageHero("stories").catch(() => ({ type: null, imageUrl: null, videoUrl: null, postId: null, alt: null }));
-  const _heroPost = _hero.type === "post" ? await getHeroPost(_hero.postId).catch(() => null) : null;
+  const _heroPost = (_hero.type === "post" || _hero.type === "featured_post") ? await getHeroPost(_hero.postId).catch(() => null) : null;
 
   const areas = await getAreas().catch(() => []);
 
@@ -150,7 +150,7 @@ export default async function StoriesPage({
         initialPosts={storyPosts}
         categories={categories}
         areas={areas.map((a) => ({ id: a.id, name: a.name, slug: a.slug }))}
-        heroType={(_hero.type ?? "image") as "image" | "video" | "post"}
+        heroType={(_hero.type ?? "image") as "image" | "video" | "post" | "featured_post"}
         videoUrl={_hero.videoUrl ?? undefined}
         heroPost={_heroPost}
         heroTitle="Stories"

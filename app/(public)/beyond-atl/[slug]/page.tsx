@@ -92,7 +92,7 @@ export default async function CityDetailPage({
 
   /* ── Hero ── */
   const _hero = await getRecordHero(city as unknown as Record<string, unknown>).catch(() => ({ type: null, imageUrl: null, videoUrl: null, postId: null, alt: null }));
-  const _heroPost = _hero.type === "post" ? await getHeroPost(_hero.postId).catch(() => null) : null;
+  const _heroPost = (_hero.type === "post" || _hero.type === "featured_post") ? await getHeroPost(_hero.postId).catch(() => null) : null;
 
   /* ── Other cities for sidebar/pills ── */
   const otherCities = await getCities({
@@ -206,7 +206,7 @@ export default async function CityDetailPage({
       name={city.name}
       tagline={city.tagline}
       heroImageUrl={_hero.imageUrl ?? city.hero_image_url}
-      heroType={(_hero.type ?? "image") as "image" | "video" | "post"}
+      heroType={(_hero.type ?? "image") as "image" | "video" | "post" | "featured_post"}
       heroVideoUrl={_hero.videoUrl ?? undefined}
       heroPost={_heroPost}
       eyebrow="Beyond ATL"

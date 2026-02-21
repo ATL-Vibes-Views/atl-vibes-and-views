@@ -51,7 +51,7 @@ export interface LocationDetailProps {
   name: string;
   tagline?: string | null;
   heroImageUrl?: string | null;
-  heroType?: "image" | "video" | "post";
+  heroType?: "image" | "video" | "post" | "featured_post";
   heroVideoUrl?: string | null;
   heroPost?: HeroPost | null;
 
@@ -155,7 +155,7 @@ export function LocationDetailContent(props: LocationDetailProps) {
       {/* ========== 1. HERO ========== */}
       <HeroSection
         variant="overlay"
-        heroType={(heroType ?? "image") as "image" | "video" | "post"}
+        heroType={(heroType ?? "image") as "image" | "video" | "post" | "featured_post"}
         backgroundImage={heroImageUrl || PH_HERO}
         videoUrl={heroVideoUrl ?? undefined}
         heroPost={heroPost}

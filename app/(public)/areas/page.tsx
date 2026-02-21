@@ -79,7 +79,7 @@ export default async function AreasLandingPage({
   const heroIntro = ci?.page_intro || "Discover Atlanta's neighborhoods, restaurants, events, and culture across every area of the city.";
   const heroImageUrl = ci?.hero_image_url || PH_DEFAULT;
   const _hero = await getPageHero("areas_landing").catch(() => ({ type: null, imageUrl: null, videoUrl: null, postId: null, alt: null }));
-  const _heroPost = _hero.type === "post" ? await getHeroPost(_hero.postId).catch(() => null) : null;
+  const _heroPost = (_hero.type === "post" || _hero.type === "featured_post") ? await getHeroPost(_hero.postId).catch(() => null) : null;
 
   /* ── Search: filter areas ── */
   const filteredAreas = search
@@ -98,7 +98,7 @@ export default async function AreasLandingPage({
       heroContent={
         <HeroSection
           variant="overlay"
-          heroType={(_hero.type ?? "image") as "image" | "video" | "post"}
+          heroType={(_hero.type ?? "image") as "image" | "video" | "post" | "featured_post"}
           backgroundImage={_hero.imageUrl ?? heroImageUrl}
           videoUrl={_hero.videoUrl ?? undefined}
           heroPost={_heroPost}

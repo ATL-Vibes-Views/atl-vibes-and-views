@@ -51,7 +51,7 @@ export default async function NewslettersPage({
 
   /* ── Fetch data in parallel ── */
   const _hero = await getPageHero("newsletters").catch(() => ({ type: null, imageUrl: null, videoUrl: null, postId: null, alt: null }));
-  const _heroPost = _hero.type === "post" ? await getHeroPost(_hero.postId).catch(() => null) : null;
+  const _heroPost = (_hero.type === "post" || _hero.type === "featured_post") ? await getHeroPost(_hero.postId).catch(() => null) : null;
 
   const [allNewsletters, , featuredImageMap] = await Promise.all([
     getNewsletters(),
@@ -114,7 +114,7 @@ export default async function NewslettersPage({
         backgroundImage={_hero.imageUrl ?? PH_DEFAULT}
         videoUrl={_hero.videoUrl ?? undefined}
         heroPost={_heroPost ?? undefined}
-        heroType={(_hero.type ?? "image") as "image" | "video" | "post"}
+        heroType={(_hero.type ?? "image") as "image" | "video" | "post" | "featured_post"}
       />
 
       {/* ========== BREADCRUMBS ========== */}

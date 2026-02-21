@@ -44,7 +44,7 @@ export default async function MediaPage({
   const items = await getMediaItems({ mediaType: activeTab }).catch(() => []);
 
   const _hero = await getPageHero("media_page").catch(() => ({ type: null, imageUrl: null, videoUrl: null, postId: null, alt: null }));
-  const _heroPost = _hero.type === "post" ? await getHeroPost(_hero.postId).catch(() => null) : null;
+  const _heroPost = (_hero.type === "post" || _hero.type === "featured_post") ? await getHeroPost(_hero.postId).catch(() => null) : null;
 
   /* Fetch shorts separately */
   const shorts = await getMediaItems({ mediaType: "short", limit: 12 }).catch(() => []);
@@ -77,7 +77,7 @@ export default async function MediaPage({
         backgroundImage={_hero.imageUrl ?? PH_DEFAULT}
         videoUrl={_hero.videoUrl ?? undefined}
         heroPost={_heroPost ?? undefined}
-        heroType={(_hero.type ?? "image") as "image" | "video" | "post"}
+        heroType={(_hero.type ?? "image") as "image" | "video" | "post" | "featured_post"}
       />
 
       <Suspense fallback={null}>

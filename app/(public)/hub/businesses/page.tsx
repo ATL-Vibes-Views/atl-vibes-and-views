@@ -60,7 +60,7 @@ const HUB_CONFIG: HubArchiveConfig = {
 const PH_HERO = PH_DEFAULT;
 
   const _hero = await getPageHero("hub_businesses").catch(() => ({ type: null, imageUrl: null, videoUrl: null, postId: null, alt: null }));
-  const _heroPost = _hero.type === "post" ? await getHeroPost(_hero.postId).catch(() => null) : null;
+  const _heroPost = (_hero.type === "post" || _hero.type === "featured_post") ? await getHeroPost(_hero.postId).catch(() => null) : null;
 
 /* ============================================================
    BUSINESS HUB — /hub/businesses
@@ -138,7 +138,7 @@ export default async function BusinessHubPage({
 
       {/* ========== 1. HERO ========== */}
       <HeroSection
-        heroType={(_hero.type ?? "image") as "image" | "video" | "post"}
+        heroType={(_hero.type ?? "image") as "image" | "video" | "post" | "featured_post"}
         backgroundImage={_hero.imageUrl ?? PH_HERO}
         videoUrl={_hero.videoUrl ?? undefined}
         heroPost={_heroPost}

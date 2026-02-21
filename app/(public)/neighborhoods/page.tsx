@@ -140,7 +140,7 @@ export default async function NeighborhoodsLandingPage({
   const heroVideoUrl = ci?.hero_video_url || null;
   const heroImageUrl = ci?.hero_image_url || PH_HERO;
   const _hero = await getPageHero("neighborhoods_landing").catch(() => ({ type: null, imageUrl: null, videoUrl: null, postId: null, alt: null }));
-  const _heroPost = _hero.type === "post" ? await getHeroPost(_hero.postId).catch(() => null) : null;
+  const _heroPost = (_hero.type === "post" || _hero.type === "featured_post") ? await getHeroPost(_hero.postId).catch(() => null) : null;
   const effectiveHeroType = _hero.type ?? "image";
   const effectiveHeroImage = _hero.imageUrl ?? heroImageUrl;
   const effectiveHeroVideo = _hero.videoUrl ?? heroVideoUrl;
@@ -256,7 +256,7 @@ export default async function NeighborhoodsLandingPage({
             <video autoPlay muted loop playsInline className="absolute inset-0 w-full h-full object-cover">
               <source src={effectiveHeroVideo} type="video/mp4" />
             </video>
-          ) : effectiveHeroType === "post" && _heroPost ? (
+          ) : (effectiveHeroType === "post" || effectiveHeroType === "featured_post") && _heroPost ? (
             <Image src={_heroPost.featured_image_url ?? effectiveHeroImage} alt={_heroPost.title} fill unoptimized className="object-cover" priority sizes="100vw" />
           ) : (
             <Image src={effectiveHeroImage} alt={heroTitle} fill unoptimized className="object-cover" priority sizes="100vw" />
@@ -264,7 +264,7 @@ export default async function NeighborhoodsLandingPage({
           <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/40 to-transparent" />
         </div>
         <div className="absolute inset-0 flex flex-col items-center justify-center text-center px-6 md:px-20">
-          {effectiveHeroType === "post" && _heroPost ? (
+          {(effectiveHeroType === "post" || effectiveHeroType === "featured_post") && _heroPost ? (
             <>
               {_heroPost.category && (
                 <span className="inline-block bg-[#c1121f] text-white text-[11px] font-semibold uppercase tracking-[0.12em] px-3 py-1 mb-4">{_heroPost.category}</span>

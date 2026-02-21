@@ -118,7 +118,7 @@ export default async function NeighborhoodDetailPage({
 
   /* ── Hero ── */
   const _hero = await getRecordHero(neighborhood as unknown as Record<string, unknown>).catch(() => ({ type: null, imageUrl: null, videoUrl: null, postId: null, alt: null }));
-  const _heroPost = _hero.type === "post" ? await getHeroPost(_hero.postId).catch(() => null) : null;
+  const _heroPost = (_hero.type === "post" || _hero.type === "featured_post") ? await getHeroPost(_hero.postId).catch(() => null) : null;
 
   const area = neighborhood.areas;
   const areaName = area?.name || "Atlanta";
@@ -309,7 +309,7 @@ export default async function NeighborhoodDetailPage({
       name={neighborhood.name}
       tagline={neighborhood.tagline}
       heroImageUrl={_hero.imageUrl ?? neighborhood.hero_image_url}
-      heroType={(_hero.type ?? "image") as "image" | "video" | "post"}
+      heroType={(_hero.type ?? "image") as "image" | "video" | "post" | "featured_post"}
       heroVideoUrl={_hero.videoUrl ?? undefined}
       heroPost={_heroPost}
       eyebrow={areaName}

@@ -66,7 +66,7 @@ export default async function EventsArchivePage({
 
   /* ── Hero ── */
   const _hero = await getPageHero("hub_events").catch(() => ({ type: null, imageUrl: null, videoUrl: null, postId: null, alt: null }));
-  const _heroPost = _hero.type === "post" ? await getHeroPost(_hero.postId).catch(() => null) : null;
+  const _heroPost = (_hero.type === "post" || _hero.type === "featured_post") ? await getHeroPost(_hero.postId).catch(() => null) : null;
 
   /* ── Parallel: areas, neighborhoods, popular neighborhoods ── */
   const [areas, allNeighborhoods, popularNeighborhoods] = await Promise.all([
@@ -222,7 +222,7 @@ export default async function EventsArchivePage({
         eyebrow="Explore Atlanta"
         title="Events in Atlanta"
         description="Concerts, food festivals, art walks, and everything happening across the city. Find your next Atlanta experience."
-        heroType={(_hero.type ?? "image") as "image" | "video" | "post"}
+        heroType={(_hero.type ?? "image") as "image" | "video" | "post" | "featured_post"}
         backgroundImage={_hero.imageUrl ?? PH_HERO}
         videoUrl={_hero.videoUrl ?? undefined}
         heroPost={_heroPost}

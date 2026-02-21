@@ -126,7 +126,7 @@ export default async function AreaDetailPage({
 
   /* ── Hero ── */
   const _hero = await getRecordHero(area as unknown as Record<string, unknown>).catch(() => ({ type: null, imageUrl: null, videoUrl: null, postId: null, alt: null }));
-  const _heroPost = _hero.type === "post" ? await getHeroPost(_hero.postId).catch(() => null) : null;
+  const _heroPost = (_hero.type === "post" || _hero.type === "featured_post") ? await getHeroPost(_hero.postId).catch(() => null) : null;
 
   const neighborhoodIds = await getNeighborhoodIdsForArea(area.id);
   const hasNeighborhoods = neighborhoodIds.length > 0;
@@ -250,7 +250,7 @@ export default async function AreaDetailPage({
       {/* ========== 1. HERO ========== */}
       <HeroSection
         variant="overlay"
-        heroType={(_hero.type ?? "image") as "image" | "video" | "post"}
+        heroType={(_hero.type ?? "image") as "image" | "video" | "post" | "featured_post"}
         backgroundImage={_hero.imageUrl ?? area.hero_image_url ?? PH_HERO}
         videoUrl={_hero.videoUrl ?? undefined}
         heroPost={_heroPost}

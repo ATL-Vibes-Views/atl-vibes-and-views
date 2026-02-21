@@ -69,7 +69,7 @@ export default async function CityWatchPage({
 
   /* ── Hero ── */
   const _hero = await getPageHero("city_watch").catch(() => ({ type: null, imageUrl: null, videoUrl: null, postId: null, alt: null }));
-  const _heroPost = _hero.type === "post" ? await getHeroPost(_hero.postId).catch(() => null) : null;
+  const _heroPost = (_hero.type === "post" || _hero.type === "featured_post") ? await getHeroPost(_hero.postId).catch(() => null) : null;
 
   /* ── Fetch areas for filter dropdown ── */
   const areas = await getAreas().catch(() => []);
@@ -146,7 +146,7 @@ export default async function CityWatchPage({
         categories={categories}
         areas={areas.map((a) => ({ id: a.id, name: a.name, slug: a.slug }))}
         contentType="news"
-        heroType={(_hero.type ?? "image") as "image" | "video" | "post"}
+        heroType={(_hero.type ?? "image") as "image" | "video" | "post" | "featured_post"}
         videoUrl={_hero.videoUrl ?? undefined}
         heroPost={_heroPost}
         heroTitle="City Watch"

@@ -34,7 +34,7 @@ interface HeroSectionProps {
   description?: string;
   variant?: "split" | "overlay";
   className?: string;
-  heroType?: "image" | "video" | "post";
+  heroType?: "image" | "video" | "post" | "featured_post";
   videoUrl?: string;
   heroPost?: HeroPost | null;
 }
@@ -58,7 +58,7 @@ export function HeroSection({
 }: HeroSectionProps) {
   const effectiveType =
     heroType === "video" && videoUrl ? "video" :
-    heroType === "post" && heroPost ? "post" :
+    (heroType === "post" || heroType === "featured_post") && heroPost ? "post" :
     "image";
 
   const bgSrc = effectiveType === "post"

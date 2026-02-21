@@ -49,7 +49,7 @@ interface StoriesArchiveClientProps {
   heroTitle: string;
   heroSubtitle: string;
   heroImage?: string;
-  heroType?: "image" | "video" | "post";
+  heroType?: "image" | "video" | "post" | "featured_post";
   videoUrl?: string;
   heroPost?: HeroPost | null;
   showTabs?: boolean;
@@ -192,7 +192,7 @@ export function StoriesArchiveClient({
     <>
       {/* ========== HERO ========== */}
       {(() => {
-        const effectiveType = heroType === "video" && videoUrl ? "video" : heroType === "post" && heroPost ? "post" : "image";
+        const effectiveType = heroType === "video" && videoUrl ? "video" : (heroType === "post" || heroType === "featured_post") && heroPost ? "post" : "image";
         const bgSrc = effectiveType === "post" ? (heroPost?.featured_image_url ?? PH_HERO) : (heroImage ?? PH_HERO);
         const heroContent = (
           <section className={`relative w-full h-[52vh] sm:h-[58vh] md:h-[65vh] min-h-[340px] max-h-[640px] overflow-hidden ${effectiveType === "post" ? "cursor-pointer group" : ""}`}>

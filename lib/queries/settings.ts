@@ -16,7 +16,7 @@ export type SiteSetting = {
 };
 
 export type HeroData = {
-  type: "image" | "video" | "post" | null;
+  type: "image" | "video" | "post" | "featured_post" | null;
   imageUrl: string | null;
   videoUrl: string | null;
   postId: string | null;
@@ -68,6 +68,7 @@ export async function getPageHero(groupName: string): Promise<HeroData> {
     | "image"
     | "video"
     | "post"
+    | "featured_post"
     | null;
   if (!contentType) return FALLBACK_HERO;
 
@@ -96,9 +97,9 @@ export async function getPageHero(groupName: string): Promise<HeroData> {
     };
   }
 
-  if (contentType === "post") {
+  if (contentType === "post" || contentType === "featured_post") {
     const postId = byKeySuffix("_featured_post_id")?.value_post_id ?? null;
-    return { type: "post", imageUrl: null, videoUrl: null, postId, alt: null };
+    return { type: contentType, imageUrl: null, videoUrl: null, postId, alt: null };
   }
 
   return FALLBACK_HERO;
@@ -110,7 +111,7 @@ export async function getRecordHero(
 ): Promise<HeroData> {
   if (!record) return FALLBACK_HERO;
 
-  const contentType = record.hero_content_type as "image" | "video" | "post" | null;
+  const contentType = record.hero_content_type as "image" | "video" | "post" | "featured_post" | null;
 
   if (!contentType) {
     const legacyUrl = record.hero_image_url as string | null;
@@ -144,9 +145,9 @@ export async function getRecordHero(
     };
   }
 
-  if (contentType === "post") {
+  if (contentType === "post" || contentType === "featured_post") {
     return {
-      type: "post",
+      type: contentType,
       imageUrl: null,
       videoUrl: null,
       postId: record.hero_featured_post_id as string | null,

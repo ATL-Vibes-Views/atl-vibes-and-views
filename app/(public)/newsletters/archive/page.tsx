@@ -31,7 +31,7 @@ export const metadata: Metadata = {
 export default async function NewsletterArchivePage() {
   /* Fetch all published newsletters + featured images */
   const _hero = await getPageHero("newsletters_archive").catch(() => ({ type: null, imageUrl: null, videoUrl: null, postId: null, alt: null }));
-  const _heroPost = _hero.type === "post" ? await getHeroPost(_hero.postId).catch(() => null) : null;
+  const _heroPost = (_hero.type === "post" || _hero.type === "featured_post") ? await getHeroPost(_hero.postId).catch(() => null) : null;
 
   const [allNewsletters, featuredImageMap] = await Promise.all([
     getNewsletters().catch(() => []),

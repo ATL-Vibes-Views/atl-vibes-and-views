@@ -45,7 +45,7 @@ export default async function BeyondATLLandingPage({
 
   /* ── Hero ── */
   const _hero = await getPageHero("beyond_atl").catch(() => ({ type: null, imageUrl: null, videoUrl: null, postId: null, alt: null }));
-  const _heroPost = _hero.type === "post" ? await getHeroPost(_hero.postId).catch(() => null) : null;
+  const _heroPost = (_hero.type === "post" || _hero.type === "featured_post") ? await getHeroPost(_hero.postId).catch(() => null) : null;
 
   /* ── Data fetch — single parallel batch ── */
   const fetchStart = Date.now();
@@ -82,7 +82,7 @@ export default async function BeyondATLLandingPage({
           eyebrow="Beyond ATL"
           title="Beyond Atlanta"
           variant="overlay"
-          heroType={(_hero.type ?? "image") as "image" | "video" | "post"}
+          heroType={(_hero.type ?? "image") as "image" | "video" | "post" | "featured_post"}
           backgroundImage={_hero.imageUrl ?? PH_DEFAULT}
           videoUrl={_hero.videoUrl ?? undefined}
           heroPost={_heroPost}
