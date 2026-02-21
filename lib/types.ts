@@ -1279,4 +1279,5 @@ export interface EventFormData {
   images: ImageEntry[];
   tag_ids: string[];
   photo_urls: string[];
+  city_match_warning?: boolean;
 }

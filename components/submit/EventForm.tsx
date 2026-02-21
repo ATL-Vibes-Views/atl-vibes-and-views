@@ -120,11 +120,24 @@ function NeighborhoodField({
 }) {
   const [overriding, setOverriding] = useState(false);
   const [search, setSearch] = useState("");
+  const [detectedName, setDetectedName] = useState<string>("");
 
   const flat = neighborhoods.flatMap((g) =>
     g.neighborhoods.map((n) => ({ ...n, area: g.area_name }))
   );
   const selected = flat.find((n) => n.id === value);
+
+  useEffect(() => {
+    if (value && !selected) {
+      import("@/lib/supabase").then(({ createBrowserClient }) => {
+        const sb = createBrowserClient() as any;
+        sb.from("neighborhoods").select("name, areas(name)").eq("id", value).single()
+          .then(({ data }: any) => {
+            if (data) setDetectedName(`${data.name} · ${data.areas?.name ?? ""}`);
+          });
+      });
+    }
+  }, [value, selected]);
   const filtered = search.trim()
     ? flat.filter((n) =>
         n.name.toLowerCase().includes(search.toLowerCase()) ||
@@ -144,7 +157,7 @@ function NeighborhoodField({
     return (
       <div className="flex items-center gap-3">
         <span className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-[#f0fdf4] border border-[#bbf7d0] rounded text-[13px] text-[#166534] font-medium">
-          ✓ {selected?.name ?? "Detected"}
+          ✓ {selected?.name ?? detectedName ?? "Detected"}
           {selected?.area ? (
             <span className="text-[11px] text-[#4ade80] font-normal">· {selected.area}</span>
           ) : null}
@@ -256,6 +269,19 @@ export function EventForm({
         const street = streetNumber && route ? `${streetNumber} ${route}` : (place.formatted_address ?? "");
         const locationFields = { street_address: street, city_text: city, state, zip_code: zip, latitude: lat, longitude: lng };
         onChange({ ...dataRef.current, ...locationFields });
+        if (city) {
+          import("@/lib/supabase").then(({ createBrowserClient }) => {
+            const sb = createBrowserClient() as any;
+            sb.from("cities").select("id, name").ilike("name", city).limit(1)
+              .then(({ data: cityRows }: any) => {
+                if (cityRows?.[0]) {
+                  onChange({ ...dataRef.current, ...locationFields, city_id: cityRows[0].id, city_match_warning: false });
+                } else {
+                  onChange({ ...dataRef.current, ...locationFields, city_match_warning: true });
+                }
+              });
+          }).catch(() => {});
+        }
         if (lat !== null && lng !== null) {
           import("@/lib/neighborhood-lookup").then(({ findNeighborhoodByCoordinates }) => {
             findNeighborhoodByCoordinates(lat, lng).then((geojsonKey) => {
@@ -570,6 +596,11 @@ export function EventForm({
                 </option>
               ))}
             </select>
+            {data.city_match_warning && (
+              <p className="text-[12px] text-amber-600 mt-1">
+                ⚠ We couldn&apos;t match this city to our coverage area. You can still submit — our team will review and assign it manually.
+              </p>
+            )}
           </div>
           <div>
             <Label htmlFor="event_state">State</Label>
