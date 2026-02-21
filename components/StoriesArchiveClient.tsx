@@ -223,7 +223,7 @@ export function StoriesArchiveClient({
                       {contentType === "news" ? "Atlanta News" : contentType === "guide" ? "Local Knowledge" : "Stories"}
                     </span>
                     <h1 className="font-display text-4xl md:text-6xl lg:text-7xl font-semibold text-white leading-[1.05]">{heroTitle}</h1>
-                    <p className="text-white/60 text-sm mt-2 max-w-lg">{heroSubtitle}</p>
+                    <p className="text-white/70 text-sm md:text-base mt-3 max-w-xl">{heroSubtitle}</p>
                   </>
                 )}
               </div>
