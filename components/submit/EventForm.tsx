@@ -257,14 +257,22 @@ export function EventForm({
         const locationFields = { street_address: street, city_text: city, state, zip_code: zip, latitude: lat, longitude: lng };
         onChange({ ...dataRef.current, ...locationFields });
         if (lat !== null && lng !== null) {
-          import("@/lib/supabase").then(({ createBrowserClient }) => {
-            const sb = createBrowserClient() as any;
-            sb.rpc("find_neighborhood_by_point", { p_lat: lat, p_lng: lng })
-              .then(({ data: rows }: { data: any }) => {
-                if (rows?.length) {
-                  onChange({ ...dataRef.current, ...locationFields, neighborhood_id: rows[0].id });
-                }
-              });
+          import("@/lib/neighborhood-lookup").then(({ findNeighborhoodByCoordinates }) => {
+            const geojsonKey = findNeighborhoodByCoordinates(lat, lng);
+            if (geojsonKey) {
+              import("@/lib/supabase").then(({ createBrowserClient }) => {
+                const sb = createBrowserClient() as any;
+                sb.from("neighborhoods")
+                  .select("id, name")
+                  .eq("geojson_key", geojsonKey)
+                  .limit(1)
+                  .then(({ data: rows }: { data: any }) => {
+                    if (rows?.[0]) {
+                      onChange({ ...dataRef.current, ...locationFields, neighborhood_id: rows[0].id });
+                    }
+                  });
+              }).catch(() => {});
+            }
           }).catch(() => {});
         }
       });
