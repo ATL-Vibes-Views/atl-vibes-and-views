@@ -1,5 +1,6 @@
 "use client";
 
+import { useEffect, useRef } from "react";
 import { NeighborhoodSelect } from "./NeighborhoodSelect";
 import { ImagePicker } from "@/components/portal/ImagePicker";
 import { uploadImage } from "@/lib/supabase-storage";
@@ -18,6 +19,10 @@ interface EventFormProps {
   neighborhoods: NeighborhoodGrouped[];
   cities: City[];
   tags: Tag[];
+  submitterName: string;
+  submitterEmail: string;
+  onSubmitterNameChange: (v: string) => void;
+  onSubmitterEmailChange: (v: string) => void;
 }
 
 const EVENT_TYPES = [
@@ -112,13 +117,83 @@ export function EventForm({
   neighborhoods,
   cities,
   tags,
+  submitterName,
+  submitterEmail,
+  onSubmitterNameChange,
+  onSubmitterEmailChange,
 }: EventFormProps) {
+  const streetAddressRef = useRef<HTMLInputElement>(null);
+  const autocompleteRef = useRef<any>(null);
+  const dataRef = useRef(data);
+  useEffect(() => { dataRef.current = data; });
+
   const update = <K extends keyof EventFormData>(
     key: K,
     val: EventFormData[K]
   ) => {
     onChange({ ...data, [key]: val });
   };
+
+  /* ── Google Places autocomplete ── */
+  useEffect(() => {
+    const apiKey = process.env.NEXT_PUBLIC_GOOGLE_PLACES_API_KEY;
+    if (!apiKey || typeof window === "undefined") return;
+
+    const initAutocomplete = () => {
+      if (!streetAddressRef.current || !(window as any).google?.maps?.places) return;
+      if (autocompleteRef.current) return;
+      const ac = new (window as any).google.maps.places.Autocomplete(
+        streetAddressRef.current,
+        { types: ["address"], componentRestrictions: { country: "us" } }
+      );
+      autocompleteRef.current = ac;
+      ac.addListener("place_changed", () => {
+        const place = ac.getPlace();
+        if (!place.address_components) return;
+        let streetNumber = "", route = "", city = "", state = "", zip = "";
+        const lat: number | null = place.geometry?.location?.lat() ?? null;
+        const lng: number | null = place.geometry?.location?.lng() ?? null;
+        for (const comp of place.address_components as any[]) {
+          const t: string[] = comp.types;
+          if (t.includes("street_number")) streetNumber = comp.long_name;
+          if (t.includes("route")) route = comp.long_name;
+          if (t.includes("locality")) city = comp.long_name;
+          if (t.includes("administrative_area_level_1")) state = comp.short_name;
+          if (t.includes("postal_code")) zip = comp.long_name;
+        }
+        const street = streetNumber && route ? `${streetNumber} ${route}` : (place.formatted_address ?? "");
+        const locationFields = { street_address: street, city_text: city, state, zip_code: zip, latitude: lat, longitude: lng };
+        onChange({ ...dataRef.current, ...locationFields });
+        if (lat !== null && lng !== null) {
+          import("@/lib/supabase").then(({ createBrowserClient }) => {
+            const sb = createBrowserClient() as any;
+            sb.rpc("find_neighborhood_by_point", { p_lat: lat, p_lng: lng })
+              .then(({ data: rows }: { data: any }) => {
+                if (rows?.length) {
+                  onChange({ ...dataRef.current, ...locationFields, neighborhood_id: rows[0].id });
+                }
+              });
+          }).catch(() => {});
+        }
+      });
+    };
+
+    if ((window as any).google?.maps?.places) {
+      initAutocomplete();
+    } else {
+      const scriptId = "google-places-script";
+      if (!document.getElementById(scriptId)) {
+        const script = document.createElement("script");
+        script.id = scriptId;
+        script.src = `https://maps.googleapis.com/maps/api/js?key=${apiKey}&libraries=places`;
+        script.async = true;
+        script.onload = initAutocomplete;
+        document.head.appendChild(script);
+      } else {
+        document.getElementById(scriptId)!.addEventListener("load", initAutocomplete);
+      }
+    }
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   const today = new Date().toISOString().split("T")[0];
 
@@ -129,6 +204,28 @@ export function EventForm({
       <p className="text-xs text-gray-mid mb-4">
         Your contact info — not displayed publicly on the event listing.
       </p>
+      <div className="grid grid-cols-2 gap-4">
+        <div>
+          <Label htmlFor="submitter_name" required>Your Name</Label>
+          <Input
+            id="submitter_name"
+            value={submitterName}
+            onChange={onSubmitterNameChange}
+            placeholder="Your full name"
+            required
+          />
+        </div>
+        <div>
+          <Label htmlFor="submitter_email" required>Your Email</Label>
+          <Input
+            id="submitter_email"
+            value={submitterEmail}
+            onChange={onSubmitterEmailChange}
+            placeholder="you@example.com"
+            required
+          />
+        </div>
+      </div>
 
       {/* Section 2: Event Basics */}
       <SectionHeading>Event Basics</SectionHeading>
@@ -337,11 +434,14 @@ export function EventForm({
         </div>
         <div>
           <Label htmlFor="event_street_address">Street Address</Label>
-          <Input
+          <input
             id="event_street_address"
+            ref={streetAddressRef}
+            type="text"
             value={data.street_address}
-            onChange={(v) => update("street_address", v)}
+            onChange={(e) => update("street_address", e.target.value)}
             placeholder="123 Peachtree St NE"
+            className="w-full px-4 py-3 border border-gray-200 text-sm outline-none focus:border-[#c1121f] transition-colors"
           />
         </div>
         <div>
