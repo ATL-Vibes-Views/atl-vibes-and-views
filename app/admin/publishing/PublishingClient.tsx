@@ -227,7 +227,7 @@ export function PublishingClient({ posts }: PublishingClientProps) {
                   {/* Actions */}
                   <div className="flex items-center gap-2 mt-4">
                     <button
-                      onClick={() => window.open(`/stories/${post.slug}`, '_blank')}
+                      onClick={() => window.open(`/admin/preview/${post.id}`, '_blank')}
                       className="inline-flex items-center px-3 py-1 text-xs font-semibold rounded-full border border-[#e5e5e5] text-[#374151] hover:border-[#d1d5db] transition-colors"
                     >
                       Preview
