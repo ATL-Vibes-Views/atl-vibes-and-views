@@ -16,15 +16,16 @@ import { updateSubmissionStatus } from "@/app/admin/actions";
 
 interface SubmissionRow {
   id: string;
-  submission_type: "business" | "event";
+  submission_type: string;
   submitter_name: string;
   submitter_email: string;
-  status: "pending" | "under_review" | "approved" | "rejected" | "needs_info";
-  reviewer_notes: string | null;
-  rejection_reason: string | null;
+  status: string;
+  tier: string | null;
+  stripe_session_id: string | null;
+  stripe_customer_id: string | null;
   created_at: string;
   updated_at: string;
-  data?: Record<string, unknown> | null;
+  data: Record<string, unknown> | null;
 }
 
 const ITEMS_PER_PAGE = 25;
@@ -132,18 +133,19 @@ export function SubmissionsClient({ submissions }: { submissions: SubmissionRow[
           <table className="w-full">
             <thead>
               <tr className="bg-[#f5f5f5] border-b-2 border-[#e5e5e5]">
-                <th className="text-left text-[10px] uppercase tracking-[0.05em] font-semibold text-[#6b7280] px-3.5 py-2.5" style={{ width: "20%" }}>Submitter</th>
                 <th className="text-left text-[10px] uppercase tracking-[0.05em] font-semibold text-[#6b7280] px-3.5 py-2.5">Type</th>
+                <th className="text-left text-[10px] uppercase tracking-[0.05em] font-semibold text-[#6b7280] px-3.5 py-2.5" style={{ width: "20%" }}>Submitter</th>
+                <th className="text-left text-[10px] uppercase tracking-[0.05em] font-semibold text-[#6b7280] px-3.5 py-2.5">Email</th>
+                <th className="text-left text-[10px] uppercase tracking-[0.05em] font-semibold text-[#6b7280] px-3.5 py-2.5">Tier</th>
                 <th className="text-left text-[10px] uppercase tracking-[0.05em] font-semibold text-[#6b7280] px-3.5 py-2.5">Status</th>
-                <th className="text-left text-[10px] uppercase tracking-[0.05em] font-semibold text-[#6b7280] px-3.5 py-2.5" style={{ width: "25%" }}>Notes</th>
-                <th className="text-left text-[10px] uppercase tracking-[0.05em] font-semibold text-[#6b7280] px-3.5 py-2.5">Submitted</th>
+                <th className="text-left text-[10px] uppercase tracking-[0.05em] font-semibold text-[#6b7280] px-3.5 py-2.5">Date</th>
                 <th className="text-right text-[10px] uppercase tracking-[0.05em] font-semibold text-[#6b7280] px-3.5 py-2.5">Actions</th>
               </tr>
             </thead>
             <tbody>
               {paginated.length === 0 ? (
                 <tr>
-                  <td colSpan={6} className="px-3.5 py-10 text-center text-[13px] text-[#6b7280]">No submissions found.</td>
+                  <td colSpan={7} className="px-3.5 py-10 text-center text-[13px] text-[#6b7280]">No submissions found.</td>
                 </tr>
               ) : (
                 paginated.map((item) => (
@@ -154,27 +156,39 @@ export function SubmissionsClient({ submissions }: { submissions: SubmissionRow[
                       onClick={() => setExpandedId(expandedId === item.id ? null : item.id)}
                     >
                       <td className="px-3.5 py-2.5">
-                        <div>
-                          <span className="text-[13px] font-semibold text-black">{item.submitter_name}</span>
-                          <span className="block text-[11px] text-[#6b7280]">{item.submitter_email}</span>
-                        </div>
-                      </td>
-                      <td className="px-3.5 py-2.5">
                         <StatusBadge variant={item.submission_type === "business" ? "blue" : "purple"}>
                           {item.submission_type}
                         </StatusBadge>
                       </td>
                       <td className="px-3.5 py-2.5">
+                        <span className="text-[13px] font-semibold text-black">{item.submitter_name}</span>
+                      </td>
+                      <td className="px-3.5 py-2.5">
+                        <span className="text-[12px] text-[#6b7280]">{item.submitter_email}</span>
+                      </td>
+                      <td className="px-3.5 py-2.5">
+                        {item.tier === "premium" ? (
+                          <span className="inline-block px-2 py-0.5 rounded text-[11px] font-semibold bg-[#fee198] text-[#1a1a1a]">
+                            premium
+                          </span>
+                        ) : item.tier === "standard" ? (
+                          <span className="inline-block px-2 py-0.5 rounded text-[11px] font-semibold bg-blue-100 text-blue-700">
+                            standard
+                          </span>
+                        ) : (
+                          <span className="inline-block px-2 py-0.5 rounded text-[11px] font-semibold bg-gray-100 text-gray-500">
+                            {item.tier ?? "free"}
+                          </span>
+                        )}
+                      </td>
+                      <td className="px-3.5 py-2.5">
                         <StatusBadge variant={statusBadgeMap[item.status] ?? "gray"}>
-                          {item.status.replace("_", " ")}
+                          {item.status.replace(/_/g, " ")}
                         </StatusBadge>
                       </td>
                       <td className="px-3.5 py-2.5">
-                        <span className="text-[12px] text-[#6b7280] line-clamp-1">{item.reviewer_notes ?? "—"}</span>
-                      </td>
-                      <td className="px-3.5 py-2.5">
                         <span className="text-[12px] text-[#6b7280]">
-                          {new Date(item.created_at).toLocaleDateString("en-US", { month: "short", day: "numeric" })}
+                          {new Date(item.created_at).toLocaleDateString()}
                         </span>
                       </td>
                       <td className="px-3.5 py-2.5 text-right">
@@ -196,32 +210,35 @@ export function SubmissionsClient({ submissions }: { submissions: SubmissionRow[
                         </div>
                       </td>
                     </tr>
-                    {expandedId === item.id && item.data && (
+                    {expandedId === item.id && (
                       <tr key={item.id + "-detail"}>
-                        <td colSpan={6} className="px-4 py-4 bg-[#fafafa] border-t border-gray-100">
-                          <div className="grid grid-cols-2 gap-3">
-                            {Object.entries(item.data).map(([key, value]) => (
-                              <div key={key}>
-                                <span className="text-[11px] font-semibold uppercase tracking-[0.1em] text-gray-400">
-                                  {key.replace(/_/g, " ")}
-                                </span>
-                                <p className="text-[13px] text-gray-dark mt-0.5">
-                                  {typeof value === "boolean" ? (value ? "Yes" : "No") : String(value ?? "—")}
-                                </p>
-                              </div>
-                            ))}
+                        <td colSpan={7} className="px-4 py-4 bg-[#fafafa] border-t border-gray-100">
+                          <div className="mb-4 grid grid-cols-2 sm:grid-cols-4 gap-3">
+                            <div>
+                              <span className="text-[11px] font-semibold uppercase tracking-[0.1em] text-gray-400">Tier</span>
+                              <p className="text-[13px] text-gray-dark mt-0.5">{item.tier ?? "free"}</p>
+                            </div>
+                            <div>
+                              <span className="text-[11px] font-semibold uppercase tracking-[0.1em] text-gray-400">Updated</span>
+                              <p className="text-[13px] text-gray-dark mt-0.5">{new Date(item.updated_at).toLocaleDateString()}</p>
+                            </div>
+                            <div>
+                              <span className="text-[11px] font-semibold uppercase tracking-[0.1em] text-gray-400">Stripe Session</span>
+                              <p className="text-[12px] text-gray-dark mt-0.5 break-all">{item.stripe_session_id ?? "—"}</p>
+                            </div>
+                            <div>
+                              <span className="text-[11px] font-semibold uppercase tracking-[0.1em] text-gray-400">Stripe Customer</span>
+                              <p className="text-[12px] text-gray-dark mt-0.5 break-all">{item.stripe_customer_id ?? "—"}</p>
+                            </div>
                           </div>
-                          <div className="mt-4 pt-4 border-t border-gray-200">
-                            <label className="text-[11px] font-semibold uppercase tracking-[0.1em] text-gray-400 block mb-1">
-                              Reviewer Notes
-                            </label>
-                            <textarea
-                              defaultValue={item.reviewer_notes ?? ""}
-                              placeholder="Add notes..."
-                              className="w-full text-[13px] border border-gray-200 rounded px-3 py-2 focus:outline-none focus:border-[#e6c46d]"
-                              rows={2}
-                            />
-                          </div>
+                          {item.data && (
+                            <div>
+                              <span className="text-[11px] font-semibold uppercase tracking-[0.1em] text-gray-400 block mb-2">Submission Data</span>
+                              <pre className="text-[12px] bg-white border border-gray-200 rounded p-3 overflow-x-auto whitespace-pre-wrap break-all">
+                                {JSON.stringify(item.data, null, 2)}
+                              </pre>
+                            </div>
+                          )}
                         </td>
                       </tr>
                     )}
