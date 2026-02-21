@@ -3,6 +3,7 @@
 import { useEffect, useRef, useCallback } from "react";
 import { NeighborhoodSelect } from "./NeighborhoodSelect";
 import { ImagePicker } from "@/components/portal/ImagePicker";
+import { uploadImage } from "@/lib/supabase-storage";
 import type {
   BusinessFormData,
   BusinessHoursEntry,
@@ -359,24 +360,65 @@ export function BusinessForm({
             required
           />
         </div>
-        <div>
-          <Label htmlFor="category_id" required>
-            Category
-          </Label>
-          <select
-            id="category_id"
-            value={data.category_id}
-            onChange={(e) => update("category_id", e.target.value)}
-            required
-            className="w-full px-4 py-3 border border-gray-200 text-sm outline-none focus:border-[#c1121f] transition-colors bg-white"
-          >
-            <option value="">Select a category…</option>
-            {categories.map((c) => (
-              <option key={c.id} value={c.id}>
-                {c.name}
-              </option>
-            ))}
-          </select>
+        <div className="grid grid-cols-2 gap-4">
+          <div>
+            <Label htmlFor="category_id" required>
+              Category
+            </Label>
+            <select
+              id="category_id"
+              value={data.category_id}
+              onChange={(e) => update("category_id", e.target.value)}
+              required
+              className="w-full px-4 py-3 border border-gray-200 text-sm outline-none focus:border-[#c1121f] transition-colors bg-white"
+            >
+              <option value="">Select a category…</option>
+              {categories.map((c) => (
+                <option key={c.id} value={c.id}>
+                  {c.name}
+                </option>
+              ))}
+            </select>
+          </div>
+          <div>
+            <Label>Tags (select up to 2)</Label>
+            <select
+              disabled={(data.tag_ids ?? []).length >= 2}
+              onChange={(e) => {
+                const val = e.target.value;
+                if (!val) return;
+                const current = data.tag_ids ?? [];
+                if (current.includes(val) || current.length >= 2) return;
+                update("tag_ids", [...current, val]);
+                e.target.value = "";
+              }}
+              className="w-full px-4 py-3 border border-gray-200 text-sm outline-none focus:border-[#c1121f] transition-colors bg-white"
+            >
+              <option value="">Select a tag…</option>
+              {["activities","cuisine","drinks","experience","identity","news","vibe"].map((group) => (
+                <optgroup key={group} label={group.charAt(0).toUpperCase() + group.slice(1)}>
+                  {tags.filter(t => t.tag_group === group).map(tag => (
+                    <option key={tag.id} value={tag.id}>{tag.name}</option>
+                  ))}
+                </optgroup>
+              ))}
+            </select>
+            <div className="flex gap-2 mt-2 flex-wrap">
+              {(data.tag_ids ?? []).map((id) => {
+                const tag = tags.find(t => t.id === id);
+                if (!tag) return null;
+                return (
+                  <span key={id} className="inline-flex items-center gap-1 px-3 py-1 bg-[#1a1a1a] text-white text-[12px] rounded-full">
+                    {tag.name}
+                    <button type="button" onClick={() => update("tag_ids", (data.tag_ids ?? []).filter(i => i !== id))}>×</button>
+                  </span>
+                );
+              })}
+            </div>
+            {(data.tag_ids ?? []).length >= 2 && (
+              <p className="text-[11px] text-gray-400 mt-1">Maximum 2 tags selected</p>
+            )}
+          </div>
         </div>
         <div>
           <Label htmlFor="tagline">Tagline</Label>
@@ -788,13 +830,28 @@ export function BusinessForm({
           <Label>Photos (up to 15)</Label>
           <p className="text-[12px] text-gray-400 mb-2">JPG, PNG, WebP — max 10MB each</p>
           {(data.photo_urls ?? []).length < 15 && (
-            <ImagePicker
-              value=""
-              onChange={(url) => update("photo_urls", [...(data.photo_urls ?? []), url])}
-              folder="submissions/photos"
-              label="Upload a photo"
-              hint="JPG, PNG, WebP up to 10MB"
-            />
+            <label className="flex flex-col items-center justify-center w-full h-24 border-2 border-dashed border-gray-200 rounded cursor-pointer hover:border-[#1a1a1a] transition-colors">
+              <span className="text-[13px] text-gray-400">Click to select photos (multiple allowed)</span>
+              <input
+                type="file"
+                accept="image/*"
+                multiple
+                className="hidden"
+                onChange={async (e) => {
+                  const files = Array.from(e.target.files ?? []);
+                  const current = data.photo_urls ?? [];
+                  const remaining = 15 - current.length;
+                  const toUpload = files.slice(0, remaining);
+                  const urls: string[] = [];
+                  for (const file of toUpload) {
+                    const result = await uploadImage(file, "submissions/photos");
+                    if (!("error" in result)) urls.push(result.url);
+                  }
+                  update("photo_urls", [...current, ...urls]);
+                  e.target.value = "";
+                }}
+              />
+            </label>
           )}
           <div className="grid grid-cols-3 gap-2 mt-2">
             {(data.photo_urls ?? []).map((url, i) => (
@@ -808,6 +865,9 @@ export function BusinessForm({
               </div>
             ))}
           </div>
+          {(data.photo_urls ?? []).length >= 15 && (
+            <p className="text-[11px] text-gray-400 mt-1">Maximum 15 photos reached</p>
+          )}
         </div>
 
         <div>
@@ -955,49 +1015,7 @@ export function BusinessForm({
         </div>
       )}
 
-      {/* Section 11: Tags */}
-      <SectionHeading>Tags</SectionHeading>
-      <div>
-        <Label>Tags (select up to 2)</Label>
-        <select
-          disabled={(data.tag_ids ?? []).length >= 2}
-          onChange={(e) => {
-            const val = e.target.value;
-            if (!val) return;
-            const current = data.tag_ids ?? [];
-            if (current.includes(val) || current.length >= 2) return;
-            update("tag_ids", [...current, val]);
-            e.target.value = "";
-          }}
-          className="w-full border border-gray-200 rounded px-3 py-2 text-[13px] focus:outline-none focus:border-[#1a1a1a] mt-1"
-        >
-          <option value="">Select a tag…</option>
-          {["activities","cuisine","drinks","experience","identity","news","vibe"].map((group) => (
-            <optgroup key={group} label={group.charAt(0).toUpperCase() + group.slice(1)}>
-              {tags.filter(t => t.tag_group === group).map(tag => (
-                <option key={tag.id} value={tag.id}>{tag.name}</option>
-              ))}
-            </optgroup>
-          ))}
-        </select>
-        <div className="flex gap-2 mt-2 flex-wrap">
-          {(data.tag_ids ?? []).map((id) => {
-            const tag = tags.find(t => t.id === id);
-            if (!tag) return null;
-            return (
-              <span key={id} className="inline-flex items-center gap-1 px-3 py-1 bg-[#1a1a1a] text-white text-[12px] rounded-full">
-                {tag.name}
-                <button type="button" onClick={() => update("tag_ids", (data.tag_ids ?? []).filter(i => i !== id))}>×</button>
-              </span>
-            );
-          })}
-        </div>
-        {(data.tag_ids ?? []).length >= 2 && (
-          <p className="text-[11px] text-gray-400 mt-1">Maximum 2 tags selected</p>
-        )}
-      </div>
-
-      {/* Section 12: Special Offers (Standard + Premium) */}
+      {/* Section 11: Special Offers (Standard + Premium) */}
       {showSpecialOffers && (
         <>
           <SectionHeading>Special Offers</SectionHeading>
