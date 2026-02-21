@@ -6,11 +6,12 @@ import { sendSubmissionConfirmation, sendAdminNotification } from "@/lib/email";
 export async function POST(request: Request) {
   try {
     const body = await request.json();
-    const { submission_type, submitter_name, submitter_email, data } = body as {
+    const { submission_type, submitter_name, submitter_email, data, tier } = body as {
       submission_type: string;
       submitter_name: string;
       submitter_email: string;
       data: Record<string, unknown>;
+      tier?: string;
     };
 
     /* Basic validation */
@@ -45,6 +46,7 @@ export async function POST(request: Request) {
         submitter_email: submitter_email.trim().toLowerCase(),
         data,
         status: "pending",
+        tier: tier || "free",
         updated_at: new Date().toISOString(),
       } as never)
       .select()
