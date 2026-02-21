@@ -17,6 +17,7 @@ import type {
   Amenity,
   IdentityOption,
   NeighborhoodGrouped,
+  Tag,
 } from "@/lib/types";
 
 interface SubmitClientProps {
@@ -25,6 +26,7 @@ interface SubmitClientProps {
   amenities: Amenity[];
   identityOptions: IdentityOption[];
   cities: City[];
+  tags: Tag[];
 }
 
 const EMPTY_BUSINESS: BusinessFormData = {
@@ -81,6 +83,7 @@ const EMPTY_BUSINESS: BusinessFormData = {
   images: [],
   amenity_ids: [],
   identity_option_ids: [],
+  tag_ids: [],
 };
 
 const EMPTY_EVENT: EventFormData = {
@@ -116,6 +119,7 @@ const EMPTY_EVENT: EventFormData = {
   featured_image_url: "",
   video_url: "",
   images: [],
+  tag_ids: [],
 };
 
 export function SubmitClient({
@@ -124,6 +128,7 @@ export function SubmitClient({
   amenities,
   identityOptions,
   cities,
+  tags,
 }: SubmitClientProps) {
   const searchParams = useSearchParams();
   /* Determine initial step from URL params */
@@ -357,6 +362,7 @@ export function SubmitClient({
                   submitterEmail={submitterEmail}
                   onSubmitterNameChange={setSubmitterName}
                   onSubmitterEmailChange={setSubmitterEmail}
+                  tags={tags}
                 />
               ) : (
                 <EventForm
@@ -365,6 +371,7 @@ export function SubmitClient({
                   categories={filteredCategories}
                   neighborhoods={neighborhoods}
                   cities={cities}
+                  tags={tags}
                 />
               )}
 

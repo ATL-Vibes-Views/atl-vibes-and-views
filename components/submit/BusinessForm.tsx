@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useCallback } from "react";
 import { NeighborhoodSelect } from "./NeighborhoodSelect";
+import { ImagePicker } from "@/components/portal/ImagePicker";
 import type {
   BusinessFormData,
   BusinessHoursEntry,
@@ -10,6 +11,7 @@ import type {
   Amenity,
   IdentityOption,
   NeighborhoodGrouped,
+  Tag,
 } from "@/lib/types";
 
 /* eslint-disable @typescript-eslint/no-explicit-any */
@@ -38,6 +40,7 @@ interface BusinessFormProps {
   submitterEmail: string;
   onSubmitterNameChange: (v: string) => void;
   onSubmitterEmailChange: (v: string) => void;
+  tags: Tag[];
 }
 
 const DAYS = [
@@ -158,6 +161,7 @@ export function BusinessForm({
   submitterEmail,
   onSubmitterNameChange,
   onSubmitterEmailChange,
+  tags,
 }: BusinessFormProps) {
   const streetAddressRef = useRef<HTMLInputElement>(null);
   const autocompleteRef = useRef<any>(null);
@@ -770,17 +774,14 @@ export function BusinessForm({
 
       <div className="space-y-4">
         <div>
-          <Label htmlFor="logo_url">Logo URL</Label>
-          <Input
-            id="logo_url"
-            type="url"
-            value={data.logo_url}
-            onChange={(v) => update("logo_url", v)}
-            placeholder="https://… (JPG, PNG, SVG, WebP — max 5MB)"
+          <Label>Logo</Label>
+          <ImagePicker
+            value={data.logo_url ?? ""}
+            onChange={(url) => update("logo_url", url)}
+            folder="submissions/logos"
+            label="Upload your logo"
+            hint="PNG, JPG up to 5MB"
           />
-          <p className="text-xs text-gray-mid mt-1">
-            Image upload coming soon. For now, paste a direct image URL.
-          </p>
         </div>
 
         <div>
@@ -939,7 +940,42 @@ export function BusinessForm({
         </div>
       )}
 
-      {/* Section 11: Special Offers (Standard + Premium) */}
+      {/* Section 11: Tags */}
+      <SectionHeading>Tags</SectionHeading>
+      <div>
+        <Label>Tags (select up to 2)</Label>
+        <div className="flex flex-wrap gap-2 mt-2">
+          {tags.map((tag) => {
+            const selected = (data.tag_ids ?? []).includes(tag.id);
+            const maxReached = (data.tag_ids ?? []).length >= 2;
+            return (
+              <button
+                key={tag.id}
+                type="button"
+                disabled={!selected && maxReached}
+                onClick={() => {
+                  const current = data.tag_ids ?? [];
+                  update("tag_ids", selected
+                    ? current.filter((id) => id !== tag.id)
+                    : [...current, tag.id]
+                  );
+                }}
+                className={`px-3 py-1 rounded-full text-[12px] font-semibold border transition-colors ${
+                  selected
+                    ? "bg-[#1a1a1a] text-white border-[#1a1a1a]"
+                    : maxReached
+                    ? "bg-gray-100 text-gray-300 border-gray-200 cursor-not-allowed"
+                    : "bg-white text-gray-600 border-gray-300 hover:border-[#1a1a1a]"
+                }`}
+              >
+                {tag.name}
+              </button>
+            );
+          })}
+        </div>
+      </div>
+
+      {/* Section 12: Special Offers (Standard + Premium) */}
       {showSpecialOffers && (
         <>
           <SectionHeading>Special Offers</SectionHeading>
