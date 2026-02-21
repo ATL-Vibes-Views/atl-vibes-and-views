@@ -4,6 +4,7 @@ import { useRouter, usePathname, useSearchParams } from "next/navigation";
 import { useCallback, useState, useTransition } from "react";
 import Link from "next/link";
 import Image from "next/image";
+import { PH_DEFAULT, PH_MAP } from "@/lib/placeholders";
 import {
   Search,
   X,
@@ -94,7 +95,7 @@ interface EventsClientProps {
 /* ============================================================
    HELPERS
    ============================================================ */
-const PH_EVENT = "https://placehold.co/600x400/1a1a1a/e6c46d?text=Event";
+const PH_EVENT = PH_DEFAULT;
 
 function formatDate(dateStr?: string | null): string {
   if (!dateStr) return "";
@@ -423,7 +424,7 @@ export function EventsClient({
       <section className="site-container pb-12 md:pb-16">
         <div className="relative w-full h-[300px] md:h-[400px] overflow-hidden rounded-lg">
           <Image
-            src="/images/map.png"
+            src={PH_MAP}
             alt="Atlanta event locations map"
             fill
             unoptimized

@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import Image from "next/image";
 import { MapPin, ArrowRight, Play, CalendarPlus, Store } from "lucide-react";
+import { PH_DEFAULT } from "@/lib/placeholders";
 import {
   Sidebar,
   NewsletterWidget,
@@ -52,8 +53,6 @@ export const metadata: Metadata = {
    DEDUP: No item appears on the page twice.
    ============================================================ */
 
-const ph = (label: string, w = 600, h = 400, bg = "1a1a1a", fg = "e6c46d") =>
-  `https://placehold.co/${w}x${h}/${bg}/${fg}?text=${encodeURIComponent(label)}`;
 
 export default async function HomePage({
   searchParams,
@@ -176,7 +175,7 @@ export default async function HomePage({
               <Image
                   src={
   heroPost.featured_image_url ||
-  "/images/default-hero.png"
+  PH_DEFAULT
                 }
                 alt={heroPost.title}
                 fill
@@ -257,7 +256,7 @@ export default async function HomePage({
                     >
                       <div className="relative aspect-[4/3] overflow-hidden mb-5">
                         <Image
-                          src={post.featured_image_url || ph(post.title)}
+                          src={post.featured_image_url || PH_DEFAULT}
                           alt={post.title}
                           fill
                           unoptimized
@@ -372,7 +371,7 @@ export default async function HomePage({
                 <Link href={`/media/${homeVideos[0].slug}`} className="group block">
                   <div className="relative aspect-video bg-[#111] overflow-hidden">
                     <Image
-                      src={homeVideos[0].thumbnail_url || (homeVideos[0].embed_url ? `https://img.youtube.com/vi/${homeVideos[0].embed_url.match(/(?:youtu\.be\/|youtube\.com\/(?:watch\?v=|embed\/|v\/))([a-zA-Z0-9_-]{11})/)?.[1]}/hqdefault.jpg` : ph("Featured Video", 960, 540, "222222", "e6c46d"))}
+                      src={homeVideos[0].thumbnail_url || (homeVideos[0].embed_url ? `https://img.youtube.com/vi/${homeVideos[0].embed_url.match(/(?:youtu\.be\/|youtube\.com\/(?:watch\?v=|embed\/|v\/))([a-zA-Z0-9_-]{11})/)?.[1]}/hqdefault.jpg` : PH_DEFAULT)}
                       alt={homeVideos[0].title}
                       fill
                       unoptimized
@@ -394,7 +393,7 @@ export default async function HomePage({
               ) : (
                 <div>
                   <div className="relative aspect-video bg-[#111] overflow-hidden">
-                    <Image src={ph("Featured Video", 960, 540, "222222", "e6c46d")} alt="Featured video" fill unoptimized className="object-cover" />
+                    <Image src={PH_DEFAULT} alt="Featured video" fill unoptimized className="object-cover" />
                     <div className="absolute inset-0 flex items-center justify-center">
                       <div className="w-16 h-16 md:w-20 md:h-20 rounded-full bg-white/90 flex items-center justify-center">
                         <Play size={24} className="text-black ml-1 fill-black" />
@@ -433,7 +432,7 @@ export default async function HomePage({
                   <div key={item.id} className="flex gap-4 group cursor-pointer">
                     <div className="relative w-28 h-20 shrink-0 bg-[#222] overflow-hidden">
                       <Image
-                        src={item.thumb || ph(item.title, 160, 100, "333333", "e6c46d")}
+                        src={item.thumb || PH_DEFAULT}
                         alt={item.title}
                         fill
                         unoptimized
@@ -485,7 +484,7 @@ export default async function HomePage({
                           <Image
                             src={
                               biz.logo ||
-                              ph(biz.business_name, 400, 280, "c1121f", "fee198")
+                              PH_DEFAULT
                             }
                             alt={biz.business_name}
                             fill
@@ -590,7 +589,7 @@ export default async function HomePage({
                             <Image
                               src={
                                 event.featured_image_url ||
-                                ph(event.title, 400, 280, "4a4a4a", "ffffff")
+                                PH_DEFAULT
                               }
                               alt={event.title}
                               fill

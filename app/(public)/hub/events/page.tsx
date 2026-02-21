@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import Image from "next/image";
 import { ChevronRight } from "lucide-react";
+import { PH_DEFAULT, PH_MAP } from "@/lib/placeholders";
 import {
   getAreas,
   getNeighborhoods,
@@ -36,7 +37,7 @@ import { EventsClient } from "./EventsClient";
 /* ============================================================
    CONSTANTS
    ============================================================ */
-const PH_HERO = "/images/default-hero.png";
+const PH_HERO = PH_DEFAULT;
 
 /* ============================================================
    EVENTS ARCHIVE PAGE — /hub/events
