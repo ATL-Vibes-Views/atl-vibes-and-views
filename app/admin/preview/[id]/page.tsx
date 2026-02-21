@@ -33,7 +33,7 @@ export default async function PreviewPage({
 
   const { data: rawPost, error } = await supabase
     .from("blog_posts")
-    .select("*, authors(*), categories(*), neighborhoods(*, areas(*))")
+    .select("*, authors(*), categories(*), post_neighborhoods(neighborhoods(*, areas(*)))")
     .eq("id", id)
     .single();
 
@@ -42,6 +42,7 @@ export default async function PreviewPage({
   const post = rawPost as Record<string, unknown>;
   const category = post.categories as { name: string } | null;
   const author = post.authors as { name: string } | null;
+  const postNeighborhoods = post.post_neighborhoods as { neighborhoods: { name: string; areas?: { name: string } | null } | null }[] | null;
 
   // Prefer content_md (render as markdown), fallback to content_html
   const contentMd = post.content_md as string | null;
