@@ -1,7 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useCallback } from "react";
-import { NeighborhoodSelect } from "./NeighborhoodSelect";
+import { useEffect, useRef, useCallback, useState } from "react";
 import { ImagePicker } from "@/components/portal/ImagePicker";
 import { uploadImage } from "@/lib/supabase-storage";
 import type {
@@ -16,6 +15,113 @@ import type {
 } from "@/lib/types";
 
 /* eslint-disable @typescript-eslint/no-explicit-any */
+
+function NeighborhoodField({
+  neighborhoods,
+  value,
+  onChange,
+}: {
+  neighborhoods: NeighborhoodGrouped[];
+  value: string;
+  onChange: (v: string) => void;
+}) {
+  const [overriding, setOverriding] = useState(false);
+  const [search, setSearch] = useState("");
+  const [detectedName, setDetectedName] = useState<string>("");
+
+  const flat = neighborhoods.flatMap((g) =>
+    g.neighborhoods.map((n) => ({ ...n, area: g.area_name }))
+  );
+  const selected = flat.find((n) => n.id === value);
+
+  useEffect(() => {
+    if (value && !selected) {
+      import("@/lib/supabase").then(({ createBrowserClient }) => {
+        const sb = createBrowserClient() as any;
+        sb.from("neighborhoods").select("name, areas(name)").eq("id", value).single()
+          .then(({ data }: any) => {
+            if (data) setDetectedName(`${data.name} · ${data.areas?.name ?? ""}`);
+          });
+      });
+    }
+  }, [value, selected]);
+
+  const filtered = search.trim()
+    ? flat.filter((n) =>
+        n.name.toLowerCase().includes(search.toLowerCase()) ||
+        n.area.toLowerCase().includes(search.toLowerCase())
+      )
+    : [];
+
+  if (!value && !overriding) {
+    return (
+      <p className="text-[13px] text-gray-400 italic">
+        Auto-detected from address — enter a street address above.
+      </p>
+    );
+  }
+
+  if (!overriding) {
+    return (
+      <div className="flex items-center gap-3">
+        <span className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-[#f0fdf4] border border-[#bbf7d0] rounded text-[13px] text-[#166534] font-medium">
+          ✓ {selected?.name ?? detectedName ?? "Detected"}
+          {selected?.area ? (
+            <span className="text-[11px] text-[#4ade80] font-normal">· {selected.area}</span>
+          ) : null}
+        </span>
+        <button
+          type="button"
+          onClick={() => { setOverriding(true); setSearch(""); }}
+          className="text-[12px] text-[#6b7280] underline hover:text-[#1a1a1a] transition-colors"
+        >
+          Not right? Change it
+        </button>
+      </div>
+    );
+  }
+
+  return (
+    <div className="relative">
+      <input
+        type="text"
+        autoFocus
+        value={search}
+        onChange={(e) => setSearch(e.target.value)}
+        placeholder="Search neighborhoods…"
+        className="w-full px-4 py-3 border border-gray-200 text-sm outline-none focus:border-[#c1121f] transition-colors"
+      />
+      {search.trim() && (
+        <div className="border border-gray-200 border-t-0 max-h-48 overflow-y-auto bg-white">
+          {filtered.length === 0 ? (
+            <p className="px-4 py-3 text-[13px] text-gray-400">No results</p>
+          ) : (
+            filtered.map((n) => (
+              <button
+                key={n.id}
+                type="button"
+                onClick={() => { onChange(n.id); setOverriding(false); setSearch(""); }}
+                className="w-full text-left px-4 py-2.5 text-[13px] text-gray-dark hover:bg-[#fafafa] border-b border-gray-100 last:border-0"
+              >
+                {n.name}
+                <span className="text-[11px] text-gray-400 ml-1.5">{n.area}</span>
+              </button>
+            ))
+          )}
+        </div>
+      )}
+      {value && !search.trim() && (
+        <button
+          type="button"
+          onClick={() => setOverriding(false)}
+          className="mt-1 text-[12px] text-[#6b7280] underline hover:text-[#1a1a1a] transition-colors"
+        >
+          ← Keep detected: {selected?.name}
+        </button>
+      )}
+    </div>
+  );
+}
 
 const CERTIFICATIONS = [
   "8(a) Certification – SBA",
@@ -563,11 +669,10 @@ export function BusinessForm({
         </div>
         <div>
           <Label required>Neighborhood</Label>
-          <NeighborhoodSelect
-            groups={neighborhoods}
+          <NeighborhoodField
+            neighborhoods={neighborhoods}
             value={data.neighborhood_id}
             onChange={(v) => update("neighborhood_id", v)}
-            required
           />
         </div>
       </div>
