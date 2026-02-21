@@ -84,6 +84,7 @@ const EMPTY_BUSINESS: BusinessFormData = {
   amenity_ids: [],
   identity_option_ids: [],
   tag_ids: [],
+  photo_urls: [],
 };
 
 const EMPTY_EVENT: EventFormData = {
@@ -120,6 +121,7 @@ const EMPTY_EVENT: EventFormData = {
   video_url: "",
   images: [],
   tag_ids: [],
+  photo_urls: [],
 };
 
 export function SubmitClient({

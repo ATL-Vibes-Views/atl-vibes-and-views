@@ -462,23 +462,38 @@ export function EventForm({
           />
         </div>
         <div>
-          <Label>Additional Photos</Label>
-          <p className="text-xs text-gray-mid mb-2">
-            Photo uploads coming soon. Photos can be added after submission via
-            the admin panel.
-          </p>
-          <p className="text-xs text-gray-mid">
-            Up to 15 photos. JPG, PNG, WebP — max 10MB each.
-          </p>
+          <Label>Additional Photos (up to 15)</Label>
+          <p className="text-[12px] text-gray-400 mb-2">JPG, PNG, WebP — max 10MB each</p>
+          {(data.photo_urls ?? []).length < 15 && (
+            <ImagePicker
+              value=""
+              onChange={(url) => update("photo_urls", [...(data.photo_urls ?? []), url])}
+              folder="submissions/photos"
+              label="Upload a photo"
+              hint="JPG, PNG, WebP up to 10MB"
+            />
+          )}
+          <div className="grid grid-cols-3 gap-2 mt-2">
+            {(data.photo_urls ?? []).map((url, i) => (
+              <div key={i} className="relative">
+                <img src={url} alt="" className="w-full h-24 object-cover rounded" />
+                <button
+                  type="button"
+                  onClick={() => update("photo_urls", (data.photo_urls ?? []).filter((_, j) => j !== i))}
+                  className="absolute top-1 right-1 bg-black/60 text-white rounded-full w-5 h-5 text-[11px] flex items-center justify-center"
+                >×</button>
+              </div>
+            ))}
+          </div>
         </div>
         <div>
-          <Label htmlFor="event_video_url">Video URL</Label>
-          <Input
-            id="event_video_url"
-            type="url"
-            value={data.video_url}
-            onChange={(v) => update("video_url", v)}
-            placeholder="Paste a YouTube or Vimeo link"
+          <Label>Video</Label>
+          <ImagePicker
+            value={data.video_url ?? ""}
+            onChange={(url) => update("video_url", url)}
+            folder="submissions/videos"
+            label="Upload a video"
+            hint="MP4, MOV up to 50MB"
           />
         </div>
       </div>
@@ -487,35 +502,42 @@ export function EventForm({
       <SectionHeading>Tags</SectionHeading>
       <div>
         <Label>Tags (select up to 2)</Label>
-        <div className="flex flex-wrap gap-2 mt-2">
-          {tags.map((tag) => {
-            const selected = (data.tag_ids ?? []).includes(tag.id);
-            const maxReached = (data.tag_ids ?? []).length >= 2;
+        <select
+          disabled={(data.tag_ids ?? []).length >= 2}
+          onChange={(e) => {
+            const val = e.target.value;
+            if (!val) return;
+            const current = data.tag_ids ?? [];
+            if (current.includes(val) || current.length >= 2) return;
+            update("tag_ids", [...current, val]);
+            e.target.value = "";
+          }}
+          className="w-full border border-gray-200 rounded px-3 py-2 text-[13px] focus:outline-none focus:border-[#1a1a1a] mt-1"
+        >
+          <option value="">Select a tag…</option>
+          {["activities","cuisine","drinks","experience","identity","news","vibe"].map((group) => (
+            <optgroup key={group} label={group.charAt(0).toUpperCase() + group.slice(1)}>
+              {tags.filter(t => t.tag_group === group).map(tag => (
+                <option key={tag.id} value={tag.id}>{tag.name}</option>
+              ))}
+            </optgroup>
+          ))}
+        </select>
+        <div className="flex gap-2 mt-2 flex-wrap">
+          {(data.tag_ids ?? []).map((id) => {
+            const tag = tags.find(t => t.id === id);
+            if (!tag) return null;
             return (
-              <button
-                key={tag.id}
-                type="button"
-                disabled={!selected && maxReached}
-                onClick={() => {
-                  const current = data.tag_ids ?? [];
-                  update("tag_ids", selected
-                    ? current.filter((id) => id !== tag.id)
-                    : [...current, tag.id]
-                  );
-                }}
-                className={`px-3 py-1 rounded-full text-[12px] font-semibold border transition-colors ${
-                  selected
-                    ? "bg-[#1a1a1a] text-white border-[#1a1a1a]"
-                    : maxReached
-                    ? "bg-gray-100 text-gray-300 border-gray-200 cursor-not-allowed"
-                    : "bg-white text-gray-600 border-gray-300 hover:border-[#1a1a1a]"
-                }`}
-              >
+              <span key={id} className="inline-flex items-center gap-1 px-3 py-1 bg-[#1a1a1a] text-white text-[12px] rounded-full">
                 {tag.name}
-              </button>
+                <button type="button" onClick={() => update("tag_ids", (data.tag_ids ?? []).filter(i => i !== id))}>×</button>
+              </span>
             );
           })}
         </div>
+        {(data.tag_ids ?? []).length >= 2 && (
+          <p className="text-[11px] text-gray-400 mt-1">Maximum 2 tags selected</p>
+        )}
       </div>
 
       {/* Section 9: Links */}
