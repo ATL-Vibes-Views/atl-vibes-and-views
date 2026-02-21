@@ -1239,6 +1239,7 @@ export interface BusinessFormData {
   images: ImageEntry[];
   amenity_ids: string[];
   identity_option_ids: string[];
+  tag_ids: string[];
 }
 
 export interface EventFormData {
@@ -1274,4 +1275,5 @@ export interface EventFormData {
   featured_image_url: string;
   video_url: string;
   images: ImageEntry[];
+  tag_ids: string[];
 }

@@ -33,6 +33,7 @@ import type {
   NewsletterType,
   NewsletterSection,
   NewsletterPost,
+  Tag,
 } from "./types";
 
 /* Module-level singleton — lazy so env vars are available at call time,
@@ -371,6 +372,16 @@ export async function getCategories(opts?: {
   if (opts?.appliesTo) q = q.contains("applies_to", [opts.appliesTo]);
 
   const { data, error } = await q;
+  if (error) { console.error("[queries]", error.message); }
+  return data ?? [];
+}
+
+export async function getTags(): Promise<Tag[]> {
+  const { data, error } = await sb()
+    .from("tags")
+    .select("*")
+    .eq("is_active", true)
+    .order("name");
   if (error) { console.error("[queries]", error.message); }
   return data ?? [];
 }

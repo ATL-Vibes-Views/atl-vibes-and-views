@@ -1,11 +1,13 @@
 "use client";
 
 import { NeighborhoodSelect } from "./NeighborhoodSelect";
+import { ImagePicker } from "@/components/portal/ImagePicker";
 import type {
   EventFormData,
   Category,
   City,
   NeighborhoodGrouped,
+  Tag,
 } from "@/lib/types";
 
 interface EventFormProps {
@@ -14,6 +16,7 @@ interface EventFormProps {
   categories: Category[];
   neighborhoods: NeighborhoodGrouped[];
   cities: City[];
+  tags: Tag[];
 }
 
 const EVENT_TYPES = [
@@ -107,6 +110,7 @@ export function EventForm({
   categories,
   neighborhoods,
   cities,
+  tags,
 }: EventFormProps) {
   const update = <K extends keyof EventFormData>(
     key: K,
@@ -438,26 +442,23 @@ export function EventForm({
       <SectionHeading>Logo, Photos &amp; Video</SectionHeading>
       <div className="space-y-4">
         <div>
-          <Label htmlFor="event_logo_url">Logo URL</Label>
-          <Input
-            id="event_logo_url"
-            type="url"
-            value={data.logo_url}
-            onChange={(v) => update("logo_url", v)}
-            placeholder="https://… (JPG, PNG, SVG, WebP — max 5MB)"
+          <Label>Logo</Label>
+          <ImagePicker
+            value={data.logo_url ?? ""}
+            onChange={(url) => update("logo_url", url)}
+            folder="submissions/logos"
+            label="Upload your logo"
+            hint="PNG, JPG up to 5MB"
           />
-          <p className="text-xs text-gray-mid mt-1">
-            Image upload coming soon. For now, paste a direct image URL.
-          </p>
         </div>
         <div>
-          <Label htmlFor="featured_image_url">Featured Image URL</Label>
-          <Input
-            id="featured_image_url"
-            type="url"
-            value={data.featured_image_url}
-            onChange={(v) => update("featured_image_url", v)}
-            placeholder="https://… (JPG, PNG, WebP — max 10MB)"
+          <Label>Featured Image</Label>
+          <ImagePicker
+            value={data.featured_image_url ?? ""}
+            onChange={(url) => update("featured_image_url", url)}
+            folder="submissions/images"
+            label="Upload featured image"
+            hint="JPG, PNG, WebP up to 10MB"
           />
         </div>
         <div>
@@ -482,7 +483,42 @@ export function EventForm({
         </div>
       </div>
 
-      {/* Section 8: Links */}
+      {/* Section 8: Tags */}
+      <SectionHeading>Tags</SectionHeading>
+      <div>
+        <Label>Tags (select up to 2)</Label>
+        <div className="flex flex-wrap gap-2 mt-2">
+          {tags.map((tag) => {
+            const selected = (data.tag_ids ?? []).includes(tag.id);
+            const maxReached = (data.tag_ids ?? []).length >= 2;
+            return (
+              <button
+                key={tag.id}
+                type="button"
+                disabled={!selected && maxReached}
+                onClick={() => {
+                  const current = data.tag_ids ?? [];
+                  update("tag_ids", selected
+                    ? current.filter((id) => id !== tag.id)
+                    : [...current, tag.id]
+                  );
+                }}
+                className={`px-3 py-1 rounded-full text-[12px] font-semibold border transition-colors ${
+                  selected
+                    ? "bg-[#1a1a1a] text-white border-[#1a1a1a]"
+                    : maxReached
+                    ? "bg-gray-100 text-gray-300 border-gray-200 cursor-not-allowed"
+                    : "bg-white text-gray-600 border-gray-300 hover:border-[#1a1a1a]"
+                }`}
+              >
+                {tag.name}
+              </button>
+            );
+          })}
+        </div>
+      </div>
+
+      {/* Section 9: Links */}
       <SectionHeading>Links</SectionHeading>
       <div>
         <Label htmlFor="event_website">Event Website</Label>
