@@ -1242,6 +1242,7 @@ export interface BusinessFormData {
   identity_option_ids: string[];
   tag_ids: string[];
   photo_urls: string[];
+  city_match_warning?: boolean;
 }
 
 export interface EventFormData {

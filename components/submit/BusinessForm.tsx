@@ -206,6 +206,19 @@ export function BusinessForm({
         const street = streetNumber && route ? `${streetNumber} ${route}` : (place.formatted_address ?? "");
         const locationFields = { street_address: street, city_text: city, state, zip_code: zip, latitude: lat, longitude: lng };
         onChange({ ...dataRef.current, ...locationFields });
+        if (city) {
+          import("@/lib/supabase").then(({ createBrowserClient }) => {
+            const sb = createBrowserClient() as any;
+            sb.from("cities").select("id, name").ilike("name", city).limit(1)
+              .then(({ data: cityRows }: any) => {
+                if (cityRows?.[0]) {
+                  onChange({ ...dataRef.current, ...locationFields, city_id: cityRows[0].id, city_match_warning: false });
+                } else {
+                  onChange({ ...dataRef.current, ...locationFields, city_match_warning: true });
+                }
+              });
+          }).catch(() => {});
+        }
         if (lat !== null && lng !== null) {
           import("@/lib/neighborhood-lookup").then(({ findNeighborhoodByCoordinates }) => {
             findNeighborhoodByCoordinates(lat, lng).then((geojsonKey) => {
@@ -516,6 +529,11 @@ export function BusinessForm({
               required
               className="w-full px-4 py-3 border border-gray-200 text-sm outline-none focus:border-[#c1121f] transition-colors"
             />
+            {data.city_match_warning && (
+              <p className="text-[12px] text-amber-600 mt-1">
+                ⚠ We couldn&apos;t match this city to our coverage area. You can still submit — our team will review and assign it manually.
+              </p>
+            )}
           </div>
           <div>
             <Label htmlFor="state" required>
