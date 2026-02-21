@@ -829,6 +829,29 @@ export async function getNeighborhoodsGrouped(): Promise<NeighborhoodGrouped[]> 
   return Array.from(grouped.values()).sort((a, b) => a.area_name.localeCompare(b.area_name));
 }
 
+export async function getNeighborhoodsGroupedFull(): Promise<NeighborhoodGrouped[]> {
+  const { data, error } = await sb()
+    .from("neighborhoods")
+    .select("id, name, slug, areas(name, slug)")
+    .eq("is_active", true)
+    .order("name")
+    .returns<{ id: string; name: string; slug: string; areas: { name: string; slug: string } }[]>();
+  if (error) { console.error("[queries]", error.message); }
+  if (!data?.length) return [];
+
+  const grouped = new Map<string, NeighborhoodGrouped>();
+  for (const n of data) {
+    const areaName = n.areas?.name ?? "Other";
+    const areaSlug = n.areas?.slug ?? "other";
+    if (!grouped.has(areaSlug)) {
+      grouped.set(areaSlug, { area_name: areaName, area_slug: areaSlug, neighborhoods: [] });
+    }
+    grouped.get(areaSlug)!.neighborhoods.push({ id: n.id, name: n.name, slug: n.slug });
+  }
+
+  return Array.from(grouped.values()).sort((a, b) => a.area_name.localeCompare(b.area_name));
+}
+
 /* ============================================================
    AMENITIES
    ============================================================ */
