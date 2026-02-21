@@ -58,6 +58,10 @@ export interface Area {
   description?: string;
   tagline?: string;
   hero_image_url?: string;
+  hero_video_url?: string;
+  hero_content_type?: string;
+  hero_media_id?: string;
+  hero_featured_post_id?: string;
   map_center_lat?: number;
   map_center_lng?: number;
   is_active: boolean;
@@ -74,6 +78,10 @@ export interface Neighborhood {
   description?: string;
   tagline?: string;
   hero_image_url?: string;
+  hero_video_url?: string;
+  hero_content_type?: string;
+  hero_media_id?: string;
+  hero_featured_post_id?: string;
   map_center_lat?: number;
   map_center_lng?: number;
   geojson_key?: string;
