@@ -194,7 +194,7 @@ export function StoriesArchiveClient({
         const effectiveType = heroType === "video" && videoUrl ? "video" : heroType === "post" && heroPost ? "post" : "image";
         const bgSrc = effectiveType === "post" ? (heroPost?.featured_image_url ?? PH_HERO) : (heroImage ?? PH_HERO);
         const heroContent = (
-          <section className={`relative w-full h-[180px] md:h-[220px] overflow-hidden ${effectiveType === "post" ? "cursor-pointer group" : ""}`}>
+          <section className={`relative w-full h-[52vh] sm:h-[58vh] md:h-[65vh] min-h-[340px] max-h-[640px] overflow-hidden ${effectiveType === "post" ? "cursor-pointer group" : ""}`}>
             {effectiveType === "video" && videoUrl ? (
               <video src={videoUrl} autoPlay muted loop playsInline className="absolute inset-0 w-full h-full object-cover" />
             ) : (
