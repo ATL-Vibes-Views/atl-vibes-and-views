@@ -17,7 +17,7 @@ export default async function PostsPage() {
   // Excludes drafts (handled by Publishing Queue) and never-published archived posts (rejected drafts).
   const { data: posts, error: postsErr } = (await supabase
     .from("blog_posts")
-    .select("*, categories(name), neighborhoods(name)")
+    .select("*, categories(name)")
     .or("status.in.(published,scheduled,ready_for_review),and(status.eq.archived,published_at.not.is.null)")
     .order("created_at", { ascending: false })) as {
     data: {
@@ -36,7 +36,6 @@ export default async function PostsPage() {
       is_sponsored: boolean;
       sponsor_business_id: string | null;
       categories: { name: string } | null;
-      neighborhoods: { name: string } | null;
     }[] | null;
     error: unknown;
   };
