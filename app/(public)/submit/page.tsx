@@ -1,6 +1,6 @@
 import { Suspense } from "react";
 import type { Metadata } from "next";
-import { getCategories, getNeighborhoodsGrouped, getAmenities, getIdentityOptions, getCities, getTags } from "@/lib/queries";
+import { getCategories, getNeighborhoodsGroupedFull, getAmenities, getIdentityOptions, getCities, getTags } from "@/lib/queries";
 import { SubmitClient } from "@/components/submit/SubmitClient";
 import { Breadcrumbs } from "@/components/ui/Breadcrumbs";
 
@@ -22,7 +22,7 @@ async function SubmitPageContent() {
   const [categories, neighborhoods, amenities, identityOptions, cities, tags] =
     await Promise.all([
       getCategories(),
-      getNeighborhoodsGrouped(),
+      getNeighborhoodsGroupedFull(),
       getAmenities(),
       getIdentityOptions(),
       getCities(),
