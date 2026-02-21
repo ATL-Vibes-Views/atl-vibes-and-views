@@ -27,6 +27,7 @@ interface PostRow {
   is_sponsored: boolean;
   sponsor_business_id: string | null;
   categories: { name: string } | null;
+  post_neighborhoods: { neighborhoods: { name: string } | null }[] | null;
 }
 
 interface PostsClientProps {
@@ -187,7 +188,7 @@ export function PostsClient({ posts, categories }: PostsClientProps) {
       key: "neighborhood",
       header: "Neighborhood",
       render: (item: PostRow) => (
-        <span className="text-[13px]">—</span>
+        <span className="text-[13px]">{item.post_neighborhoods?.[0]?.neighborhoods?.name ?? "—"}</span>
       ),
     },
     {

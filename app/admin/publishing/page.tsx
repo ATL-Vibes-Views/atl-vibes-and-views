@@ -16,7 +16,7 @@ export default async function PublishingPage() {
   // Blog posts in draft or ready_for_review — the publishing queue is where drafts get media + published
   const { data: posts, error: postsErr } = (await supabase
     .from("blog_posts")
-    .select("*, categories(name)")
+    .select("*, categories(name), post_neighborhoods(neighborhoods(name))")
     .in("status", ["draft", "ready_for_review"])
     .order("created_at", { ascending: false })) as {
     data: {
@@ -31,6 +31,7 @@ export default async function PublishingPage() {
       published_at: string | null;
       created_at: string;
       categories: { name: string } | null;
+      post_neighborhoods: { neighborhoods: { name: string } | null }[] | null;
     }[] | null;
     error: unknown;
   };

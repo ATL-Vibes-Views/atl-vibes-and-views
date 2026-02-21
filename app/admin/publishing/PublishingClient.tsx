@@ -28,6 +28,7 @@ interface PostRow {
   published_at: string | null;
   created_at: string;
   categories: { name: string } | null;
+  post_neighborhoods: { neighborhoods: { name: string } | null }[] | null;
 }
 
 interface PublishingClientProps {
@@ -185,6 +186,9 @@ export function PublishingClient({ posts }: PublishingClientProps) {
                     <StatusBadge variant="blue">Blog Post</StatusBadge>
                     {post.categories?.name && (
                       <span className="text-[11px] text-[#6b7280]">{post.categories.name}</span>
+                    )}
+                    {post.post_neighborhoods?.[0]?.neighborhoods?.name && (
+                      <span className="text-[11px] text-[#6b7280]">{post.post_neighborhoods[0].neighborhoods!.name}</span>
                     )}
                     {needMedia && <StatusBadge variant="red">Media Required</StatusBadge>}
                     {ready && <StatusBadge variant="green">Ready</StatusBadge>}
