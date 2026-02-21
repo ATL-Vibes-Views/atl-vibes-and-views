@@ -238,6 +238,7 @@ export function SubmitClient({
             submitter_name: submitterName,
             submitter_email: submitterEmail,
             data: formData,
+            tier: tier,
           }),
         });
         if (!res.ok) {
@@ -257,6 +258,7 @@ export function SubmitClient({
             submitter_name: submitterName,
             submitter_email: submitterEmail,
             data: formData,
+            tier: tier,
           }),
         });
         if (!res.ok) {

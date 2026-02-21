@@ -65,6 +65,7 @@ export async function POST(request: Request) {
         .from("submissions")
         .update({
           status: "approved",
+          tier: tier || "free",
           stripe_session_id: session.id,
           stripe_customer_id: session.customer as string,
         })
