@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { PH_MAP } from "@/lib/placeholders";
 import Link from "next/link";
 import { Breadcrumbs } from "@/components/ui/Breadcrumbs";
 import { HeroSection } from "@/components/ui/HeroSection";
@@ -44,7 +45,7 @@ const HUB_CONFIG: HubArchiveConfig = {
   ctaDescription:
     "Reach thousands of Atlantans with Premium placement in our things-to-do guide.",
   mapToggleLabel: "Activity Map",
-  mapImage: "/images/map.png",
+  mapImage: PH_MAP,
   mapAlt: "Atlanta Activity Map — placeholder",
   gridEyebrow: "Things To Do",
   gridCountNoun: ["listing", "listings"],

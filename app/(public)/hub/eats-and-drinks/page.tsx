@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { PH_MAP } from "@/lib/placeholders";
 import Link from "next/link";
 import { Breadcrumbs } from "@/components/ui/Breadcrumbs";
 import { HeroSection } from "@/components/ui/HeroSection";
@@ -43,7 +44,7 @@ const HUB_CONFIG: HubArchiveConfig = {
   ctaTitle: "Get Your Restaurant Featured",
   ctaDescription: "Reach thousands of Atlantans with Premium placement in our dining guide.",
   mapToggleLabel: "Dining Map",
-  mapImage: "/images/map.png",
+  mapImage: PH_MAP,
   mapAlt: "Atlanta Dining Map — placeholder",
   gridEyebrow: "Dining",
   gridCountNoun: ["restaurant", "restaurants"],

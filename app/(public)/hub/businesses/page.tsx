@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { PH_MAP } from "@/lib/placeholders";
 import Link from "next/link";
 import { Breadcrumbs } from "@/components/ui/Breadcrumbs";
 import { HeroSection } from "@/components/ui/HeroSection";
@@ -43,7 +44,7 @@ const HUB_CONFIG: HubArchiveConfig = {
   ctaTitle: "Get Your Business Featured",
   ctaDescription: "Reach thousands of Atlantans with a Premium placement in our directory.",
   mapToggleLabel: "Business Map",
-  mapImage: "/images/map.png",
+  mapImage: PH_MAP,
   mapAlt: "Atlanta Business Map — placeholder",
   gridEyebrow: "Businesses",
   gridCountNoun: ["business", "businesses"],

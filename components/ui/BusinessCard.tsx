@@ -1,6 +1,7 @@
 import Link from "next/link";
 import Image from "next/image";
 import { MapPin, Star } from "lucide-react";
+import { PH_DEFAULT } from "@/lib/placeholders";
 
 /* ============================================================
    BUSINESS CARD v2
@@ -13,7 +14,6 @@ import { MapPin, Star } from "lucide-react";
    and neighborhood link.
    ============================================================ */
 
-const PH_BIZ = "https://placehold.co/600x400/1a1a1a/e6c46d?text=Business";
 
 interface BusinessCardProps {
   name: string;
@@ -53,7 +53,7 @@ export function BusinessCard({
   tags,
   className = "",
 }: BusinessCardProps) {
-  const imgSrc = imageUrl || PH_BIZ;
+  const imgSrc = imageUrl || PH_DEFAULT;
   const isPremium = tier === "Premium";
 
   return (
