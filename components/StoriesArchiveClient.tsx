@@ -202,8 +202,8 @@ export function StoriesArchiveClient({
               <Image src={bgSrc} alt={effectiveType === "post" ? (heroPost?.title ?? heroTitle) : heroTitle} fill unoptimized priority className={`object-cover ${effectiveType === "post" ? "transition-transform duration-700 group-hover:scale-105" : ""}`} />
             )}
             <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/40 to-black/20" />
-            <div className="absolute inset-0 flex items-end">
-              <div className="site-container pb-8 md:pb-10">
+            <div className="absolute inset-0 flex flex-col items-center justify-center text-center">
+              <div className="site-container">
                 {effectiveType === "post" && heroPost ? (
                   <>
                     {heroPost.category && (
