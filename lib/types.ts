@@ -319,6 +319,7 @@ export interface Tag {
   name: string;
   slug: string;
   description?: string;
+  tag_group?: string;
   created_at: string;
   is_active?: boolean;
 }
@@ -1240,6 +1241,7 @@ export interface BusinessFormData {
   amenity_ids: string[];
   identity_option_ids: string[];
   tag_ids: string[];
+  photo_urls: string[];
 }
 
 export interface EventFormData {
@@ -1276,4 +1278,5 @@ export interface EventFormData {
   video_url: string;
   images: ImageEntry[];
   tag_ids: string[];
+  photo_urls: string[];
 }
