@@ -15,7 +15,7 @@ export default async function SubmissionsPage() {
 
   const { data: submissions, error } = (await supabase
     .from("submissions")
-    .select("id, submission_type, submitter_name, submitter_email, status, reviewer_notes, rejection_reason, created_at, updated_at")
+    .select("id, submission_type, submitter_name, submitter_email, status, reviewer_notes, rejection_reason, created_at, updated_at, data")
     .order("created_at", { ascending: false })
   ) as {
     data: {
@@ -28,6 +28,7 @@ export default async function SubmissionsPage() {
       rejection_reason: string | null;
       created_at: string;
       updated_at: string;
+      data?: Record<string, unknown> | null;
     }[] | null;
     error: unknown;
   };
