@@ -14,6 +14,8 @@ import {
 } from "@/components/newsletter/NewsletterColorMap";
 import type { NewsletterCardData } from "@/components/newsletter/NewsletterCard";
 import { getPageHero, getHeroPost } from "@/lib/queries/settings";
+import { HeroSection } from "@/components/ui/HeroSection";
+import { PH_DEFAULT } from "@/lib/placeholders";
 
 /* ============================================================
    NEWSLETTER ARCHIVE — /newsletters
@@ -105,27 +107,15 @@ export default async function NewslettersPage({
         dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
       />
 
-      {/* ========== DARK HERO ========== */}
-      <section className="relative w-full bg-[#1a1a1a] h-[52vh] sm:h-[58vh] md:h-[65vh] min-h-[340px] max-h-[640px] flex items-center justify-center overflow-hidden">
-        {/* Gold watermark */}
-        <div className="absolute inset-0 flex items-center justify-center pointer-events-none select-none">
-          <span className="font-display italic text-[80px] md:text-[140px] lg:text-[200px] text-[rgba(184,154,90,0.06)] leading-none whitespace-nowrap">
-            Newsletters
-          </span>
-        </div>
-        {/* Content */}
-        <div className="relative z-10 text-center px-6">
-          <span className="text-[#fee198] text-[11px] font-semibold uppercase tracking-[0.15em] mb-3 block">
-            Newsletters
-          </span>
-          <h1 className="font-display text-4xl md:text-5xl lg:text-6xl font-semibold text-white leading-[1.05]">
-            Atlanta in Your Inbox
-          </h1>
-          <p className="text-white/60 text-sm md:text-base mt-3 max-w-lg mx-auto">
-            Weekly guides, neighborhood spotlights, development updates, and local intel — curated for Atlantans.
-          </p>
-        </div>
-      </section>
+      <HeroSection
+        eyebrow="Newsletters"
+        title="Atlanta in Your Inbox"
+        description="Weekly guides, neighborhood spotlights, development updates, and local intel — curated for Atlantans."
+        backgroundImage={_hero.imageUrl ?? PH_DEFAULT}
+        videoUrl={_hero.videoUrl ?? undefined}
+        heroPost={_heroPost ?? undefined}
+        heroType={(_hero.type ?? "image") as "image" | "video" | "post"}
+      />
 
       {/* ========== BREADCRUMBS ========== */}
       <div className="site-container pt-6 pb-2">

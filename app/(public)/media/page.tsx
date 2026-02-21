@@ -7,6 +7,8 @@ import { ShortsCarousel } from "@/components/ui/ShortsCarousel";
 import { getMediaItems } from "@/lib/queries";
 import { MediaLandingClient } from "./MediaLandingClient";
 import { getPageHero, getHeroPost } from "@/lib/queries/settings";
+import { HeroSection } from "@/components/ui/HeroSection";
+import { PH_DEFAULT } from "@/lib/placeholders";
 
 /* ============================================================
    MEDIA — /media
@@ -66,6 +68,16 @@ export default async function MediaPage({
       <script
         type="application/ld+json"
         dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
+      />
+
+      <HeroSection
+        eyebrow="Media"
+        title="Watch & Listen"
+        description="Podcast episodes, video features, and short-form content covering Atlanta."
+        backgroundImage={_hero.imageUrl ?? PH_DEFAULT}
+        videoUrl={_hero.videoUrl ?? undefined}
+        heroPost={_heroPost ?? undefined}
+        heroType={(_hero.type ?? "image") as "image" | "video" | "post"}
       />
 
       <Suspense fallback={null}>
