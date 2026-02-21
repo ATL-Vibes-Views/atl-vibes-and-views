@@ -209,7 +209,7 @@ export function StoriesArchiveClient({
                     {heroPost.category && (
                       <span className="inline-block bg-[#c1121f] text-white text-[10px] font-semibold uppercase tracking-[0.12em] px-2 py-0.5 mb-2">{heroPost.category}</span>
                     )}
-                    <h1 className="font-display text-3xl md:text-4xl lg:text-5xl font-semibold text-white leading-[1.05]">{heroPost.title}</h1>
+                    <h1 className="font-display text-4xl md:text-6xl lg:text-7xl font-semibold text-white leading-[1.05]">{heroPost.title}</h1>
                     {(heroPost.author || heroPost.published_at) && (
                       <p className="text-white/70 text-xs mt-1">
                         {heroPost.author ? `BY ${heroPost.author.toUpperCase()}` : ""}{heroPost.author && heroPost.published_at ? " · " : ""}{heroPost.published_at ? new Date(heroPost.published_at).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" }) : ""}
@@ -222,7 +222,7 @@ export function StoriesArchiveClient({
                     <span className="text-[#e6c46d] text-[11px] font-semibold uppercase tracking-[0.15em] mb-2 block">
                       {contentType === "news" ? "Atlanta News" : contentType === "guide" ? "Local Knowledge" : "Stories"}
                     </span>
-                    <h1 className="font-display text-3xl md:text-4xl lg:text-5xl font-semibold text-white leading-[1.05]">{heroTitle}</h1>
+                    <h1 className="font-display text-4xl md:text-6xl lg:text-7xl font-semibold text-white leading-[1.05]">{heroTitle}</h1>
                     <p className="text-white/60 text-sm mt-2 max-w-lg">{heroSubtitle}</p>
                   </>
                 )}
