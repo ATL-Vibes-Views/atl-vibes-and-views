@@ -1,6 +1,7 @@
 import Link from "next/link";
 import Image from "next/image";
 import { ArrowRight, Play } from "lucide-react";
+import { PH_DEFAULT } from "@/lib/placeholders";
 import { SearchBar } from "@/components/SearchBar";
 import { NewsletterForm } from "@/components/NewsletterForm";
 import {
@@ -73,8 +74,8 @@ export interface AreaLandingContentProps {
    HELPERS
    ============================================================ */
 
-const PH_POST = "https://placehold.co/600x400/1a1a1a/e6c46d?text=Story";
-const PH_BIZ = "https://placehold.co/400x300/1a1a1a/e6c46d?text=Business";
+const PH_POST = PH_DEFAULT;
+const PH_BIZ = PH_DEFAULT;
 
 function formatDate(dateStr?: string | null): string {
   if (!dateStr) return "";

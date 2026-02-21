@@ -5,6 +5,7 @@ import { useSearchParams, useRouter } from "next/navigation";
 import Link from "next/link";
 import Image from "next/image";
 import { Search, ArrowRight } from "lucide-react";
+import { PH_DEFAULT } from "@/lib/placeholders";
 
 interface NeighborhoodCard {
   id: string;
@@ -29,8 +30,7 @@ interface NeighborhoodsDiscoverProps {
 }
 
 const PAGE_SIZE = 12;
-const PH_NEIGHBORHOOD =
-  "https://placehold.co/400x260/1a1a1a/e6c46d?text=Neighborhood";
+const PH_NEIGHBORHOOD = PH_DEFAULT;
 
 function NeighborhoodsDiscoverInner({
   neighborhoods,

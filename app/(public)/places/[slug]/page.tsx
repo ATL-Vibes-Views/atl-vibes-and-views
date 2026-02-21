@@ -2,6 +2,7 @@ import Link from "next/link";
 import Image from "next/image";
 import { notFound } from "next/navigation";
 import type { Metadata } from "next";
+import { PH_DEFAULT } from "@/lib/placeholders";
 import {
   MapPin,
   Phone,
@@ -173,7 +174,7 @@ export default async function BusinessDetailPage({
     primaryImage?.image_url ||
     images[0]?.image_url ||
     biz.logo ||
-    "/images/default-hero.png";
+    PH_DEFAULT;
 
   /* ── In the News: blog posts linked via post_businesses ── */
   const inTheNewsPosts = await getLinkedBlogPosts(biz.id);
@@ -199,7 +200,7 @@ export default async function BusinessDetailPage({
     imageUrl:
       morePlacesImageMap[place.id] ||
       place.logo ||
-      "/images/default-hero.png",
+      PH_DEFAULT,
   }));
 
   /* ── Social links ── */
@@ -914,7 +915,7 @@ export default async function BusinessDetailPage({
                     >
                       <div className="relative aspect-[4/3] overflow-hidden">
                         <Image
-                          src={post.featured_image_url || "/images/default-hero.png"}
+                          src={post.featured_image_url || PH_DEFAULT}
                           alt={post.title}
                           fill
                           unoptimized

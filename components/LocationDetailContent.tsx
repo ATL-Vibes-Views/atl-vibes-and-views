@@ -1,6 +1,7 @@
 import Link from "next/link";
 import Image from "next/image";
 import { MapPin, ArrowRight, Play } from "lucide-react";
+import { PH_DEFAULT } from "@/lib/placeholders";
 import { EventCard } from "@/components/ui/EventCard";
 import { Breadcrumbs } from "@/components/ui/Breadcrumbs";
 import { SectionHeader } from "@/components/ui/SectionHeader";
@@ -24,10 +25,10 @@ import {
    Used by /neighborhoods/[slug] and /beyond-atl/[slug]
    ============================================================ */
 
-const PH_HERO = "https://placehold.co/1920x600/1a1a1a/e6c46d?text=Neighborhood";
-const PH_POST = "https://placehold.co/600x400/1a1a1a/e6c46d?text=Story";
-const PH_BIZ = "https://placehold.co/600x400/c1121f/fee198?text=Business";
-const PH_VIDEO = "https://placehold.co/960x540/222222/e6c46d?text=Video";
+const PH_HERO = PH_DEFAULT;
+const PH_POST = PH_DEFAULT;
+const PH_BIZ = PH_DEFAULT;
+const PH_VIDEO = PH_DEFAULT;
 
 function formatDate(dateStr?: string | null): string {
   if (!dateStr) return "";
@@ -675,7 +676,7 @@ export function LocationDetailContent(props: LocationDetailProps) {
                           <Image
                             src={
                               biz.logo ||
-                              "https://placehold.co/200x160/1a1a1a/e6c46d?text=Biz"
+                              PH_DEFAULT
                             }
                             alt={biz.business_name}
                             fill

@@ -3,6 +3,7 @@ import Image from "next/image";
 import { notFound } from "next/navigation";
 import { ArrowLeft, ArrowRight, Calendar, Mail, Users } from "lucide-react";
 import type { Metadata } from "next";
+import { PH_DEFAULT } from "@/lib/placeholders";
 
 import { Breadcrumbs } from "@/components/ui/Breadcrumbs";
 import { NewsletterBlock } from "@/components/ui/NewsletterBlock";
@@ -53,7 +54,7 @@ function formatShortDate(dateStr: string): string {
   });
 }
 
-const PH_POST = "https://placehold.co/600x400/1a1a1a/e6c46d?text=Story";
+const PH_POST = PH_DEFAULT;
 
 /* --- Type color mapping --- */
 const TYPE_COLORS: Record<string, string> = {

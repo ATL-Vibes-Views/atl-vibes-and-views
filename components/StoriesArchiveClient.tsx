@@ -8,6 +8,7 @@ import { Search, X, ChevronDown, ArrowRight, FileText } from "lucide-react";
 import { RelatedStoryCard } from "@/components/ui/RelatedStoryCard";
 import { AdBlock } from "@/components/ui/AdBlock";
 import type { HeroPost } from "@/components/ui/HeroSection";
+import { PH_DEFAULT } from "@/lib/placeholders";
 
 /* ============================================================
    TYPES
@@ -65,7 +66,7 @@ interface StoriesArchiveClientProps {
    HELPERS
    ============================================================ */
 
-const PH_HERO = "https://placehold.co/1920x600/1a1a1a/e6c46d?text=Stories";
+const PH_HERO = PH_DEFAULT;
 
 /* ============================================================
    PILLAR TABS

@@ -1,8 +1,9 @@
 import Link from "next/link";
 import Image from "next/image";
 import { MapPin, ArrowRight } from "lucide-react";
+import { PH_DEFAULT } from "@/lib/placeholders";
 
-const PH_POST = "https://placehold.co/600x400/1a1a1a/e6c46d?text=Story";
+const PH_POST = PH_DEFAULT;
 
 export interface RelatedPost {
   slug: string;

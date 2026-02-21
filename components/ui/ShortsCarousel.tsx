@@ -1,6 +1,7 @@
 import Link from "next/link";
 import Image from "next/image";
 import type { MediaItem } from "@/lib/types";
+import { PH_DEFAULT } from "@/lib/placeholders";
 
 /* ============================================================
    ShortsCarousel — Horizontal scrolling row of vertical shorts
@@ -11,7 +12,7 @@ interface ShortsCarouselProps {
   className?: string;
 }
 
-const PH_SHORT = "https://placehold.co/360x640/1a1a1a/e6c46d?text=Short";
+const PH_SHORT = PH_DEFAULT;
 
 function relativeDate(dateStr: string | null): string {
   if (!dateStr) return "";

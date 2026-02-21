@@ -3,6 +3,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { Breadcrumbs } from "@/components/ui/Breadcrumbs";
 import { NewsletterBlock } from "@/components/ui/NewsletterBlock";
+import { PH_DEFAULT } from "@/lib/placeholders";
 
 export const dynamic = "force-dynamic";
 
@@ -63,7 +64,7 @@ export default function AboutPage() {
       />
 
       {/* ========== HERO ========== */}
-      <section className="relative w-full h-[45vh] sm:h-[55vh] md:h-[65vh] min-h-[340px] max-h-[560px] overflow-hidden bg-[#1a1a1a]" style={{ backgroundImage: "url(/images/default-hero.png)", backgroundSize: "cover", backgroundPosition: "center" }}>
+      <section className="relative w-full h-[45vh] sm:h-[55vh] md:h-[65vh] min-h-[340px] max-h-[560px] overflow-hidden bg-[#1a1a1a]" style={{ backgroundImage: `url(${PH_DEFAULT})`, backgroundSize: "cover", backgroundPosition: "center" }}>
         <Image
           src="https://images.unsplash.com/photo-1575917649705-5b59aaa12e6b?w=1600"
           alt="Atlanta skyline"

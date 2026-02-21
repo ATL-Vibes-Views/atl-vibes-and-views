@@ -3,6 +3,7 @@ import Image from "next/image";
 import { notFound } from "next/navigation";
 import { MapPin, ArrowRight } from "lucide-react";
 import type { Metadata } from "next";
+import { PH_DEFAULT } from "@/lib/placeholders";
 
 import { Breadcrumbs } from "@/components/ui/Breadcrumbs";
 import { SectionHeader } from "@/components/ui/SectionHeader";
@@ -40,8 +41,8 @@ export const dynamic = "force-dynamic";
    Sidebar auto-detects variant based on category + content_type.
    ============================================================ */
 
-const PH_HERO = "https://placehold.co/1920x600/1a1a1a/e6c46d?text=Story";
-const PH_BIZ = "https://placehold.co/200x160/1a1a1a/e6c46d?text=Biz";
+const PH_HERO = PH_DEFAULT;
+const PH_BIZ = PH_DEFAULT;
 
 /* --- Helpers --- */
 

@@ -3,6 +3,7 @@ import Link from "next/link";
 import Image from "next/image";
 import { notFound } from "next/navigation";
 import { MapPin, ArrowRight, Play } from "lucide-react";
+import { PH_DEFAULT } from "@/lib/placeholders";
 import { EventCard } from "@/components/ui/EventCard";
 import { Breadcrumbs } from "@/components/ui/Breadcrumbs";
 import { SectionHeader } from "@/components/ui/SectionHeader";
@@ -63,11 +64,11 @@ export async function generateMetadata({
 /* ============================================================
    HELPERS
    ============================================================ */
-const PH_HERO = "https://placehold.co/1920x600/1a1a1a/e6c46d?text=Area";
-const PH_POST = "https://placehold.co/600x400/1a1a1a/e6c46d?text=Story";
-const PH_BIZ = "https://placehold.co/600x400/c1121f/fee198?text=Business";
-const PH_NEIGHBORHOOD = "https://placehold.co/400x260/1a1a1a/e6c46d?text=Neighborhood";
-const PH_VIDEO = "https://placehold.co/960x540/222222/e6c46d?text=Video";
+const PH_HERO = PH_DEFAULT;
+const PH_POST = PH_DEFAULT;
+const PH_BIZ = PH_DEFAULT;
+const PH_NEIGHBORHOOD = PH_DEFAULT;
+const PH_VIDEO = PH_DEFAULT;
 
 function extractYouTubeId(url: string): string {
   const match = url.match(

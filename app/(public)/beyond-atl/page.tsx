@@ -1,3 +1,4 @@
+import { PH_DEFAULT } from "@/lib/placeholders";
 import { AreaLandingContent } from "@/components/AreaLandingContent";
 import { HeroSection } from "@/components/ui/HeroSection";
 import {
@@ -82,7 +83,7 @@ export default async function BeyondATLLandingPage({
           title="Beyond Atlanta"
           variant="overlay"
           heroType={(_hero.type ?? "image") as "image" | "video" | "post"}
-          backgroundImage={_hero.imageUrl ?? "https://placehold.co/1920x600/1a1a1a/e6c46d?text=Beyond+ATL"}
+          backgroundImage={_hero.imageUrl ?? PH_DEFAULT}
           videoUrl={_hero.videoUrl ?? undefined}
           heroPost={_heroPost}
           description="From Decatur to Marietta — discover what's happening across metro Atlanta and beyond."

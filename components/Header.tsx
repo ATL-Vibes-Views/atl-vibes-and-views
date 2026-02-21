@@ -4,6 +4,7 @@ import { useState, useRef, useEffect } from "react";
 import Link from "next/link";
 import Image from "next/image";
 import { Facebook, Twitter, Youtube, Instagram, User, Search, Menu, X, ChevronDown, ChevronRight } from "lucide-react";
+import { PH_DEFAULT } from "@/lib/placeholders";
 
 const TikTokIcon = ({ size = 14, ...props }: { size?: number; [key: string]: any }) => (
   <svg width={size} height={size} viewBox="0 0 24 24" fill="currentColor" {...props}>
@@ -21,11 +22,11 @@ interface ExploreGroup {
 const MAX_NEIGHBORHOODS = 10;
 
 const HUB_ITEMS = [
-  { name: "Businesses", slug: "businesses", image: "https://placehold.co/200x120/1a1a1a/e6c46d?text=Businesses" },
-  { name: "Eats & Drinks", slug: "eats-and-drinks", image: "https://placehold.co/200x120/c1121f/ffffff?text=Eats" },
-  { name: "Events", slug: "events", image: "https://placehold.co/200x120/4a4a4a/ffffff?text=Events" },
-  { name: "Things to Do", slug: "things-to-do", image: "https://placehold.co/200x120/e6c46d/1a1a1a?text=Things+To+Do" },
-  { name: "Atlanta Guide", slug: "atlanta-guide", image: "https://placehold.co/200x120/1a1a1a/fee198?text=Guide" },
+  { name: "Businesses", slug: "businesses", image: PH_DEFAULT },
+  { name: "Eats & Drinks", slug: "eats-and-drinks", image: PH_DEFAULT },
+  { name: "Events", slug: "events", image: PH_DEFAULT },
+  { name: "Things to Do", slug: "things-to-do", image: PH_DEFAULT },
+  { name: "Atlanta Guide", slug: "atlanta-guide", image: PH_DEFAULT },
 ];
 
 /* === BEYOND ATL — cities dropdown (alphabetical, matches sort_order) === */
@@ -50,9 +51,9 @@ const SOCIAL_LINKS = [
 ];
 
 const DRAWER_STORIES = [
-  { slug: "atlanta-hidden-rooftop-bars", title: "Atlanta\u2019s Best Hidden Rooftop Bars", image: "https://placehold.co/80x80/c1121f/ffffff?text=1" },
-  { slug: "neighborhood-guide-old-fourth-ward", title: "Neighborhood Guide: Old Fourth Ward", image: "https://placehold.co/80x80/4a4a4a/ffffff?text=2" },
-  { slug: "best-weekend-brunch-spots", title: "The Best Weekend Brunch Spots in the City", image: "https://placehold.co/80x80/e6c46d/1a1a1a?text=3" },
+  { slug: "atlanta-hidden-rooftop-bars", title: "Atlanta’s Best Hidden Rooftop Bars", image: PH_DEFAULT },
+  { slug: "neighborhood-guide-old-fourth-ward", title: "Neighborhood Guide: Old Fourth Ward", image: PH_DEFAULT },
+  { slug: "best-weekend-brunch-spots", title: "The Best Weekend Brunch Spots in the City", image: PH_DEFAULT },
 ];
 
 interface HeaderProps {

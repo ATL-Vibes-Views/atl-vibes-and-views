@@ -2,6 +2,7 @@ import Link from "next/link";
 import Image from "next/image";
 import { notFound } from "next/navigation";
 import type { Metadata } from "next";
+import { PH_DEFAULT } from "@/lib/placeholders";
 import {
   MapPin,
   Phone,
@@ -170,7 +171,7 @@ export default async function ThingsToDoDetailPage({
     primaryImage?.image_url ||
     images[0]?.image_url ||
     biz.logo ||
-    "/images/default-hero.png";
+    PH_DEFAULT;
 
   /* ── More Things To Do ── */
   const morePlaces = await getRelatedBusinesses({
@@ -193,7 +194,7 @@ export default async function ThingsToDoDetailPage({
     imageUrl:
       morePlacesImageMap[place.id] ||
       place.logo ||
-      "/images/default-hero.png",
+      PH_DEFAULT,
   }));
 
   /* ── Social links ── */

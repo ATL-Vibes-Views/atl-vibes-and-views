@@ -1,6 +1,7 @@
 import Link from "next/link";
 import Image from "next/image";
 import { ArrowRight, ChevronRight, Play } from "lucide-react";
+import { PH_DEFAULT } from "@/lib/placeholders";
 import { NewsletterForm } from "@/components/NewsletterForm";
 import { NeighborhoodsDiscover } from "@/components/NeighborhoodsDiscover";
 import {
@@ -40,9 +41,9 @@ export const dynamic = "force-dynamic";
    7. Newsletter CTA (full-width)
    ============================================================ */
 
-const PH_HERO = "https://placehold.co/1920x600/1a1a1a/e6c46d?text=Explore+Neighborhoods";
-const PH_POST = "https://placehold.co/600x400/1a1a1a/e6c46d?text=Story";
-const PH_VIDEO = "https://placehold.co/960x540/222222/e6c46d?text=Video";
+const PH_HERO = PH_DEFAULT;
+const PH_POST = PH_DEFAULT;
+const PH_VIDEO = PH_DEFAULT;
 
 const DEFAULT_TITLE = "Explore Atlanta Neighborhoods";
 const DEFAULT_INTRO =
@@ -660,7 +661,7 @@ export default async function NeighborhoodsLandingPage({
                       <Image
                         src={
                           featuredBiz.logo ||
-                          "https://placehold.co/200x160/1a1a1a/e6c46d?text=Biz"
+                          PH_DEFAULT
                         }
                         alt={featuredBiz.business_name}
                         fill

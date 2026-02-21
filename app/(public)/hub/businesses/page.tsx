@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { PH_MAP } from "@/lib/placeholders";
+import { PH_DEFAULT, PH_MAP } from "@/lib/placeholders";
 import Link from "next/link";
 import { Breadcrumbs } from "@/components/ui/Breadcrumbs";
 import { HeroSection } from "@/components/ui/HeroSection";
@@ -57,7 +57,7 @@ const HUB_CONFIG: HubArchiveConfig = {
 /* ============================================================
    CONSTANTS
    ============================================================ */
-const PH_HERO = "/images/default-hero.png";
+const PH_HERO = PH_DEFAULT;
 
   const _hero = await getPageHero("hub_businesses").catch(() => ({ type: null, imageUrl: null, videoUrl: null, postId: null, alt: null }));
   const _heroPost = _hero.type === "post" ? await getHeroPost(_hero.postId).catch(() => null) : null;

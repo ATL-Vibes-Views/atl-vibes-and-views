@@ -7,6 +7,7 @@ import Image from "next/image";
 import { Play, ArrowRight, Headphones } from "lucide-react";
 import { extractYouTubeId } from "@/lib/media-utils";
 import { AdBlock } from "@/components/ui/AdBlock";
+import { PH_DEFAULT } from "@/lib/placeholders";
 
 /* ============================================================
    MediaLandingClient — Tabs, featured hero, media grid
@@ -35,8 +36,8 @@ const TABS = [
   { label: "Video", value: "video" },
 ] as const;
 
-const PH_VIDEO = "https://placehold.co/640x360/1a1a1a/e6c46d?text=Video";
-const PH_PODCAST = "https://placehold.co/640x360/1a1a1a/e6c46d?text=Podcast";
+const PH_VIDEO = PH_DEFAULT;
+const PH_PODCAST = PH_DEFAULT;
 
 function formatDate(dateStr: string | null): string {
   if (!dateStr) return "";

@@ -4,6 +4,7 @@ import type { Metadata } from "next";
 import { ArrowRight } from "lucide-react";
 import { NewsletterBlock } from "@/components/ui/NewsletterBlock";
 import { getNewsletters } from "@/lib/queries";
+import { PH_DEFAULT } from "@/lib/placeholders";
 
 /* ============================================================
    NEWSLETTER ARCHIVE — /hub/newsletters
@@ -37,7 +38,7 @@ function formatDate(dateStr: string): string {
   });
 }
 
-const PH_HERO = "https://placehold.co/1920x400/1a1a1a/e6c46d?text=Newsletters";
+const PH_HERO = PH_DEFAULT;
 
 export default async function NewslettersPage() {
   const newsletters = await getNewsletters();

@@ -5,6 +5,7 @@ import { notFound } from "next/navigation";
 import { ArrowLeft } from "lucide-react";
 import { createServiceRoleClient } from "@/lib/supabase";
 import { MarkdownArticle } from "@/components/ui/MarkdownArticle";
+import { PH_DEFAULT } from "@/lib/placeholders";
 
 export const metadata: Metadata = {
   title: "Draft Preview | Admin CMS | ATL Vibes & Views",
@@ -13,7 +14,7 @@ export const metadata: Metadata = {
 
 export const dynamic = "force-dynamic";
 
-const PH_HERO = "https://placehold.co/1920x600/1a1a1a/e6c46d?text=Draft+Preview";
+const PH_HERO = PH_DEFAULT;
 
 function formatDate(dateStr: string): string {
   return new Date(dateStr).toLocaleDateString("en-US", {

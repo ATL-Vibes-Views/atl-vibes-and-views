@@ -3,6 +3,7 @@
 import { useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
+import { PH_DEFAULT } from "@/lib/placeholders";
 
 /* ============================================================
    HERO SECTION — shared hero block for hub + detail pages
@@ -15,7 +16,7 @@ import Link from "next/link";
    heroType="post"   → featured blog post (image bg + post meta overlay)
    ============================================================ */
 
-const FALLBACK_SRC = "/images/default-hero.png";
+const FALLBACK_SRC = PH_DEFAULT;
 
 export interface HeroPost {
   title: string;

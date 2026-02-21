@@ -1,3 +1,4 @@
+import { PH_DEFAULT } from "@/lib/placeholders";
 import { AreaLandingContent } from "@/components/AreaLandingContent";
 import { HeroSection } from "@/components/ui/HeroSection";
 import {
@@ -76,7 +77,7 @@ export default async function AreasLandingPage({
   /* ── Hero fields ── */
   const heroTitle = ci?.page_title || "Explore Atlanta by Area";
   const heroIntro = ci?.page_intro || "Discover Atlanta's neighborhoods, restaurants, events, and culture across every area of the city.";
-  const heroImageUrl = ci?.hero_image_url || "https://placehold.co/1920x600/1a1a1a/e6c46d?text=Explore+Areas";
+  const heroImageUrl = ci?.hero_image_url || PH_DEFAULT;
   const _hero = await getPageHero("areas_landing").catch(() => ({ type: null, imageUrl: null, videoUrl: null, postId: null, alt: null }));
   const _heroPost = _hero.type === "post" ? await getHeroPost(_hero.postId).catch(() => null) : null;
 

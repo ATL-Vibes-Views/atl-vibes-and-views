@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import Image from "next/image";
 import { notFound } from "next/navigation";
+import { PH_DEFAULT } from "@/lib/placeholders";
 import {
   MapPin,
   Calendar,
@@ -65,10 +66,8 @@ export async function generateMetadata({
 /* ============================================================
    HELPERS
    ============================================================ */
-const PH_HERO =
-  "https://placehold.co/1920x900/1a1a1a/e6c46d?text=Event";
-const PH_EVENT =
-  "https://placehold.co/600x400/1a1a1a/e6c46d?text=Event";
+const PH_HERO = PH_DEFAULT;
+const PH_EVENT = PH_DEFAULT;
 
 function formatDate(dateStr?: string | null): string {
   if (!dateStr) return "";

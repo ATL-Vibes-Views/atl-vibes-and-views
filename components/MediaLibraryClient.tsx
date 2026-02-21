@@ -3,6 +3,7 @@
 import { useState, useRef } from "react";
 import Link from "next/link";
 import Image from "next/image";
+import { PH_DEFAULT } from "@/lib/placeholders";
 import { Search, X, Play, Headphones, ArrowRight, Film } from "lucide-react";
 import { extractYouTubeId } from "@/lib/media-utils";
 import { AdBlock } from "@/components/ui/AdBlock";
@@ -31,9 +32,9 @@ interface MediaLibraryClientProps {
    HELPERS
    ============================================================ */
 
-const PH_VIDEO = "https://placehold.co/640x360/1a1a1a/e6c46d?text=Video";
-const PH_PODCAST = "https://placehold.co/640x360/1a1a1a/e6c46d?text=Podcast";
-const PH_SHORT = "https://placehold.co/360x640/1a1a1a/e6c46d?text=Short";
+const PH_VIDEO = PH_DEFAULT;
+const PH_PODCAST = PH_DEFAULT;
+const PH_SHORT = PH_DEFAULT;
 
 function formatDate(dateStr: string | null): string {
   if (!dateStr) return "";

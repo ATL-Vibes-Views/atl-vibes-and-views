@@ -3,6 +3,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import Image from "next/image";
 import { ArrowRight, Play, Headphones, Share2, Bookmark } from "lucide-react";
+import { PH_DEFAULT } from "@/lib/placeholders";
 import {
   getMediaItemBySlug,
   getMediaItems,
@@ -51,8 +52,9 @@ export async function generateMetadata({
 
 /* --- Helpers --- */
 
-const PH_VIDEO = "https://placehold.co/640x360/1a1a1a/e6c46d?text=Video";
-const PH_PODCAST = "https://placehold.co/640x360/1a1a1a/e6c46d?text=Podcast";
+const PH_VIDEO = PH_DEFAULT;
+const PH_PODCAST = PH_DEFAULT;
+const PH_SHORT = PH_DEFAULT;
 
 function formatDate(dateStr: string | null): string {
   if (!dateStr) return "";

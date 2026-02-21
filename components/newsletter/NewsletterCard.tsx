@@ -1,6 +1,7 @@
 import Link from "next/link";
 import Image from "next/image";
 import { ArrowRight } from "lucide-react";
+import { PH_DEFAULT } from "@/lib/placeholders";
 
 /* ============================================================
    NEWSLETTER CARD — Shared card component for archive zones
@@ -15,7 +16,7 @@ import { ArrowRight } from "lucide-react";
    - Links to /newsletters/[slug]
    ============================================================ */
 
-const PH_NL = "https://placehold.co/600x375/1a1a1a/666?text=Newsletter";
+const PH_NL = PH_DEFAULT;
 
 export interface NewsletterCardData {
   id: string;
