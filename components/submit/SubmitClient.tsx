@@ -374,6 +374,10 @@ export function SubmitClient({
                   neighborhoods={neighborhoods}
                   cities={cities}
                   tags={tags}
+                  submitterName={submitterName}
+                  submitterEmail={submitterEmail}
+                  onSubmitterNameChange={setSubmitterName}
+                  onSubmitterEmailChange={setSubmitterEmail}
                 />
               )}
 
