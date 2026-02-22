@@ -445,7 +445,7 @@ export function BusinessForm({
           <input
             id="submitter_name"
             type="text"
-            value={submitterName}
+            defaultValue={submitterName}
             onChange={(e) => onSubmitterNameChange(e.target.value)}
             placeholder="Your full name"
             required
@@ -457,7 +457,7 @@ export function BusinessForm({
           <input
             id="submitter_email"
             type="email"
-            value={submitterEmail}
+            defaultValue={submitterEmail}
             onChange={(e) => onSubmitterEmailChange(e.target.value)}
             placeholder="you@example.com"
             required

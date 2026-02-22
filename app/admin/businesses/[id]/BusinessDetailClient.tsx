@@ -168,15 +168,15 @@ export function BusinessDetailClient({
 
   // isNew form state
   const [newData, setNewData] = useState<BusinessFormData>(EMPTY_BUSINESS);
-  const [submitterName] = useState("Admin");
-  const [submitterEmail] = useState("admin@atlvibesandviews.com");
+  const [submitterName, setSubmitterName] = useState("");
+  const [submitterEmail, setSubmitterEmail] = useState("");
   const [submitError, setSubmitError] = useState("");
 
   const handleNewSubmit = useCallback(async () => {
     if (!newData.business_name.trim()) { setSubmitError("Business name is required."); return; }
     setSubmitError("");
     setSaving(true);
-    const result = await createBusinessSubmission(newData as unknown as Record<string, unknown>);
+    const result = await createBusinessSubmission({ ...(newData as unknown as Record<string, unknown>), submitter_name: submitterName, submitter_email: submitterEmail });
     setSaving(false);
     if ("error" in result && result.error) { setSubmitError("Error: " + result.error); return; }
     router.push("/admin/submissions");
@@ -343,8 +343,8 @@ export function BusinessDetailClient({
               tier={newData.tier}
               submitterName={submitterName}
               submitterEmail={submitterEmail}
-              onSubmitterNameChange={() => {}}
-              onSubmitterEmailChange={() => {}}
+              onSubmitterNameChange={setSubmitterName}
+              onSubmitterEmailChange={setSubmitterEmail}
               tags={tags as Tag[]}
               section={activeTab as "basic" | "location" | "contact" | "photos" | "tags"}
             />
