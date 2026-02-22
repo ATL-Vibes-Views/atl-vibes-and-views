@@ -712,18 +712,8 @@ export function EventForm({
       </div>
 
       {/* Section 7: Logo & Photos & Video */}
-      <SectionHeading>Logo, Photos &amp; Video</SectionHeading>
+      <SectionHeading>Photos &amp; Video</SectionHeading>
       <div className="space-y-4">
-        <div>
-          <Label>Logo</Label>
-          <ImagePicker
-            value={data.logo_url ?? ""}
-            onChange={(url) => update("logo_url", url)}
-            folder="submissions/logos"
-            label="Upload your logo"
-            hint="PNG, JPG up to 5MB"
-          />
-        </div>
         <div>
           <Label>Featured Image</Label>
           <ImagePicker
