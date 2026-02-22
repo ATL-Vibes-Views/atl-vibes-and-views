@@ -346,6 +346,7 @@ export function BusinessDetailClient({
               onSubmitterNameChange={() => {}}
               onSubmitterEmailChange={() => {}}
               tags={tags as Tag[]}
+              section={activeTab as "basic" | "location" | "contact" | "photos" | "tags"}
             />
           </div>
         )}
