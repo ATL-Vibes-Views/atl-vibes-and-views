@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { ImagePicker } from "@/components/portal/ImagePicker";
 import { uploadImage } from "@/lib/supabase-storage";
 import type {
@@ -232,7 +232,6 @@ export function EventForm({
 }: EventFormProps) {
   const show = (s: NonNullable<typeof section>) => !section || section === s;
   const showDatetime = !section || section === "datetime";
-  const streetAddressRef = useRef<HTMLInputElement>(null);
   const autocompleteRef = useRef<any>(null);
   const dataRef = useRef(data);
   useEffect(() => { dataRef.current = data; });
@@ -245,15 +244,30 @@ export function EventForm({
   };
 
   /* ── Google Places autocomplete ── */
+  // Load the script eagerly on mount so it's ready when the location tab opens
   useEffect(() => {
     const apiKey = process.env.NEXT_PUBLIC_GOOGLE_PLACES_API_KEY;
     if (!apiKey || typeof window === "undefined") return;
+    const scriptId = "google-places-script";
+    if (!document.getElementById(scriptId)) {
+      const script = document.createElement("script");
+      script.id = scriptId;
+      script.src = `https://maps.googleapis.com/maps/api/js?key=${apiKey}&libraries=places`;
+      script.async = true;
+      document.head.appendChild(script);
+    }
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // Callback ref — fires the moment the street address input mounts into the DOM
+  const streetAddressRef = useCallback((node: HTMLInputElement | null) => {
+    if (!node) return;
+    if (autocompleteRef.current) return;
 
     const initAutocomplete = () => {
-      if (!streetAddressRef.current || !(window as any).google?.maps?.places) return;
+      if (!(window as any).google?.maps?.places) return;
       if (autocompleteRef.current) return;
       const ac = new (window as any).google.maps.places.Autocomplete(
-        streetAddressRef.current,
+        node,
         { types: ["address"], componentRestrictions: { country: "us" } }
       );
       autocompleteRef.current = ac;
@@ -315,15 +329,9 @@ export function EventForm({
       initAutocomplete();
     } else {
       const scriptId = "google-places-script";
-      if (!document.getElementById(scriptId)) {
-        const script = document.createElement("script");
-        script.id = scriptId;
-        script.src = `https://maps.googleapis.com/maps/api/js?key=${apiKey}&libraries=places`;
-        script.async = true;
-        script.onload = initAutocomplete;
-        document.head.appendChild(script);
-      } else {
-        document.getElementById(scriptId)!.addEventListener("load", initAutocomplete);
+      const existing = document.getElementById(scriptId);
+      if (existing) {
+        existing.addEventListener("load", initAutocomplete);
       }
     }
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
