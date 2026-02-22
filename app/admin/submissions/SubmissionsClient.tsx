@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState, useCallback } from "react";
+import React, { useMemo, useState, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import { PortalTopbar } from "@/components/portal/PortalTopbar";
 import { StatCard } from "@/components/portal/StatCard";
@@ -150,9 +150,8 @@ export function SubmissionsClient({ submissions }: { submissions: SubmissionRow[
                 </tr>
               ) : (
                 paginated.map((item) => (
-                  <>
+                  <React.Fragment key={item.id}>
                     <tr
-                      key={item.id}
                       className="border-b border-[#f0f0f0] transition-colors cursor-pointer hover:bg-[#fafafa]"
                       onClick={() => setExpandedId(expandedId === item.id ? null : item.id)}
                     >
@@ -212,7 +211,7 @@ export function SubmissionsClient({ submissions }: { submissions: SubmissionRow[
                       </td>
                     </tr>
                     {expandedId === item.id && (
-                      <tr key={item.id + "-detail"}>
+                      <tr>
                         <td colSpan={7} className="px-4 py-4 bg-[#fafafa] border-t border-gray-100">
                           <div className="mb-4 grid grid-cols-2 sm:grid-cols-4 gap-3">
                             <div>
@@ -309,7 +308,7 @@ export function SubmissionsClient({ submissions }: { submissions: SubmissionRow[
                         </td>
                       </tr>
                     )}
-                  </>
+                  </React.Fragment>
                 ))
               )}
             </tbody>

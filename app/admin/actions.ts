@@ -432,7 +432,8 @@ export async function updateSubmissionStatus(id: string, status: string) {
 
     if (submission) {
       const data = submission.data as Record<string, unknown>;
-      const tier = ((submission.tier as string | null) ?? "free").toLowerCase();
+      const tierRaw = ((submission.tier as string | null) ?? "free").toLowerCase();
+      const tier = tierRaw === "premium" ? "Premium" : tierRaw === "standard" ? "Standard" : "Free";
       let createdRecordId: string | null = null;
 
       if (submission.submission_type === "business") {
@@ -451,23 +452,29 @@ export async function updateSubmissionStatus(id: string, status: string) {
               business_name: data.business_name,
               slug,
               street_address: data.street_address ?? "",
+              street_address_2: data.street_address_2 ?? null,
               state: data.state ?? "GA",
               zip_code: data.zip_code ?? "",
               neighborhood_id: data.neighborhood_id ?? null,
               city_id: data.city_id ?? null,
               phone: data.phone ?? null,
+              email: data.email ?? null,
               description: data.description ?? null,
               category_id: data.category_id ?? null,
-              logo_url: data.logo_url ?? null,
+              logo: data.logo_url ?? null,
               website: data.website ?? null,
               instagram: data.instagram ?? null,
               facebook: data.facebook ?? null,
               tiktok: data.tiktok ?? null,
               x_twitter: data.x_twitter ?? null,
               video_url: data.video_url ?? null,
-              photo_urls: data.photo_urls ?? [],
               special_offers: data.special_offers ?? null,
               tagline: data.tagline ?? null,
+              latitude: data.latitude ?? null,
+              longitude: data.longitude ?? null,
+              price_range: data.price_range ?? null,
+              primary_link: data.primary_link ?? null,
+              primary_link_label: data.primary_link_label ?? null,
               tier,
               status: "active",
               is_featured: false,
@@ -475,7 +482,7 @@ export async function updateSubmissionStatus(id: string, status: string) {
               display_identity_publicly: data.display_identity_publicly ?? false,
               certified_diversity_program: data.certified_diversity_program ?? false,
               tier_auto_downgraded: false,
-              map_pin_style: "default",
+              map_pin_style: tierRaw === "premium" ? "premium" : tierRaw === "standard" ? "standard" : "gray",
               claimed: false,
               claim_status: "unclaimed",
             } as never)
@@ -485,6 +492,113 @@ export async function updateSubmissionStatus(id: string, status: string) {
           createdRecordId = record?.id ?? null;
         } catch (e) {
           console.error("[approve] insert exception:", e);
+        }
+
+        if (createdRecordId) {
+          const bizId = createdRecordId;
+
+          // HOURS
+          const hours = data.hours as Array<{
+            day_of_week: string;
+            open_time: string;
+            close_time: string;
+            is_closed: boolean;
+            notes: string;
+          }> | null;
+          if (Array.isArray(hours) && hours.length > 0) {
+            const hoursRows = hours.map((h) => ({
+              business_id: bizId,
+              day_of_week: h.day_of_week,
+              open_time: h.is_closed || !h.open_time ? null : h.open_time,
+              close_time: h.is_closed || !h.close_time ? null : h.close_time,
+              is_closed: h.is_closed ?? false,
+              notes: h.notes ?? null,
+            }));
+            const { error: hoursErr } = await supabase
+              .from("business_hours")
+              .insert(hoursRows as never);
+            if (hoursErr) console.error("[approve] hours insert error:", hoursErr.message);
+          }
+
+          // PHOTOS
+          const photoUrls = data.photo_urls as string[] | null;
+          if (Array.isArray(photoUrls) && photoUrls.length > 0) {
+            const imageRows = photoUrls.map((url, i) => ({
+              business_id: bizId,
+              image_url: url,
+              sort_order: i,
+              is_primary: i === 0,
+              alt_text: `${data.business_name} photo ${i + 1}`,
+            }));
+            const { error: imgErr } = await supabase
+              .from("business_images")
+              .insert(imageRows as never);
+            if (imgErr) console.error("[approve] images insert error:", imgErr.message);
+          }
+
+          // AMENITIES
+          const amenityIds = data.amenity_ids as string[] | null;
+          if (Array.isArray(amenityIds) && amenityIds.length > 0) {
+            const amenityRows = amenityIds.map((amenity_id) => ({
+              business_id: bizId,
+              amenity_id,
+            }));
+            const { error: amenityErr } = await supabase
+              .from("business_amenities")
+              .insert(amenityRows as never);
+            if (amenityErr) console.error("[approve] amenities insert error:", amenityErr.message);
+          }
+
+          // TAGS
+          const tagIds = data.tag_ids as string[] | null;
+          if (Array.isArray(tagIds) && tagIds.length > 0) {
+            const tagRows = tagIds.map((tag_id) => ({
+              business_id: bizId,
+              tag_id,
+            }));
+            const { error: tagErr } = await supabase
+              .from("business_tags")
+              .insert(tagRows as never);
+            if (tagErr) console.error("[approve] tags insert error:", tagErr.message);
+          }
+
+          // IDENTITY OPTIONS
+          const identityIds = data.identity_option_ids as string[] | null;
+          if (Array.isArray(identityIds) && identityIds.length > 0) {
+            const identityRows = identityIds.map((identity_option_id) => ({
+              business_id: bizId,
+              identity_option_id,
+            }));
+            const { error: identityErr } = await supabase
+              .from("business_identities")
+              .insert(identityRows as never);
+            if (identityErr) console.error("[approve] identities insert error:", identityErr.message);
+          }
+
+          // CONTACTS
+          const contacts = data.contacts as Array<{
+            contact_name: string;
+            contact_title: string;
+            contact_email: string;
+            contact_phone: string;
+            is_primary: boolean;
+            is_public: boolean;
+          }> | null;
+          if (Array.isArray(contacts) && contacts.length > 0) {
+            const contactRows = contacts.map((c) => ({
+              business_id: bizId,
+              contact_name: c.contact_name ?? null,
+              contact_title: c.contact_title ?? null,
+              contact_email: c.contact_email ?? null,
+              contact_phone: c.contact_phone ?? null,
+              is_primary: c.is_primary ?? false,
+              is_public: c.is_public ?? true,
+            }));
+            const { error: contactErr } = await supabase
+              .from("business_contacts")
+              .insert(contactRows as never);
+            if (contactErr) console.error("[approve] contacts insert error:", contactErr.message);
+          }
         }
       }
 
@@ -506,11 +620,9 @@ export async function updateSubmissionStatus(id: string, status: string) {
               start_date: data.start_date,
               description: data.description ?? null,
               venue_name: data.venue_name ?? null,
-              neighborhood_id: data.neighborhood_id ?? null,
-              city_id: data.city_id ?? null,
-              logo_url: data.logo_url ?? null,
+              neighborhood_id: (data.neighborhood_id as string) || null,
+              city_id: (data.city_id as string) || null,
               featured_image_url: data.featured_image_url ?? null,
-              photo_urls: data.photo_urls ?? [],
               video_url: data.video_url ?? null,
               is_free: data.is_free ?? true,
               tier,
@@ -519,7 +631,7 @@ export async function updateSubmissionStatus(id: string, status: string) {
               is_featured: false,
               featured_on_map: false,
               is_comped: false,
-              payment_status: "none",
+              payment_status: "unpaid",
             } as never)
             .select("id")
             .single() as { data: { id: string } | null; error: { message: string } | null };
@@ -527,6 +639,23 @@ export async function updateSubmissionStatus(id: string, status: string) {
           createdRecordId = record?.id ?? null;
         } catch (e) {
           console.error("[approve] insert exception:", e);
+        }
+
+        if (createdRecordId) {
+          const eventPhotoUrls = data.photo_urls as string[] | null;
+          if (Array.isArray(eventPhotoUrls) && eventPhotoUrls.length > 0) {
+            const eventImageRows = eventPhotoUrls.map((url, i) => ({
+              event_id: createdRecordId,
+              image_url: url,
+              sort_order: i,
+              is_primary: i === 0,
+              alt_text: `${data.title} photo ${i + 1}`,
+            }));
+            const { error: eventImgErr } = await supabase
+              .from("event_images")
+              .insert(eventImageRows as never);
+            if (eventImgErr) console.error("[approve] event images insert error:", eventImgErr.message);
+          }
         }
       }
 
@@ -1823,5 +1952,21 @@ export async function logPinnedPost(
 
   revalidatePath(`/admin/sponsors/${sponsorId}`);
   revalidatePath("/admin/sponsors");
+  return { success: true };
+}
+
+// ─── CREATE BUSINESS SUBMISSION (Admin) ───────────────────────────────────
+
+export async function createBusinessSubmission(data: Record<string, unknown>) {
+  const supabase = createServiceRoleClient();
+  const { error } = await supabase.from("submissions").insert({
+    submission_type: "business",
+    status: "pending",
+    submitter_name: "Admin",
+    submitter_email: "admin@atlvibesandviews.com",
+    tier: (data.tier as string) ?? "free",
+    data: { ...data, source: "admin" },
+  } as never);
+  if (error) return { error: error.message };
   return { success: true };
 }
