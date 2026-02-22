@@ -46,11 +46,12 @@ const TABS = [
   { label: "Tags & Media", key: "tags" },
 ];
 
-const SECTION_MAP: Record<string, "basic" | "location" | "contact" | "photos"> = {
+const SECTION_MAP: Record<string, "basic" | "datetime" | "location" | "contact" | "tags"> = {
   basic: "basic",
-  datetime: "basic",
+  datetime: "datetime",
   venue: "location",
   tickets: "contact",
+  tags: "tags",
 };
 
 const EMPTY_EVENT: EventFormData = {
@@ -240,10 +241,10 @@ export function EventDetailClient({
         )}
         {!isNew && <p className="text-[13px] text-[#6b7280]">{field(ev, "slug")}</p>}
 
-        <TabNav tabs={isNew ? TABS.filter((t) => t.key !== "tags") : TABS} activeTab={activeTab} onTabChange={setActiveTab} />
+        <TabNav tabs={TABS} activeTab={activeTab} onTabChange={setActiveTab} />
 
-        {/* isNew — rendered via EventForm (section-per-tab) */}
-        {isNew && SECTION_MAP[activeTab] && (
+        {/* isNew — always mounted so Google Places ref stays alive; section prop controls what renders */}
+        {isNew && (
           <div className="pb-24">
             <EventForm
               data={newData}
@@ -256,7 +257,7 @@ export function EventDetailClient({
               submitterEmail={submitterEmail}
               onSubmitterNameChange={setSubmitterName}
               onSubmitterEmailChange={setSubmitterEmail}
-              section={SECTION_MAP[activeTab]}
+              section={SECTION_MAP[activeTab] ?? "basic"}
             />
             {submitError && <p className="mt-4 text-[13px] text-[#c1121f]">{submitError}</p>}
           </div>

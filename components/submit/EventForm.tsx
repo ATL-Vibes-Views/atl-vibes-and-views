@@ -23,7 +23,7 @@ interface EventFormProps {
   onSubmitterNameChange: (v: string) => void;
   onSubmitterEmailChange: (v: string) => void;
   /** When provided, only the matching section is rendered (admin tab view) */
-  section?: "basic" | "location" | "contact" | "photos" | "tags";
+  section?: "basic" | "datetime" | "location" | "contact" | "photos" | "tags";
 }
 
 const EVENT_TYPES = [
@@ -231,6 +231,7 @@ export function EventForm({
   section,
 }: EventFormProps) {
   const show = (s: NonNullable<typeof section>) => !section || section === s;
+  const showDatetime = !section || section === "datetime";
   const streetAddressRef = useRef<HTMLInputElement>(null);
   const autocompleteRef = useRef<any>(null);
   const dataRef = useRef(data);
@@ -391,62 +392,21 @@ export function EventForm({
             ))}
           </select>
         </div>
-        <div className="grid grid-cols-2 gap-4">
-          <div>
-            <Label htmlFor="event_category_id">Category</Label>
-            <select
-              id="event_category_id"
-              value={data.category_id}
-              onChange={(e) => update("category_id", e.target.value)}
-              className="w-full px-4 py-3 border border-gray-200 text-sm outline-none focus:border-[#c1121f] transition-colors bg-white"
-            >
-              <option value="">Select a category…</option>
-              {categories.map((c) => (
-                <option key={c.id} value={c.id}>
-                  {c.name}
-                </option>
-              ))}
-            </select>
-          </div>
-          <div>
-            <Label>Tags (select up to 2)</Label>
-            <select
-              disabled={(data.tag_ids ?? []).length >= 2}
-              onChange={(e) => {
-                const val = e.target.value;
-                if (!val) return;
-                const current = data.tag_ids ?? [];
-                if (current.includes(val) || current.length >= 2) return;
-                update("tag_ids", [...current, val]);
-                e.target.value = "";
-              }}
-              className="w-full px-4 py-3 border border-gray-200 text-sm outline-none focus:border-[#c1121f] transition-colors bg-white"
-            >
-              <option value="">Select a tag…</option>
-              {["activities","cuisine","drinks","experience","identity","news","vibe"].map((group) => (
-                <optgroup key={group} label={group.charAt(0).toUpperCase() + group.slice(1)}>
-                  {tags.filter(t => t.tag_group === group).map(tag => (
-                    <option key={tag.id} value={tag.id}>{tag.name}</option>
-                  ))}
-                </optgroup>
-              ))}
-            </select>
-            <div className="flex gap-2 mt-2 flex-wrap">
-              {(data.tag_ids ?? []).map((id) => {
-                const tag = tags.find(t => t.id === id);
-                if (!tag) return null;
-                return (
-                  <span key={id} className="inline-flex items-center gap-1 px-3 py-1 bg-[#1a1a1a] text-white text-[12px] rounded-full">
-                    {tag.name}
-                    <button type="button" onClick={() => update("tag_ids", (data.tag_ids ?? []).filter(i => i !== id))}>×</button>
-                  </span>
-                );
-              })}
-            </div>
-            {(data.tag_ids ?? []).length >= 2 && (
-              <p className="text-[11px] text-gray-400 mt-1">Maximum 2 tags selected</p>
-            )}
-          </div>
+        <div>
+          <Label htmlFor="event_category_id">Category</Label>
+          <select
+            id="event_category_id"
+            value={data.category_id}
+            onChange={(e) => update("category_id", e.target.value)}
+            className="w-full px-4 py-3 border border-gray-200 text-sm outline-none focus:border-[#c1121f] transition-colors bg-white"
+          >
+            <option value="">Select a category…</option>
+            {categories.map((c) => (
+              <option key={c.id} value={c.id}>
+                {c.name}
+              </option>
+            ))}
+          </select>
         </div>
         <div>
           <Label htmlFor="event_tagline">Tagline</Label>
@@ -478,6 +438,9 @@ export function EventForm({
         </div>
       </div>
 
+      </>)}
+
+      {showDatetime && (<>
       {/* Section 3: Date & Time */}
       <SectionHeading>Date &amp; Time</SectionHeading>
       <div className="space-y-4">
@@ -724,8 +687,49 @@ export function EventForm({
 
       </>)}
 
-      {show("photos") && (<>
-      {/* Section 7: Logo & Photos & Video */}
+      {show("tags") && (<>
+      {/* Section 7: Tags */}
+      <SectionHeading>Tags</SectionHeading>
+      <div className="space-y-2">
+        <select
+          disabled={(data.tag_ids ?? []).length >= 2}
+          onChange={(e) => {
+            const val = e.target.value;
+            if (!val) return;
+            const current = data.tag_ids ?? [];
+            if (current.includes(val) || current.length >= 2) return;
+            update("tag_ids", [...current, val]);
+            e.target.value = "";
+          }}
+          className="w-full px-4 py-3 border border-gray-200 text-sm outline-none focus:border-[#c1121f] transition-colors bg-white"
+        >
+          <option value="">Select a tag…</option>
+          {["activities","cuisine","drinks","experience","identity","news","vibe"].map((group) => (
+            <optgroup key={group} label={group.charAt(0).toUpperCase() + group.slice(1)}>
+              {tags.filter(t => t.tag_group === group).map(tag => (
+                <option key={tag.id} value={tag.id}>{tag.name}</option>
+              ))}
+            </optgroup>
+          ))}
+        </select>
+        <div className="flex gap-2 mt-2 flex-wrap">
+          {(data.tag_ids ?? []).map((id) => {
+            const tag = tags.find(t => t.id === id);
+            if (!tag) return null;
+            return (
+              <span key={id} className="inline-flex items-center gap-1 px-3 py-1 bg-[#1a1a1a] text-white text-[12px] rounded-full">
+                {tag.name}
+                <button type="button" onClick={() => update("tag_ids", (data.tag_ids ?? []).filter(i => i !== id))}>×</button>
+              </span>
+            );
+          })}
+        </div>
+        {(data.tag_ids ?? []).length >= 2 && (
+          <p className="text-[11px] text-gray-400 mt-1">Maximum 2 tags selected</p>
+        )}
+      </div>
+
+      {/* Section 8: Photos & Video */}
       <SectionHeading>Photos &amp; Video</SectionHeading>
       <div className="space-y-4">
         <div>
