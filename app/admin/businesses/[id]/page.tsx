@@ -135,9 +135,24 @@ export default async function BusinessDetailPage({ params }: { params: Promise<{
   // Lookup data for dropdowns
   const [categoriesRes, neighborhoodsRes, citiesRes] = await Promise.all([
     supabase.from("categories").select("id, name").eq("is_active", true).order("name") as unknown as Promise<{ data: { id: string; name: string }[] | null }>,
-    supabase.from("neighborhoods").select("id, name").order("name") as unknown as Promise<{ data: { id: string; name: string }[] | null }>,
+    supabase.from("neighborhoods").select("id, name, slug, areas(id, name, slug)").order("name") as unknown as Promise<{ data: { id: string; name: string; slug: string; areas: { id: string; name: string; slug: string } | null }[] | null }>,
     supabase.from("cities").select("id, name").order("name") as unknown as Promise<{ data: { id: string; name: string }[] | null }>,
   ]);
+
+  // Flat list for existing-business dropdowns
+  const neighborhoodsFlat = (neighborhoodsRes.data ?? []).map((n) => ({ id: n.id, name: n.name }));
+
+  // Grouped list for BusinessForm (isNew path)
+  const neighborhoodsGroupedMap = new Map<string, { area_name: string; area_slug: string; neighborhoods: { id: string; name: string; slug: string }[] }>();
+  for (const n of neighborhoodsRes.data ?? []) {
+    const areaName = n.areas?.name ?? "Other";
+    const areaSlug = n.areas?.slug ?? "other";
+    if (!neighborhoodsGroupedMap.has(areaName)) {
+      neighborhoodsGroupedMap.set(areaName, { area_name: areaName, area_slug: areaSlug, neighborhoods: [] });
+    }
+    neighborhoodsGroupedMap.get(areaName)!.neighborhoods.push({ id: n.id, name: n.name, slug: n.slug });
+  }
+  const neighborhoodsGrouped = Array.from(neighborhoodsGroupedMap.values());
 
   return (
     <BusinessDetailClient
@@ -156,7 +171,8 @@ export default async function BusinessDetailPage({ params }: { params: Promise<{
       relatedEvents={relatedEvents}
       relatedReviews={relatedReviews}
       categories={categoriesRes.data ?? []}
-      neighborhoods={neighborhoodsRes.data ?? []}
+      neighborhoods={neighborhoodsFlat}
+      neighborhoodsGrouped={neighborhoodsGrouped}
       cities={citiesRes.data ?? []}
     />
   );

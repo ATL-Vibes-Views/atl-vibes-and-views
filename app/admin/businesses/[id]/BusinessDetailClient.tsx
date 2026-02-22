@@ -1,10 +1,12 @@
 "use client";
 
-import { useState, useCallback } from "react";
+import { useState, useCallback, useRef, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { ArrowLeft, Star, Newspaper, Calendar, MapPin } from "lucide-react";
-import { updateBusiness } from "@/app/admin/actions";
+import { updateBusiness, createBusinessSubmission } from "@/app/admin/actions";
+import { BusinessForm } from "@/components/submit/BusinessForm";
+import type { BusinessFormData, NeighborhoodGrouped, Amenity, IdentityOption, Tag } from "@/lib/types";
 import { PortalTopbar } from "@/components/portal/PortalTopbar";
 import { TabNav } from "@/components/portal/TabNav";
 import { StatusBadge } from "@/components/portal/StatusBadge";
@@ -47,6 +49,7 @@ interface BusinessDetailClientProps {
   relatedReviews: RelatedReview[];
   categories: { id: string; name: string }[];
   neighborhoods: { id: string; name: string }[];
+  neighborhoodsGrouped: NeighborhoodGrouped[];
   cities: { id: string; name: string }[];
 }
 
@@ -85,6 +88,55 @@ function fieldBool(biz: Record<string, unknown> | null, key: string): boolean {
   return biz[key] === true;
 }
 
+const EMPTY_BUSINESS: BusinessFormData = {
+  tier: "free",
+  business_name: "",
+  category_id: "",
+  tagline: "",
+  description: "",
+  price_range: "",
+  street_address: "",
+  street_address_2: "",
+  city_id: "",
+  city_text: "",
+  state: "GA",
+  zip_code: "",
+  neighborhood_id: "",
+  latitude: null,
+  longitude: null,
+  phone: "",
+  email: "",
+  website: "",
+  primary_link: "",
+  primary_link_label: "",
+  instagram: "",
+  facebook: "",
+  tiktok: "",
+  x_twitter: "",
+  logo_url: "",
+  video_url: "",
+  special_offers: "",
+  is_owner: false,
+  display_identity_publicly: false,
+  certified_diversity_program: false,
+  certifications: [],
+  hours: [
+    { day_of_week: "monday", open_time: "09:00", close_time: "17:00", is_closed: false, notes: "" },
+    { day_of_week: "tuesday", open_time: "09:00", close_time: "17:00", is_closed: false, notes: "" },
+    { day_of_week: "wednesday", open_time: "09:00", close_time: "17:00", is_closed: false, notes: "" },
+    { day_of_week: "thursday", open_time: "09:00", close_time: "17:00", is_closed: false, notes: "" },
+    { day_of_week: "friday", open_time: "09:00", close_time: "17:00", is_closed: false, notes: "" },
+    { day_of_week: "saturday", open_time: "10:00", close_time: "17:00", is_closed: false, notes: "" },
+    { day_of_week: "sunday", open_time: "", close_time: "", is_closed: true, notes: "" },
+  ],
+  contacts: [{ contact_name: "", contact_title: "", contact_email: "", contact_phone: "", is_primary: true, is_public: true }],
+  images: [],
+  amenity_ids: [],
+  identity_option_ids: [],
+  tag_ids: [],
+  photo_urls: [],
+};
+
 export function BusinessDetailClient({
   business: biz,
   isNew,
@@ -102,6 +154,7 @@ export function BusinessDetailClient({
   relatedReviews,
   categories,
   neighborhoods,
+  neighborhoodsGrouped,
   cities,
 }: BusinessDetailClientProps) {
   const router = useRouter();
@@ -112,6 +165,22 @@ export function BusinessDetailClient({
   const [localIdentities, setLocalIdentities] = useState<string[]>(activeIdentityIds);
   const [localTags, setLocalTags] = useState<string[]>(activeTagIds);
   const [localContacts, setLocalContacts] = useState(contacts);
+
+  // isNew form state
+  const [newData, setNewData] = useState<BusinessFormData>(EMPTY_BUSINESS);
+  const [submitterName] = useState("Admin");
+  const [submitterEmail] = useState("admin@atlvibesandviews.com");
+  const [submitError, setSubmitError] = useState("");
+
+  const handleNewSubmit = useCallback(async () => {
+    if (!newData.business_name.trim()) { setSubmitError("Business name is required."); return; }
+    setSubmitError("");
+    setSaving(true);
+    const result = await createBusinessSubmission(newData as unknown as Record<string, unknown>);
+    setSaving(false);
+    if ("error" in result && result.error) { setSubmitError("Error: " + result.error); return; }
+    router.push("/admin/submissions");
+  }, [newData, router]);
 
   const sortedHours = [...hours].sort((a, b) => DAY_ORDER.indexOf(a.day_of_week) - DAY_ORDER.indexOf(b.day_of_week));
 
@@ -227,7 +296,7 @@ export function BusinessDetailClient({
         <TabNav tabs={TABS} activeTab={activeTab} onTabChange={setActiveTab} />
 
         {/* Tab 1 — Basic Info */}
-        {activeTab === "basic" && (
+        {activeTab === "basic" && !isNew && (
           <div className="space-y-4" data-tab="basic">
             <FormGroup label="Business Name"><FormInput defaultValue={field(biz, "business_name")} /></FormGroup>
             <FormGroup label="Tagline"><FormInput defaultValue={field(biz, "tagline")} /></FormGroup>
@@ -261,8 +330,28 @@ export function BusinessDetailClient({
           </div>
         )}
 
+        {/* isNew — tabs 1-5 rendered via BusinessForm (has Google Places + neighborhood detection built in) */}
+        {isNew && activeTab !== "admin" && activeTab !== "related" && (
+          <div className="pb-24">
+            <BusinessForm
+              data={newData}
+              onChange={setNewData}
+              categories={categories as unknown as import("@/lib/types").Category[]}
+              neighborhoods={neighborhoodsGrouped}
+              amenities={amenities as Amenity[]}
+              identityOptions={identityOptions as IdentityOption[]}
+              tier={newData.tier}
+              submitterName={submitterName}
+              submitterEmail={submitterEmail}
+              onSubmitterNameChange={() => {}}
+              onSubmitterEmailChange={() => {}}
+              tags={tags as Tag[]}
+            />
+          </div>
+        )}
+
         {/* Tab 2 — Location & Hours */}
-        {activeTab === "location" && (
+        {activeTab === "location" && !isNew && (
           <div className="space-y-4" data-tab="location">
             <FormRow columns={2}>
               <FormGroup label="Street Address"><FormInput defaultValue={field(biz, "street_address")} /></FormGroup>
@@ -316,7 +405,7 @@ export function BusinessDetailClient({
         )}
 
         {/* Tab 3 — Contact & Social */}
-        {activeTab === "contact" && (
+        {activeTab === "contact" && !isNew && (
           <div className="space-y-4" data-tab="contact">
             <FormRow columns={2}>
               <FormGroup label="Phone"><FormInput defaultValue={field(biz, "phone")} /></FormGroup>
@@ -364,7 +453,7 @@ export function BusinessDetailClient({
         )}
 
         {/* Tab 4 — Photos & Media */}
-        {activeTab === "photos" && (
+        {activeTab === "photos" && !isNew && (
           <div className="space-y-4" data-tab="photos">
             <h3 className="font-display text-[16px] font-semibold text-black">Logo</h3>
             {field(biz, "logo") ? (
@@ -416,7 +505,7 @@ export function BusinessDetailClient({
         )}
 
         {/* Tab 5 — Tags & Identity */}
-        {activeTab === "tags" && (
+        {activeTab === "tags" && !isNew && (
           <div className="space-y-6">
             <h3 className="font-display text-[16px] font-semibold text-black">Tags</h3>
             <div className="flex flex-wrap gap-2">
@@ -499,7 +588,7 @@ export function BusinessDetailClient({
         )}
 
         {/* Tab 6 — Admin & Tiers */}
-        {activeTab === "admin" && (
+        {activeTab === "admin" && !isNew && (
           <div className="space-y-6" data-tab="admin">
             <StatGrid columns={3}>
               <StatCard label="Current Tier" value={field(biz, "tier", "—")} badge={{ text: field(biz, "tier", "free"), variant: field(biz, "tier") === "premium" ? "gold" : "gray" }} />
@@ -548,8 +637,31 @@ export function BusinessDetailClient({
           </div>
         )}
 
+        {/* Tab 6 — Admin & Tiers (isNew) */}
+        {activeTab === "admin" && isNew && (
+          <div className="space-y-6">
+            <h3 className="font-display text-[16px] font-semibold text-black">Tier</h3>
+            <FormRow columns={2}>
+              <FormGroup label="Tier">
+                <FormSelect
+                  options={[{ value: "free", label: "Free" }, { value: "standard", label: "Standard" }, { value: "premium", label: "Premium" }, { value: "featured", label: "Featured" }]}
+                  value={newData.tier}
+                  onChange={(e) => setNewData((p) => ({ ...p, tier: e.target.value }))}
+                />
+              </FormGroup>
+              <FormGroup label="Map Pin Style">
+                <FormSelect
+                  options={[{ value: "basic", label: "Basic" }, { value: "enhanced", label: "Enhanced" }, { value: "premium", label: "Premium" }]}
+                  value={((newData as unknown as Record<string, unknown>).map_pin_style as string) ?? "basic"}
+                  onChange={(e) => setNewData((p) => ({ ...p, map_pin_style: e.target.value } as unknown as BusinessFormData))}
+                />
+              </FormGroup>
+            </FormRow>
+          </div>
+        )}
+
         {/* Tab 7 — Related Content */}
-        {activeTab === "related" && (
+        {activeTab === "related" && !isNew && (
           <div className="space-y-6">
             <StatGrid columns={3}>
               <StatCard label="Blog Posts" value={relatedPosts.length} />
@@ -610,6 +722,22 @@ export function BusinessDetailClient({
           </div>
         )}
       </div>
+      {isNew && (
+        <div className="fixed bottom-0 left-0 right-0 z-40 bg-white border-t border-[#e5e5e5] px-8 py-4 flex items-center justify-between">
+          {submitError ? (
+            <p className="text-[13px] text-[#c1121f] font-medium">{submitError}</p>
+          ) : (
+            <p className="text-[13px] text-[#6b7280]">Fill in the details across all tabs, then submit to the review queue.</p>
+          )}
+          <button
+            onClick={handleNewSubmit}
+            disabled={saving}
+            className="inline-flex items-center px-8 py-3 rounded-full text-sm font-semibold bg-[#fee198] text-[#1a1a1a] hover:bg-[#fdd870] transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+          >
+            {saving ? "Submitting…" : "Submit to Queue"}
+          </button>
+        </div>
+      )}
     </>
   );
 }
