@@ -1970,3 +1970,20 @@ export async function createBusinessSubmission(data: Record<string, unknown>) {
   if (error) return { error: error.message };
   return { success: true };
 }
+
+// ─── CREATE EVENT SUBMISSION (Admin) ──────────────────────────────────────
+
+export async function createEventSubmission(data: Record<string, unknown>) {
+  const supabase = createServiceRoleClient();
+  const { error } = await supabase.from("submissions").insert({
+    submission_type: "event",
+    status: "pending",
+    submitter_name: (data.submitter_name as string) || "",
+    submitter_email: (data.submitter_email as string) || "",
+    tier: (data.tier as string) ?? "free",
+    data: { ...data, source: "admin" },
+  } as never);
+  if (error) return { error: error.message };
+  revalidatePath("/admin/submissions");
+  return { success: true };
+}

@@ -63,10 +63,24 @@ export default async function EventDetailPage({ params }: { params: Promise<{ id
   // Lookup data
   const [categoriesRes, neighborhoodsRes, citiesRes, businessesRes] = await Promise.all([
     supabase.from("categories").select("id, name").eq("is_active", true).order("name") as unknown as Promise<{ data: { id: string; name: string }[] | null }>,
-    supabase.from("neighborhoods").select("id, name").order("name") as unknown as Promise<{ data: { id: string; name: string }[] | null }>,
+    supabase.from("neighborhoods").select("id, name, slug, areas(name, slug)").order("name") as unknown as Promise<{ data: { id: string; name: string; slug: string; areas?: { name: string; slug: string } | null }[] | null }>,
     supabase.from("cities").select("id, name").order("name") as unknown as Promise<{ data: { id: string; name: string }[] | null }>,
     supabase.from("business_listings").select("id, business_name").eq("status", "active").order("business_name") as unknown as Promise<{ data: { id: string; business_name: string }[] | null }>,
   ]);
+
+  // Build grouped neighborhoods for EventForm (isNew path)
+  const neighborhoodsGroupedMap = new Map<string, { area_name: string; area_slug: string; neighborhoods: { id: string; name: string; slug: string }[] }>();
+  for (const n of neighborhoodsRes.data ?? []) {
+    const areaName = n.areas?.name ?? "Other";
+    const areaSlug = n.areas?.slug ?? "other";
+    if (!neighborhoodsGroupedMap.has(areaName)) {
+      neighborhoodsGroupedMap.set(areaName, { area_name: areaName, area_slug: areaSlug, neighborhoods: [] });
+    }
+    neighborhoodsGroupedMap.get(areaName)!.neighborhoods.push({ id: n.id, name: n.name, slug: n.slug });
+  }
+  const neighborhoodsGrouped = Array.from(neighborhoodsGroupedMap.values());
+
+  const neighborhoodsFlat = (neighborhoodsRes.data ?? []).map((n) => ({ id: n.id, name: n.name }));
 
   return (
     <EventDetailClient
@@ -77,7 +91,8 @@ export default async function EventDetailPage({ params }: { params: Promise<{ id
       activeTagIds={activeTagIds}
       relatedPosts={relatedPosts}
       categories={categoriesRes.data ?? []}
-      neighborhoods={neighborhoodsRes.data ?? []}
+      neighborhoods={neighborhoodsFlat}
+      neighborhoodsGrouped={neighborhoodsGrouped}
       cities={citiesRes.data ?? []}
       businesses={(businessesRes.data ?? []).map((b) => ({ value: b.id, label: b.business_name }))}
     />
