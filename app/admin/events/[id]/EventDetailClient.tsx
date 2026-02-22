@@ -4,7 +4,9 @@ import { useState, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { ArrowLeft, Star, Newspaper } from "lucide-react";
-import { updateEvent } from "@/app/admin/actions";
+import { updateEvent, createEventSubmission } from "@/app/admin/actions";
+import { EventForm } from "@/components/submit/EventForm";
+import type { EventFormData, NeighborhoodGrouped, Tag } from "@/lib/types";
 import { PortalTopbar } from "@/components/portal/PortalTopbar";
 import { TabNav } from "@/components/portal/TabNav";
 import { StatusBadge } from "@/components/portal/StatusBadge";
@@ -31,6 +33,7 @@ interface EventDetailClientProps {
   relatedPosts: RelatedPost[];
   categories: { id: string; name: string }[];
   neighborhoods: { id: string; name: string }[];
+  neighborhoodsGrouped: NeighborhoodGrouped[];
   cities: { id: string; name: string }[];
   businesses: { value: string; label: string }[];
 }
@@ -42,6 +45,50 @@ const TABS = [
   { label: "Tickets & Pricing", key: "tickets" },
   { label: "Tags & Media", key: "tags" },
 ];
+
+const SECTION_MAP: Record<string, "basic" | "location" | "contact" | "photos"> = {
+  basic: "basic",
+  datetime: "basic",
+  venue: "location",
+  tickets: "contact",
+};
+
+const EMPTY_EVENT: EventFormData = {
+  tier: "free",
+  title: "",
+  event_type: "",
+  category_id: "",
+  tagline: "",
+  description: "",
+  start_date: "",
+  end_date: "",
+  start_time: "",
+  end_time: "",
+  is_recurring: false,
+  recurrence_rule: "",
+  venue_name: "",
+  venue_business_id: "",
+  street_address: "",
+  street_address_2: "",
+  city_id: "",
+  state: "GA",
+  zip_code: "",
+  neighborhood_id: "",
+  is_free: true,
+  ticket_price_min: "",
+  ticket_price_max: "",
+  ticket_url: "",
+  organizer_name: "",
+  organizer_url: "",
+  organizer_business_id: "",
+  website: "",
+  logo_url: "",
+  featured_image_url: "",
+  video_url: "",
+  images: [],
+  tag_ids: [],
+  photo_urls: [],
+};
 
 const statusBadgeMap: Record<string, "green" | "blue" | "gray" | "yellow"> = {
   active: "green",
@@ -72,6 +119,7 @@ export function EventDetailClient({
   relatedPosts,
   categories,
   neighborhoods,
+  neighborhoodsGrouped,
   cities,
   businesses,
 }: EventDetailClientProps) {
@@ -80,6 +128,22 @@ export function EventDetailClient({
   const [activeTab, setActiveTab] = useState("basic");
   const [saving, setSaving] = useState(false);
   const [localTags, setLocalTags] = useState<string[]>(activeTagIds);
+
+  // isNew form state
+  const [newData, setNewData] = useState<EventFormData>(EMPTY_EVENT);
+  const [submitterName, setSubmitterName] = useState("");
+  const [submitterEmail, setSubmitterEmail] = useState("");
+  const [submitError, setSubmitError] = useState("");
+
+  const handleNewSubmit = useCallback(async () => {
+    if (!newData.title.trim()) { setSubmitError("Event title is required."); return; }
+    setSubmitError("");
+    setSaving(true);
+    const result = await createEventSubmission({ ...(newData as unknown as Record<string, unknown>), submitter_name: submitterName, submitter_email: submitterEmail });
+    setSaving(false);
+    if ("error" in result && result.error) { setSubmitError("Error: " + result.error); return; }
+    router.push("/admin/submissions");
+  }, [newData, submitterName, submitterEmail, router]);
 
   const title = isNew ? "New Event" : field(ev, "title", "Event");
 
@@ -176,10 +240,44 @@ export function EventDetailClient({
         )}
         {!isNew && <p className="text-[13px] text-[#6b7280]">{field(ev, "slug")}</p>}
 
-        <TabNav tabs={TABS} activeTab={activeTab} onTabChange={setActiveTab} />
+        <TabNav tabs={isNew ? TABS.filter((t) => t.key !== "tags") : TABS} activeTab={activeTab} onTabChange={setActiveTab} />
+
+        {/* isNew — rendered via EventForm (section-per-tab) */}
+        {isNew && SECTION_MAP[activeTab] && (
+          <div className="pb-24">
+            <EventForm
+              data={newData}
+              onChange={setNewData}
+              categories={categories as import("@/lib/types").Category[]}
+              neighborhoods={neighborhoodsGrouped}
+              cities={cities as import("@/lib/types").City[]}
+              tags={tags as Tag[]}
+              submitterName={submitterName}
+              submitterEmail={submitterEmail}
+              onSubmitterNameChange={setSubmitterName}
+              onSubmitterEmailChange={setSubmitterEmail}
+              section={SECTION_MAP[activeTab]}
+            />
+            {submitError && <p className="mt-4 text-[13px] text-[#c1121f]">{submitError}</p>}
+          </div>
+        )}
+
+        {/* Fixed Submit button for isNew */}
+        {isNew && (
+          <div className="fixed bottom-0 left-0 right-0 bg-white border-t border-[#e5e5e5] px-8 py-4 flex items-center justify-between z-50">
+            <span className="text-[13px] text-[#6b7280]">New event — submit to review queue</span>
+            <button
+              onClick={handleNewSubmit}
+              disabled={saving}
+              className="inline-flex items-center px-6 py-2.5 rounded-full text-sm font-semibold bg-[#fee198] text-[#1a1a1a] hover:bg-[#fdd870] transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+            >
+              {saving ? "Submitting..." : "Submit to Queue"}
+            </button>
+          </div>
+        )}
 
         {/* Tab 1 — Basic Info */}
-        {activeTab === "basic" && (
+        {activeTab === "basic" && !isNew && (
           <div className="space-y-4" data-tab="basic">
             <FormGroup label="Title"><FormInput defaultValue={field(ev, "title")} /></FormGroup>
             <FormGroup label="Slug"><FormInput defaultValue={field(ev, "slug")} readOnly className="bg-[#f5f5f5]" /></FormGroup>
@@ -211,7 +309,7 @@ export function EventDetailClient({
         )}
 
         {/* Tab 2 — Date & Time */}
-        {activeTab === "datetime" && (
+        {activeTab === "datetime" && !isNew && (
           <div className="space-y-4" data-tab="datetime">
             <FormRow columns={2}>
               <FormGroup label="Start Date"><FormInput type="date" defaultValue={field(ev, "start_date")} /></FormGroup>
@@ -232,7 +330,7 @@ export function EventDetailClient({
         )}
 
         {/* Tab 3 — Venue & Location */}
-        {activeTab === "venue" && (
+        {activeTab === "venue" && !isNew && (
           <div className="space-y-4" data-tab="venue">
             <FormGroup label="Venue Name"><FormInput defaultValue={field(ev, "venue_name")} /></FormGroup>
             <FormGroup label="Venue Business">
@@ -270,7 +368,7 @@ export function EventDetailClient({
         )}
 
         {/* Tab 4 — Tickets & Pricing */}
-        {activeTab === "tickets" && (
+        {activeTab === "tickets" && !isNew && (
           <div className="space-y-4" data-tab="tickets">
             <ToggleSwitch label="Free Event" checked={fieldBool(ev, "is_free")} onChange={() => handleToggle("is_free", fieldBool(ev, "is_free"))} />
             {!fieldBool(ev, "is_free") && (
@@ -304,7 +402,7 @@ export function EventDetailClient({
         )}
 
         {/* Tab 5 — Tags & Media */}
-        {activeTab === "tags" && (
+        {activeTab === "tags" && !isNew && (
           <div className="space-y-6">
             <h3 className="font-display text-[16px] font-semibold text-black">Tags</h3>
             <div className="flex flex-wrap gap-2">

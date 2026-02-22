@@ -22,6 +22,8 @@ interface EventFormProps {
   submitterEmail: string;
   onSubmitterNameChange: (v: string) => void;
   onSubmitterEmailChange: (v: string) => void;
+  /** When provided, only the matching section is rendered (admin tab view) */
+  section?: "basic" | "location" | "contact" | "photos" | "tags";
 }
 
 const EVENT_TYPES = [
@@ -226,7 +228,9 @@ export function EventForm({
   submitterEmail,
   onSubmitterNameChange,
   onSubmitterEmailChange,
+  section,
 }: EventFormProps) {
+  const show = (s: NonNullable<typeof section>) => !section || section === s;
   const streetAddressRef = useRef<HTMLInputElement>(null);
   const autocompleteRef = useRef<any>(null);
   const dataRef = useRef(data);
@@ -327,6 +331,7 @@ export function EventForm({
 
   return (
     <div className="space-y-2">
+      {show("basic") && (<>
       {/* Section 1: Contact Info */}
       <SectionHeading>Contact Info (who&rsquo;s submitting)</SectionHeading>
       <p className="text-xs text-gray-mid mb-4">
@@ -548,6 +553,9 @@ export function EventForm({
         )}
       </div>
 
+      </>)}
+
+      {show("location") && (<>
       {/* Section 4: Location */}
       <SectionHeading>Location</SectionHeading>
       <div className="space-y-4">
@@ -632,6 +640,9 @@ export function EventForm({
         </div>
       </div>
 
+      </>)}
+
+      {show("contact") && (<>
       {/* Section 5: Tickets & Pricing */}
       <SectionHeading>Tickets &amp; Pricing</SectionHeading>
       <div className="space-y-4">
@@ -711,6 +722,9 @@ export function EventForm({
         </div>
       </div>
 
+      </>)}
+
+      {show("photos") && (<>
       {/* Section 7: Logo & Photos & Video */}
       <SectionHeading>Photos &amp; Video</SectionHeading>
       <div className="space-y-4">
@@ -779,6 +793,9 @@ export function EventForm({
         </div>
       </div>
 
+      </>)}
+
+      {show("contact") && (<>
       {/* Section 8: Links */}
       <SectionHeading>Links</SectionHeading>
       <div>
@@ -791,6 +808,7 @@ export function EventForm({
           placeholder="https://…"
         />
       </div>
+      </>)}
     </div>
   );
 }
