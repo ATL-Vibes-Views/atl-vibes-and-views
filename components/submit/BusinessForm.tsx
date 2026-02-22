@@ -148,6 +148,8 @@ interface BusinessFormProps {
   onSubmitterNameChange: (v: string) => void;
   onSubmitterEmailChange: (v: string) => void;
   tags: Tag[];
+  /** When provided, only the matching section is rendered (admin tab view) */
+  section?: "basic" | "location" | "contact" | "photos" | "tags";
 }
 
 const DAYS = [
@@ -269,7 +271,9 @@ export function BusinessForm({
   onSubmitterNameChange,
   onSubmitterEmailChange,
   tags,
+  section,
 }: BusinessFormProps) {
+  const show = (s: NonNullable<typeof section>) => !section || section === s;
   const streetAddressRef = useRef<HTMLInputElement>(null);
   const autocompleteRef = useRef<any>(null);
   const dataRef = useRef(data);
@@ -429,6 +433,7 @@ export function BusinessForm({
 
   return (
     <div className="space-y-2">
+      {show("basic") && (<>
       {/* Section 1: Contact Info (who's submitting) */}
       <SectionHeading>Contact Info (who&rsquo;s submitting)</SectionHeading>
       <p className="text-xs text-gray-mid mb-4">
@@ -598,6 +603,9 @@ export function BusinessForm({
         </div>
       </div>
 
+      </>)}
+
+      {show("location") && (<>
       {/* Section 3: Location */}
       <SectionHeading>Location</SectionHeading>
       <div className="space-y-4">
@@ -751,6 +759,9 @@ export function BusinessForm({
         </div>
       </div>
 
+      </>)}
+
+      {show("contact") && (<>
       {/* Section 5: Additional Contacts */}
       <SectionHeading>Additional Contacts</SectionHeading>
       <p className="text-xs text-gray-mid mb-4">
@@ -942,6 +953,9 @@ export function BusinessForm({
         </div>
       </div>
 
+      </>)}
+
+      {show("photos") && (<>
       {/* Section 8: Logo & Photos & Video */}
       <SectionHeading>Logo, Photos &amp; Video</SectionHeading>
 
@@ -1013,6 +1027,9 @@ export function BusinessForm({
         </div>
       </div>
 
+      </>)}
+
+      {show("tags") && (<>
       {/* Section 9: Amenities */}
       <SectionHeading>Amenities</SectionHeading>
       <p className="text-xs text-gray-mid mb-4">
@@ -1164,6 +1181,7 @@ export function BusinessForm({
           </p>
         </>
       )}
+      </>)}
     </div>
   );
 }
