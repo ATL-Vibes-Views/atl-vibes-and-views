@@ -1,11 +1,10 @@
 "use client";
 
-import { useState, useCallback, useRef, useEffect } from "react";
+import { useState, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { ArrowLeft, Star, Newspaper, Calendar, MapPin } from "lucide-react";
-import { updateBusiness, createBusinessSubmission } from "@/app/admin/actions";
-import { ImagePicker } from "@/components/portal/ImagePicker";
+import { updateBusiness } from "@/app/admin/actions";
 import { PortalTopbar } from "@/components/portal/PortalTopbar";
 import { TabNav } from "@/components/portal/TabNav";
 import { StatusBadge } from "@/components/portal/StatusBadge";
@@ -115,155 +114,6 @@ export function BusinessDetailClient({
   const [localContacts, setLocalContacts] = useState(contacts);
 
   const sortedHours = [...hours].sort((a, b) => DAY_ORDER.indexOf(a.day_of_week) - DAY_ORDER.indexOf(b.day_of_week));
-
-  // ── isNew form state ──────────────────────────────────────────
-  const [newData, setNewData] = useState<Record<string, unknown>>({
-    business_name: "",
-    tagline: "",
-    description: "",
-    category_id: "",
-    price_range: "",
-    city_id: "",
-    special_offers: "",
-    order_online_url: "",
-    street_address: "",
-    street_address_2: "",
-    state: "GA",
-    zip_code: "",
-    neighborhood_id: "",
-    latitude: null,
-    longitude: null,
-    phone: "",
-    email: "",
-    website: "",
-    primary_link: "",
-    primary_link_label: "",
-    instagram: "",
-    tiktok: "",
-    facebook: "",
-    x_twitter: "",
-    logo_url: "",
-    photo_urls: [] as string[],
-    video_url: "",
-    tier: "free",
-    tag_ids: [] as string[],
-    amenity_ids: [] as string[],
-    identity_option_ids: [] as string[],
-    display_identity_publicly: false,
-    certified_diversity_program: false,
-    hours: [
-      { day_of_week: "monday", open_time: "09:00", close_time: "17:00", is_closed: false, notes: "" },
-      { day_of_week: "tuesday", open_time: "09:00", close_time: "17:00", is_closed: false, notes: "" },
-      { day_of_week: "wednesday", open_time: "09:00", close_time: "17:00", is_closed: false, notes: "" },
-      { day_of_week: "thursday", open_time: "09:00", close_time: "17:00", is_closed: false, notes: "" },
-      { day_of_week: "friday", open_time: "09:00", close_time: "17:00", is_closed: false, notes: "" },
-      { day_of_week: "saturday", open_time: "10:00", close_time: "17:00", is_closed: false, notes: "" },
-      { day_of_week: "sunday", open_time: "", close_time: "", is_closed: true, notes: "" },
-    ],
-    contacts: [{ contact_name: "", contact_title: "", contact_email: "", contact_phone: "", is_primary: true, is_public: true }],
-  });
-
-  const newStreetRef = useRef<HTMLInputElement>(null);
-  const newAutocompleteRef = useRef<any>(null);
-  const newDataRef = useRef(newData);
-  useEffect(() => { newDataRef.current = newData; });
-
-  // Google Places autocomplete for isNew
-  useEffect(() => {
-    if (!isNew) return;
-    const apiKey = process.env.NEXT_PUBLIC_GOOGLE_PLACES_API_KEY;
-    if (!apiKey || typeof window === "undefined") return;
-
-    const initAutocomplete = () => {
-      if (!newStreetRef.current || !(window as any).google?.maps?.places) return;
-      if (newAutocompleteRef.current) return;
-      const ac = new (window as any).google.maps.places.Autocomplete(
-        newStreetRef.current,
-        { types: ["address"], componentRestrictions: { country: "us" } }
-      );
-      newAutocompleteRef.current = ac;
-      ac.addListener("place_changed", () => {
-        const place = ac.getPlace();
-        if (!place.address_components) return;
-        let streetNumber = "", route = "", city = "", state = "", zip = "";
-        const lat: number | null = place.geometry?.location?.lat() ?? null;
-        const lng: number | null = place.geometry?.location?.lng() ?? null;
-        for (const comp of place.address_components as any[]) {
-          const t: string[] = comp.types;
-          if (t.includes("street_number")) streetNumber = comp.long_name;
-          if (t.includes("route")) route = comp.long_name;
-          if (t.includes("locality")) city = comp.long_name;
-          if (t.includes("administrative_area_level_1")) state = comp.short_name;
-          if (t.includes("postal_code")) zip = comp.long_name;
-        }
-        const street = streetNumber && route ? `${streetNumber} ${route}` : (place.formatted_address ?? "");
-        const locationFields = { street_address: street, city_text: city, state, zip_code: zip, latitude: lat, longitude: lng };
-        setNewData((prev) => ({ ...prev, ...locationFields }));
-        newDataRef.current = { ...newDataRef.current, ...locationFields };
-        if (city) {
-          import("@/lib/supabase").then(({ createBrowserClient }) => {
-            const sb = createBrowserClient() as any;
-            sb.from("cities").select("id, name").ilike("name", city).limit(1)
-              .then(({ data: cityRows }: any) => {
-                if (cityRows?.[0]) {
-                  setNewData((prev) => ({ ...prev, city_id: cityRows[0].id }));
-                }
-              });
-          }).catch(() => {});
-        }
-        if (lat !== null && lng !== null) {
-          import("@/lib/neighborhood-lookup").then(({ findNeighborhoodByCoordinates }) => {
-            findNeighborhoodByCoordinates(lat, lng).then((geojsonKey) => {
-              if (geojsonKey) {
-                import("@/lib/supabase").then(({ createBrowserClient }) => {
-                  const sb = createBrowserClient() as any;
-                  sb.from("neighborhoods").select("id, name").eq("geojson_key", geojsonKey).limit(1)
-                    .then(({ data: rows }: { data: any }) => {
-                      if (rows?.[0]) {
-                        setNewData((prev) => ({ ...prev, neighborhood_id: rows[0].id }));
-                      }
-                    });
-                }).catch(() => {});
-              }
-            });
-          }).catch(() => {});
-        }
-      });
-    };
-
-    if ((window as any).google?.maps?.places) {
-      initAutocomplete();
-    } else {
-      const scriptId = "google-places-script";
-      if (!document.getElementById(scriptId)) {
-        const script = document.createElement("script");
-        script.id = scriptId;
-        script.src = `https://maps.googleapis.com/maps/api/js?key=${apiKey}&libraries=places`;
-        script.async = true;
-        script.onload = initAutocomplete;
-        document.head.appendChild(script);
-      } else {
-        const interval = setInterval(() => {
-          if ((window as any).google?.maps?.places) {
-            clearInterval(interval);
-            initAutocomplete();
-          }
-        }, 100);
-      }
-    }
-  }, [isNew]);
-
-  const handleNewSubmit = useCallback(async () => {
-    if (!isNew) return;
-    setSaving(true);
-    const result = await createBusinessSubmission(newData);
-    setSaving(false);
-    if ("error" in result && result.error) {
-      alert("Error: " + result.error);
-      return;
-    }
-    router.push("/admin/submissions");
-  }, [isNew, newData, router]);
 
   const handleToggle = useCallback(async (fieldName: string, currentValue: boolean) => {
     if (!id) return;
@@ -377,7 +227,7 @@ export function BusinessDetailClient({
         <TabNav tabs={TABS} activeTab={activeTab} onTabChange={setActiveTab} />
 
         {/* Tab 1 — Basic Info */}
-        {activeTab === "basic" && !isNew && (
+        {activeTab === "basic" && (
           <div className="space-y-4" data-tab="basic">
             <FormGroup label="Business Name"><FormInput defaultValue={field(biz, "business_name")} /></FormGroup>
             <FormGroup label="Tagline"><FormInput defaultValue={field(biz, "tagline")} /></FormGroup>
@@ -410,31 +260,9 @@ export function BusinessDetailClient({
             </ButtonBar>
           </div>
         )}
-        {activeTab === "basic" && isNew && (
-          <div className="space-y-4">
-            <FormGroup label="Business Name"><FormInput value={newData.business_name as string} onChange={(e) => setNewData((p) => ({ ...p, business_name: e.target.value }))} /></FormGroup>
-            <FormGroup label="Tagline"><FormInput value={newData.tagline as string} onChange={(e) => setNewData((p) => ({ ...p, tagline: e.target.value }))} /></FormGroup>
-            <FormGroup label="Description"><FormTextarea value={newData.description as string} onChange={(e) => setNewData((p) => ({ ...p, description: e.target.value }))} rows={5} /></FormGroup>
-            <FormRow columns={2}>
-              <FormGroup label="Category">
-                <FormSelect options={categories.map((c) => ({ value: c.id, label: c.name }))} value={newData.category_id as string} onChange={(e) => setNewData((p) => ({ ...p, category_id: e.target.value }))} placeholder="Select category" />
-              </FormGroup>
-              <FormGroup label="Price Range">
-                <FormSelect options={[{ value: "$", label: "$" }, { value: "$$", label: "$$" }, { value: "$$$", label: "$$$" }, { value: "$$$$", label: "$$$$" }]} value={newData.price_range as string} onChange={(e) => setNewData((p) => ({ ...p, price_range: e.target.value }))} placeholder="Select" />
-              </FormGroup>
-            </FormRow>
-            <FormRow columns={2}>
-              <FormGroup label="City">
-                <FormSelect options={cities.map((c) => ({ value: c.id, label: c.name }))} value={newData.city_id as string} onChange={(e) => setNewData((p) => ({ ...p, city_id: e.target.value }))} placeholder="Select city" />
-              </FormGroup>
-            </FormRow>
-            <FormGroup label="Special Offers"><FormTextarea value={newData.special_offers as string} onChange={(e) => setNewData((p) => ({ ...p, special_offers: e.target.value }))} rows={2} /></FormGroup>
-            <FormGroup label="Order Online URL"><FormInput value={newData.order_online_url as string} onChange={(e) => setNewData((p) => ({ ...p, order_online_url: e.target.value }))} /></FormGroup>
-          </div>
-        )}
 
         {/* Tab 2 — Location & Hours */}
-        {activeTab === "location" && !isNew && (
+        {activeTab === "location" && (
           <div className="space-y-4" data-tab="location">
             <FormRow columns={2}>
               <FormGroup label="Street Address"><FormInput defaultValue={field(biz, "street_address")} /></FormGroup>
@@ -486,55 +314,9 @@ export function BusinessDetailClient({
             </ButtonBar>
           </div>
         )}
-        {activeTab === "location" && isNew && (
-          <div className="space-y-4">
-            <FormRow columns={2}>
-              <FormGroup label="Street Address">
-                <FormInput ref={newStreetRef} value={newData.street_address as string} onChange={(e) => setNewData((p) => ({ ...p, street_address: e.target.value }))} placeholder="Start typing address..." />
-              </FormGroup>
-              <FormGroup label="Suite/Unit"><FormInput value={newData.street_address_2 as string} onChange={(e) => setNewData((p) => ({ ...p, street_address_2: e.target.value }))} /></FormGroup>
-            </FormRow>
-            <FormRow columns={3}>
-              <FormGroup label="State"><FormInput value={newData.state as string} onChange={(e) => setNewData((p) => ({ ...p, state: e.target.value }))} /></FormGroup>
-              <FormGroup label="Zip Code"><FormInput value={newData.zip_code as string} onChange={(e) => setNewData((p) => ({ ...p, zip_code: e.target.value }))} /></FormGroup>
-              <FormGroup label="Neighborhood">
-                <FormSelect options={neighborhoods.map((n) => ({ value: n.id, label: n.name }))} value={newData.neighborhood_id as string} onChange={(e) => setNewData((p) => ({ ...p, neighborhood_id: e.target.value }))} placeholder="Auto-filled or select" />
-              </FormGroup>
-            </FormRow>
-            <FormRow columns={2}>
-              <FormGroup label="Latitude"><FormInput type="number" value={newData.latitude as string} onChange={(e) => setNewData((p) => ({ ...p, latitude: parseFloat(e.target.value) || null }))} /></FormGroup>
-              <FormGroup label="Longitude"><FormInput type="number" value={newData.longitude as string} onChange={(e) => setNewData((p) => ({ ...p, longitude: parseFloat(e.target.value) || null }))} /></FormGroup>
-            </FormRow>
-            <div className="mt-6">
-              <h3 className="font-display text-[16px] font-semibold text-black mb-3">Business Hours</h3>
-              <div className="border border-[#e5e5e5] overflow-hidden">
-                <table className="w-full">
-                  <thead>
-                    <tr className="bg-[#f5f5f5] border-b border-[#e5e5e5]">
-                      <th className="text-left text-[10px] uppercase tracking-[0.05em] font-semibold text-[#6b7280] px-3 py-2">Day</th>
-                      <th className="text-left text-[10px] uppercase tracking-[0.05em] font-semibold text-[#6b7280] px-3 py-2">Open</th>
-                      <th className="text-left text-[10px] uppercase tracking-[0.05em] font-semibold text-[#6b7280] px-3 py-2">Close</th>
-                      <th className="text-left text-[10px] uppercase tracking-[0.05em] font-semibold text-[#6b7280] px-3 py-2">Closed</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {(newData.hours as any[]).map((h, i) => (
-                      <tr key={h.day_of_week} className="border-b border-[#f0f0f0]">
-                        <td className="px-3 py-2 text-[13px] font-semibold text-black capitalize">{h.day_of_week}</td>
-                        <td className="px-3 py-2"><FormInput type="time" value={h.open_time} disabled={h.is_closed} className="w-[120px]" onChange={(e) => setNewData((p) => { const hrs = [...(p.hours as any[])]; hrs[i] = { ...hrs[i], open_time: e.target.value }; return { ...p, hours: hrs }; })} /></td>
-                        <td className="px-3 py-2"><FormInput type="time" value={h.close_time} disabled={h.is_closed} className="w-[120px]" onChange={(e) => setNewData((p) => { const hrs = [...(p.hours as any[])]; hrs[i] = { ...hrs[i], close_time: e.target.value }; return { ...p, hours: hrs }; })} /></td>
-                        <td className="px-3 py-2"><ToggleSwitch checked={h.is_closed} onChange={() => setNewData((p) => { const hrs = [...(p.hours as any[])]; hrs[i] = { ...hrs[i], is_closed: !hrs[i].is_closed }; return { ...p, hours: hrs }; })} /></td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-            </div>
-          </div>
-        )}
 
         {/* Tab 3 — Contact & Social */}
-        {activeTab === "contact" && !isNew && (
+        {activeTab === "contact" && (
           <div className="space-y-4" data-tab="contact">
             <FormRow columns={2}>
               <FormGroup label="Phone"><FormInput defaultValue={field(biz, "phone")} /></FormGroup>
@@ -580,40 +362,9 @@ export function BusinessDetailClient({
             </ButtonBar>
           </div>
         )}
-        {activeTab === "contact" && isNew && (
-          <div className="space-y-4">
-            <FormRow columns={2}>
-              <FormGroup label="Phone"><FormInput value={newData.phone as string} onChange={(e) => setNewData((p) => ({ ...p, phone: e.target.value }))} /></FormGroup>
-              <FormGroup label="Email"><FormInput value={newData.email as string} onChange={(e) => setNewData((p) => ({ ...p, email: e.target.value }))} /></FormGroup>
-            </FormRow>
-            <FormGroup label="Website"><FormInput value={newData.website as string} onChange={(e) => setNewData((p) => ({ ...p, website: e.target.value }))} /></FormGroup>
-            <FormRow columns={2}>
-              <FormGroup label="Primary Link URL"><FormInput value={newData.primary_link as string} onChange={(e) => setNewData((p) => ({ ...p, primary_link: e.target.value }))} /></FormGroup>
-              <FormGroup label="Primary Link Label"><FormInput value={newData.primary_link_label as string} onChange={(e) => setNewData((p) => ({ ...p, primary_link_label: e.target.value }))} /></FormGroup>
-            </FormRow>
-            <h3 className="font-display text-[16px] font-semibold text-black mt-6">Social Media</h3>
-            <FormRow columns={2}>
-              <FormGroup label="Instagram"><FormInput value={newData.instagram as string} onChange={(e) => setNewData((p) => ({ ...p, instagram: e.target.value }))} /></FormGroup>
-              <FormGroup label="TikTok"><FormInput value={newData.tiktok as string} onChange={(e) => setNewData((p) => ({ ...p, tiktok: e.target.value }))} /></FormGroup>
-            </FormRow>
-            <FormRow columns={2}>
-              <FormGroup label="Facebook"><FormInput value={newData.facebook as string} onChange={(e) => setNewData((p) => ({ ...p, facebook: e.target.value }))} /></FormGroup>
-              <FormGroup label="X (Twitter)"><FormInput value={newData.x_twitter as string} onChange={(e) => setNewData((p) => ({ ...p, x_twitter: e.target.value }))} /></FormGroup>
-            </FormRow>
-            <h3 className="font-display text-[16px] font-semibold text-black mt-6">Primary Contact</h3>
-            <FormRow columns={2}>
-              <FormGroup label="Name"><FormInput value={(newData.contacts as any[])[0].contact_name} onChange={(e) => setNewData((p) => { const c = [...(p.contacts as any[])]; c[0] = { ...c[0], contact_name: e.target.value }; return { ...p, contacts: c }; })} /></FormGroup>
-              <FormGroup label="Title"><FormInput value={(newData.contacts as any[])[0].contact_title} onChange={(e) => setNewData((p) => { const c = [...(p.contacts as any[])]; c[0] = { ...c[0], contact_title: e.target.value }; return { ...p, contacts: c }; })} /></FormGroup>
-            </FormRow>
-            <FormRow columns={2}>
-              <FormGroup label="Contact Email"><FormInput value={(newData.contacts as any[])[0].contact_email} onChange={(e) => setNewData((p) => { const c = [...(p.contacts as any[])]; c[0] = { ...c[0], contact_email: e.target.value }; return { ...p, contacts: c }; })} /></FormGroup>
-              <FormGroup label="Contact Phone"><FormInput value={(newData.contacts as any[])[0].contact_phone} onChange={(e) => setNewData((p) => { const c = [...(p.contacts as any[])]; c[0] = { ...c[0], contact_phone: e.target.value }; return { ...p, contacts: c }; })} /></FormGroup>
-            </FormRow>
-          </div>
-        )}
 
         {/* Tab 4 — Photos & Media */}
-        {activeTab === "photos" && !isNew && (
+        {activeTab === "photos" && (
           <div className="space-y-4" data-tab="photos">
             <h3 className="font-display text-[16px] font-semibold text-black">Logo</h3>
             {field(biz, "logo") ? (
@@ -663,38 +414,9 @@ export function BusinessDetailClient({
             </ButtonBar>
           </div>
         )}
-        {activeTab === "photos" && isNew && (
-          <div className="space-y-6">
-            <h3 className="font-display text-[16px] font-semibold text-black">Logo</h3>
-            <ImagePicker
-              value={newData.logo_url as string}
-              onChange={(url) => setNewData((p) => ({ ...p, logo_url: url }))}
-              folder="submissions/logos"
-              label="Upload logo"
-              hint="PNG, JPG up to 2MB"
-            />
-            <h3 className="font-display text-[16px] font-semibold text-black mt-6">Photo Gallery</h3>
-            {(newData.photo_urls as string[]).map((url, i) => (
-              <div key={i} className="relative border border-[#e5e5e5]">
-                <img src={url} alt="" className="w-full h-[160px] object-cover" />
-                <button type="button" onClick={() => setNewData((p) => { const photos = (p.photo_urls as string[]).filter((_, idx) => idx !== i); return { ...p, photo_urls: photos }; })} className="absolute top-2 right-2 w-6 h-6 rounded-full bg-black/60 text-white flex items-center justify-center">×</button>
-              </div>
-            ))}
-            {(newData.photo_urls as string[]).length < 15 && (
-              <ImagePicker
-                value=""
-                onChange={(url) => { if (url) setNewData((p) => ({ ...p, photo_urls: [...(p.photo_urls as string[]), url] })); }}
-                folder="submissions/photos"
-                label="Add photo"
-                hint="PNG, JPG up to 5MB"
-              />
-            )}
-            <FormGroup label="Video URL"><FormInput value={newData.video_url as string} onChange={(e) => setNewData((p) => ({ ...p, video_url: e.target.value }))} /></FormGroup>
-          </div>
-        )}
 
         {/* Tab 5 — Tags & Identity */}
-        {activeTab === "tags" && !isNew && (
+        {activeTab === "tags" && (
           <div className="space-y-6">
             <h3 className="font-display text-[16px] font-semibold text-black">Tags</h3>
             <div className="flex flex-wrap gap-2">
@@ -775,56 +497,9 @@ export function BusinessDetailClient({
             </ButtonBar>
           </div>
         )}
-        {activeTab === "tags" && isNew && (
-          <div className="space-y-6">
-            <h3 className="font-display text-[16px] font-semibold text-black">Tags</h3>
-            <div className="flex flex-wrap gap-2">
-              {tags.map((tag) => {
-                const isActive = (newData.tag_ids as string[]).includes(tag.id);
-                return (
-                  <button key={tag.id} type="button" onClick={() => setNewData((p) => { const ids = p.tag_ids as string[]; return { ...p, tag_ids: isActive ? ids.filter((t) => t !== tag.id) : [...ids, tag.id] }; })}
-                    className={`inline-flex items-center px-3 py-1 rounded-full text-[12px] font-semibold transition-colors ${isActive ? "bg-[#fee198] text-[#1a1a1a]" : "border border-[#e5e5e5] text-[#374151] hover:border-[#d1d5db]"}`}>
-                    {tag.name}
-                  </button>
-                );
-              })}
-            </div>
-            <h3 className="font-display text-[16px] font-semibold text-black">Amenities</h3>
-            {Object.entries(amenities.reduce<Record<string, typeof amenities>>((groups, a) => { const g = a.amenity_group ?? "Other"; if (!groups[g]) groups[g] = []; groups[g].push(a); return groups; }, {})).map(([group, items]) => (
-              <div key={group} className="space-y-1.5">
-                <h4 className="text-[12px] font-semibold text-[#6b7280] uppercase tracking-[0.05em]">{group}</h4>
-                <div className="grid grid-cols-2 sm:grid-cols-3 gap-1">
-                  {items.map((a) => (
-                    <label key={a.id} className="flex items-center gap-2 text-[13px] text-[#374151] cursor-pointer">
-                      <input type="checkbox" checked={(newData.amenity_ids as string[]).includes(a.id)}
-                        onChange={() => setNewData((p) => { const ids = p.amenity_ids as string[]; return { ...p, amenity_ids: ids.includes(a.id) ? ids.filter((x) => x !== a.id) : [...ids, a.id] }; })}
-                        className="accent-[#fee198]" />
-                      {a.name}
-                    </label>
-                  ))}
-                </div>
-              </div>
-            ))}
-            <h3 className="font-display text-[16px] font-semibold text-black">Identity Options</h3>
-            <div className="grid grid-cols-2 sm:grid-cols-3 gap-1">
-              {identityOptions.map((opt) => (
-                <label key={opt.id} className="flex items-center gap-2 text-[13px] text-[#374151] cursor-pointer">
-                  <input type="checkbox" checked={(newData.identity_option_ids as string[]).includes(opt.id)}
-                    onChange={() => setNewData((p) => { const ids = p.identity_option_ids as string[]; return { ...p, identity_option_ids: ids.includes(opt.id) ? ids.filter((x) => x !== opt.id) : [...ids, opt.id] }; })}
-                    className="accent-[#fee198]" />
-                  {opt.name}
-                </label>
-              ))}
-            </div>
-            <FormRow columns={2}>
-              <ToggleSwitch label="Display Identity Publicly" checked={newData.display_identity_publicly as boolean} onChange={() => setNewData((p) => ({ ...p, display_identity_publicly: !p.display_identity_publicly }))} />
-              <ToggleSwitch label="Certified Diversity Program" checked={newData.certified_diversity_program as boolean} onChange={() => setNewData((p) => ({ ...p, certified_diversity_program: !p.certified_diversity_program }))} />
-            </FormRow>
-          </div>
-        )}
 
         {/* Tab 6 — Admin & Tiers */}
-        {activeTab === "admin" && !isNew && (
+        {activeTab === "admin" && (
           <div className="space-y-6" data-tab="admin">
             <StatGrid columns={3}>
               <StatCard label="Current Tier" value={field(biz, "tier", "—")} badge={{ text: field(biz, "tier", "free"), variant: field(biz, "tier") === "premium" ? "gold" : "gray" }} />
@@ -870,14 +545,6 @@ export function BusinessDetailClient({
             <ButtonBar>
               <button onClick={handleSaveAdmin} disabled={saving} className="inline-flex items-center px-6 py-2.5 rounded-full text-sm font-semibold bg-[#fee198] text-[#1a1a1a] hover:bg-[#fdd870] transition-colors disabled:opacity-40 disabled:cursor-not-allowed">{saving ? "Saving..." : "Save Changes"}</button>
             </ButtonBar>
-          </div>
-        )}
-        {activeTab === "admin" && isNew && (
-          <div className="space-y-6">
-            <h3 className="font-display text-[16px] font-semibold text-black">Tier</h3>
-            <FormGroup label="Tier">
-              <FormSelect options={[{ value: "free", label: "Free" }, { value: "standard", label: "Standard" }, { value: "premium", label: "Premium" }]} value={newData.tier as string} onChange={(e) => setNewData((p) => ({ ...p, tier: e.target.value }))} />
-            </FormGroup>
           </div>
         )}
 
@@ -943,13 +610,6 @@ export function BusinessDetailClient({
           </div>
         )}
       </div>
-      {isNew && (
-        <div className="fixed bottom-0 right-0 p-6 bg-white border-t border-[#e5e5e5] w-full flex justify-end">
-          <button onClick={handleNewSubmit} disabled={saving} className="inline-flex items-center px-8 py-3 rounded-full text-sm font-semibold bg-[#fee198] text-[#1a1a1a] hover:bg-[#fdd870] transition-colors disabled:opacity-40 disabled:cursor-not-allowed">
-            {saving ? "Submitting..." : "Submit to Queue"}
-          </button>
-        </div>
-      )}
     </>
   );
 }
