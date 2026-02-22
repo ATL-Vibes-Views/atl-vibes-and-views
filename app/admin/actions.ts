@@ -642,10 +642,13 @@ export async function updateSubmissionStatus(id: string, status: string) {
         }
 
         if (createdRecordId) {
+          const eventId = createdRecordId;
+
+          // PHOTOS
           const eventPhotoUrls = data.photo_urls as string[] | null;
           if (Array.isArray(eventPhotoUrls) && eventPhotoUrls.length > 0) {
             const eventImageRows = eventPhotoUrls.map((url, i) => ({
-              event_id: createdRecordId,
+              event_id: eventId,
               image_url: url,
               sort_order: i,
               is_primary: i === 0,
@@ -655,6 +658,19 @@ export async function updateSubmissionStatus(id: string, status: string) {
               .from("event_images")
               .insert(eventImageRows as never);
             if (eventImgErr) console.error("[approve] event images insert error:", eventImgErr.message);
+          }
+
+          // TAGS
+          const eventTagIds = data.tag_ids as string[] | null;
+          if (Array.isArray(eventTagIds) && eventTagIds.length > 0) {
+            const eventTagRows = eventTagIds.map((tag_id) => ({
+              event_id: eventId,
+              tag_id,
+            }));
+            const { error: eventTagErr } = await supabase
+              .from("event_tags")
+              .insert(eventTagRows as never);
+            if (eventTagErr) console.error("[approve] event tags insert error:", eventTagErr.message);
           }
         }
       }
